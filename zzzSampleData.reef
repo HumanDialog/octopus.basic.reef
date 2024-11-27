@@ -1,0 +1,135 @@
+
+context App::ClearData
+post:
+    self.Groups.forAll( element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
+                        element.Lists.removeAll
+                        element.ArchivedLists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
+                        element.ArchivedLists.removeAll
+                        element.Members.removeAll)
+    self.Groups.removeAll
+    self.Users.removeAll
+
+
+context App::InitSample
+post:
+    self.ClearData()
+   
+    
+    -- Add sample users
+    let alice: User = new User in
+    alice.login = "alice@example.com"
+    alice.Name = "Alice"
+    
+    let bob: User = new User in
+    bob.login = "bob@example.com"
+    bob.Name = "Bob"
+
+    
+    -- -------------------- Home group --------------------------
+    let homeGroup: Group = new Group
+    homeGroup.Name = 'My home group'
+    homeGroup.Lists.removeAll
+    homeGroup.AddUser(alice)
+    homeGroup.AddUser(bob)
+
+    homeGroup.AllTags = "#urgent #grocery #dairy #beauty #clothes #party"
+
+    -- Add some data
+    let list: TaskList in
+    list = homeGroup.Lists.newElement(element.Order = 0)
+    
+    -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
+    let states: JsonObject = [
+        {
+            name: 'Required',
+            state: 0
+        },
+        {
+            name: 'Running out',
+            state: 100
+        },
+        {
+            name: 'Delivering',
+            state: STATE_FINISHED
+        }
+    ]
+
+    list.TaskStates = states.ToString()
+
+    list.Name = "Shopping list"
+    list.IndexPrefix = 'SHP'
+        list.CreateTask('Butter', 'Buy a few on promotion', 0, '#urgent #grocery #dairy', alice)
+        list.CreateTask('Milk', 'As fat as you can', 0, '#grocery #dairy', alice)   
+        list.CreateTask('Bread', 'Take three, two of them will be frozen', 100, '#urgent #grocery', alice)
+        list.CreateTask('Tomatos', '', 0, '#grocery #party');
+        list.CreateTask('Lettuce', 'Must be fresh!', 0, '#grocery #party')
+        list.CreateTask('Beer', "Hefeweizens and Pilsners only, they don't drink modern styles", STATE_FINISHED, '#grocery #party')
+        list.CreateTask('Honey', "It's needed for outmeal", STATE_FINISHED, '#grocery', alice)
+        list.CreateTask('Toothpaste', '', 100, '#beauty', alice)
+        list.CreateTask('Shower gel', '', 100, '#beauty', alice)
+        list.CreateTask('Sneakers', "It's already spring, I need new shoes", 3, '#urgent #clothes', alice)
+    list.ReorderTasks()
+
+    list = homeGroup.Lists.newElement(element.Order = 10)
+    list.Name = "Movies to watch" 
+    list.IndexPrefix = 'MVS'
+        list.CreateTask('From Dusk Till Dawn', '', 0)
+        list.CreateTask('The Lion King', '', 0)
+        list.CreateTask('Back to the Future', '', 0)
+    list.ReorderTasks()
+    
+    list = homeGroup.Lists.newElement(element.Order = 20)
+    list.Name = "Places to visit" 
+    list.IndexPrefix = 'PLC'
+        list.CreateTask('Paris', '', 0)
+        list.CreateTask('Swiss Alps', '', 0)
+        list.CreateTask('Bora Bora', '', 0)
+        list.CreateTask('Rio de Janeiro', '', 0)
+    list.ReorderTasks()
+    
+
+
+    ------------------------------  Work group -------------------------------
+
+    let dreamsGroup: Group = new Group
+    dreamsGroup.Name = 'My Work group'
+    dreamsGroup.Lists.removeAll
+    dreamsGroup.AddUser(alice)
+    dreamsGroup.AddUser(bob)
+
+    -- Add some data
+    list = dreamsGroup.Lists.newElement(element.Order = 0)
+    list.Name = "Actors to meet" 
+    list.IndexPrefix = 'ACT'
+        list.CreateTask('Jim Carrey', '', 0)
+        list.CreateTask('Tobey Maguire', '', 0)
+        list.CreateTask('Dwayne Johnson', '', 0)
+        list.CreateTask('Chris Evans', '', 0)
+        list.CreateTask('Ice Cube', '', 0)
+        list.CreateTask('Chris Rock', '', 0)
+    list.ReorderTasks()
+    
+    list = dreamsGroup.Lists.newElement(element.Order = 20)
+    list.Name = "Cars to buy" 
+    list.IndexPrefix = 'CAR'
+        list.CreateTask('Aston Martin DB5', '', 0)
+        list.CreateTask('DeLorean DMC-12', '', 0)
+        list.CreateTask('Mustang GT 390', '', 0)
+        list.CreateTask('Ford Torino', '', 0)
+    list.ReorderTasks()
+
+
+context TaskList::ReorderTasks()
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.Tasks.orderedBy('ListOrder').forAll(element.ListOrder = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP
+    self.Tasks.orderedBy('ListOrder').revForAll(element.ListOrder = order and order = order - ORDER_STEP)
+
+
+
+context Group::AddUser(u: User)
+pre:
+    u <> null
+post:
+    self.Members.newElement(element.User = u)

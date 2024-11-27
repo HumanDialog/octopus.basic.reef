@@ -1,0 +1,62 @@
+-- Genaral status of Tasks, TaskLists and Projects
+const STATUS_ACTIVE = 0     -- This is a data we usually work on
+const STATUS_ARCHIVED = 1
+--Genaral status of Tasks, TaskLists and Projects
+const STATE_DRAFT       = 0     --Draft, Under construction, Concept, Story 
+const STATE_PREPARED    = 1     --This is a data we usually work on
+-- <2 .. 99> ARE USER DEFINED STATES IN WORKFLOWS FOR PLANNING PHASES
+const STATE_ACCEPTED    = 100
+const STATE_STARTED     = 101
+-- <102 .. 99998> ARE USER DEFINED STATES IN WORKFLOWS FOR PRODUCTION
+const STATE_FINISHED    = 1000     
+const STATE_CANCELLED   = 1001    
+
+--?enum state = [draft: 0, prepared: 1, accepted: 100, started: 101]
+const ORDER_STEP        = 64
+
+
+class Task
+    Title:                  string
+    Summary(196):	        string
+    Tags(64):               string
+    Index(16):              string
+    
+    State:                  integer
+    DueDate:		        date
+ 
+    Actor:                  User
+    Effort:                 integer
+   
+    Steps[0..n]:	        TaskStep 
+    Description:	        string     
+
+    TaskList(0..1):         TaskList
+    ListOrder:              integer
+    UserOrder:              integer
+    Status:                 integer
+
+    TaskListId:             integer
+    ActorId:                integer
+end class
+
+
+class TaskStep
+    Label:                  string
+    Done:                   boolean
+    Order:                  integer
+end class
+
+
+constraint Task::TaskList
+    self.TaskListId = element.Id
+
+
+context Task::Finish()
+post:
+    self.State = STATE_FINISHED
+
+
+context Task::Archive()
+post:
+    self.Status = STATUS_ARCHIVED
+

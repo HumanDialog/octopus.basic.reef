@@ -1,0 +1,35 @@
+class Group
+    Name:                   string
+    Members[0..n]:	        UserGroup       <backNav: Group>
+
+    Lists(0..n):            TaskList
+    ArchivedLists(0..n):    TaskList        
+
+    AllTags:                string
+    ListIndexPrefix:        string
+    TaskIndexCounter:       integer
+end class
+
+
+class UserGroup
+    Group:                  Group           <backNav: Members[0..n]>
+    User:                   User            <backNav: Groups(0..n)>
+end class
+
+
+context Group::OnAfterCreate
+post:
+    self.ListIndexPrefix = 'OCT'
+    let firstList: TaskList in
+    
+    firstList = self.Lists.newElement
+    firstList.Name = "Things to do"
+    
+
+constraint Group::Lists
+    element.GroupId = self.Id and element.Archived = false
+
+
+constraint Group::ArchivedLists
+    element.GroupId = self.Id and element.Archived = true
+

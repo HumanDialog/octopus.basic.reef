@@ -1,0 +1,50 @@
+const ACC_DENIED = 0
+const ACC_READ   = 1
+const ACC_WRITE  = 2
+const ACC_FULL   = 3
+
+access role Anonymous: guest
+    acc App, Group, TaskList, User = ACC_DENIED
+    acc Task = ACC_DENIED
+
+access role Employee:  default
+    acc App = ACC_DENIED
+    acc Group = 
+        if user.Groups.exists(element.Group = group) then
+            ACC_FULL
+        else
+            ACC_DENIED
+        end if
+
+    acc Task = 
+        if self.Actor = user or self.TaskList.Group = group then
+            ACC_FULL
+        else
+            ACC_DENIED
+        end if
+
+    acc TaskList =
+        if self.Group = group then
+            ACC_FULL
+        else
+            ACC_DENIED
+        end if
+
+    acc User = 
+        if self.Id = user.Id then
+            ACC_FULL
+        else if self.Groups.exists(element.Group = group) then
+            ACC_READ
+        else
+            ACC_DENIED
+        end if
+        end if
+
+    --acc UserGroup = ACC_DENIED
+
+    --acc UserGroup, User, TaskStep = ACC_FULL
+    nav Group, UserGroup, User, TaskList, Task, TaskStep
+
+access role Developer
+    acc App,Group,TaskList,Task,TaskStep,UserGroup,User = ACC_FULL
+    

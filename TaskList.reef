@@ -1,0 +1,76 @@
+class TaskList
+    Name:                   string
+    Tasks(0..n):            Task
+    ArchivedTasks(0..n):    Task
+    Order:                  integer
+    TaskStates:             string
+    Archived:               boolean
+    IndexPrefix:            string
+
+    Group:                  Group
+    GroupId:                integer
+end class
+ 
+
+constraint TaskList::Tasks
+    element.TaskListId = self.Id and element.Status = STATUS_ACTIVE
+ 
+
+
+constraint TaskList::ArchivedTasks
+    element.TaskListId = self.Id and element.Status = STATUS_ARCHIVED
+
+
+constraint TaskList::Group
+    self.GroupId = element.Id
+
+
+context TaskList::FinishAll()
+post:
+    self.Tasks.select(element.State <> STATE_FINISHED).forAll(element.Finish())
+
+
+context TaskList::Archive()
+post:
+    self.Tasks.forAll(element.Archive())
+    self.Archived = true
+
+
+context TaskList::CreateTaskEx(properties: JsonObject): Task
+post:
+    let task: Task = new Task
+    task.Title = properties.Title
+    task.Summary = properties.Summary
+    task.Description = properties.Description
+    task.ListOrder = properties.ListOrder
+    task.State = properties.State
+    task.Tags = properties.Tags
+    task.Status = STATUS_ACTIVE
+
+    if self.IndexPrefix.Len <> 0 then
+        task.Index = self.IndexPrefix + '-' + (self.Tasks.count + 1)
+    else 
+        self.Group.TaskIndexCounter = self.Group.TaskIndexCounter + 1
+        task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
+    end if
+
+    self.Tasks.insert(task)
+    result = task
+
+
+context TaskList::CreateTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
+post:
+    let props :JsonObject = {
+        Title: title,
+        Summary: summary,
+        State: state,
+        Tags: tags
+    }
+
+    result = self.CreateTaskEx(props)
+    result.Actor = actor
+
+
+
+
+

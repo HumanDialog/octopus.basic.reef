@@ -1,0 +1,6 @@
+
+class App
+    Users<all>:     User
+    Groups<all>:    Group
+end class 
+

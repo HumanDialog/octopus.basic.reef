@@ -1,0 +1,29 @@
+const MIN_USER_TASK_ORDER   = &h80000000
+const LAST_USER_TASK_ORDER  = &h7FFFFFFF
+--const LAST_USER_TASK_ORDER_STEP = 16    --2^4
+
+class User
+    login:              string
+	groupid:            integer
+    Name:               string
+    Email:              string
+    MyTasks(0..n):      Task            <backNav: Actor(0..1)>
+    Groups(0..n):       UserGroup       <backNav: User>
+end class
+
+
+context User::OnAfterCreate
+post:
+    if group <> null then
+        group.Members.newElement(element.User = self)
+    end if
+
+
+constraint User::MyTasks
+    element.ActorId = self.Id and element.Status = STATUS_ACTIVE
+
+
+context User::FinishTasks()
+post:
+    self.MyTasks.select(element.State <> STATE_FINISHED).forAll(element.Finish())
+
