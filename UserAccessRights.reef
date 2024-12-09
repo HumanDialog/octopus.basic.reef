@@ -4,27 +4,60 @@ const ACC_WRITE  = 2
 const ACC_FULL   = 3
 
 access role Anonymous: guest
-    acc App, Group, TaskList, User = ACC_DENIED
-    acc Task = ACC_DENIED
+    acc App = ACC_READ
+    --acc App[DEMO] = ACC_READ
 
-access role Employee:  default
-    acc App = ACC_DENIED
+    --acc Group[MAN] = 
+    --    if self.IsPublic then
+    --        ACC_READ
+    --    else
+    --        ACC_DENIED
+    --    end if
+
     acc Group = 
-        if user.Groups.exists(element.Group = group) then
+        if self.IsPublic then
+            ACC_FULL
+        else
+            ACC_DENIED
+        end if
+
+    acc TaskList = 
+        if self.Group.IsPublic then
             ACC_FULL
         else
             ACC_DENIED
         end if
 
     acc Task = 
-        if self.Actor = user or self.TaskList.Group = group then
+        if self.TaskList.Group.IsPublic then
+            ACC_FULL
+        else
+            ACC_DENIED
+        end if
+
+    acc User = ACC_DENIED
+    nav App, Group, UserGroup, TaskList, Task, TaskStep
+
+access role Employee:  default
+    --acc App[DEMO] = ACC_READ
+    acc App = ACC_READ
+    
+    acc Group =
+        if self.IsPublic or user.Groups.exists(element.Group = group) then
             ACC_FULL
         else
             ACC_DENIED
         end if
 
     acc TaskList =
-        if self.Group = group then
+        if self.Group = group or self.Group.IsPublic then
+            ACC_FULL
+        else
+            ACC_DENIED
+        end if
+
+    acc Task = 
+        if self.Actor = user or self.TaskList.Group = group or self.TaskList.Group.IsPublic then
             ACC_FULL
         else
             ACC_DENIED
@@ -40,9 +73,6 @@ access role Employee:  default
         end if
         end if
 
-    --acc UserGroup = ACC_DENIED
-
-    --acc UserGroup, User, TaskStep = ACC_FULL
     nav Group, UserGroup, User, TaskList, Task, TaskStep
 
 access role Developer

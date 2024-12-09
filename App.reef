@@ -2,5 +2,12 @@
 class App
     Users<all>:     User
     Groups<all>:    Group
+
+public DEMO:
+    PublicGroups(0..n): Group
+
 end class 
+
+constraint App::PublicGroups
+    element.IsPublic = true
 

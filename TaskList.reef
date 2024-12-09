@@ -39,6 +39,8 @@ post:
 context TaskList::CreateTaskEx(properties: JsonObject): Task
 post:
     let task: Task = new Task
+    self.Tasks.insert(task)
+    
     task.Title = properties.Title
     task.Summary = properties.Summary
     task.Description = properties.Description
@@ -54,7 +56,7 @@ post:
         task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
     end if
 
-    self.Tasks.insert(task)
+    
     result = task
 
 

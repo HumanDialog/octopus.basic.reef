@@ -10,35 +10,27 @@ post:
     self.Users.removeAll
 
 
-context App::InitSample
+context App::ResetDemoData
 post:
-    self.ClearData()
-   
-    
-    -- Add sample users
-    let alice: User = new User in
-    alice.login = "alice@example.com"
-    alice.Name = "Alice"
-    
-    let bob: User = new User in
-    bob.login = "bob@example.com"
-    bob.Name = "Bob"
+    self.PublicGroups.forAll(   element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
+                                element.Lists.removeAll
+                                element.ArchivedLists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
+                                element.ArchivedLists.removeAll
+                                element.Members.removeAll)
+    self.PublicGroups.removeAll
 
-    
     -- -------------------- Home group --------------------------
     let homeGroup: Group = new Group
+    homeGroup.IsPublic = true
     homeGroup.Name = 'My home group'
     homeGroup.Lists.removeAll
-    homeGroup.AddUser(alice)
-    homeGroup.AddUser(bob)
-
+    
     homeGroup.AllTags = "#urgent #grocery #dairy #beauty #clothes #party"
 
     -- Add some data
     let list: TaskList in
     list = homeGroup.Lists.newElement(element.Order = 0)
     
-    -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
     let states: JsonObject = [
         {
             name: 'Required',
@@ -58,16 +50,16 @@ post:
 
     list.Name = "Shopping list"
     list.IndexPrefix = 'SHP'
-        list.CreateTask('Butter', 'Buy a few on promotion', 0, '#urgent #grocery #dairy', alice)
-        list.CreateTask('Milk', 'As fat as you can', 0, '#grocery #dairy', alice)   
-        list.CreateTask('Bread', 'Take three, two of them will be frozen', 100, '#urgent #grocery', alice)
+        list.CreateTask('Butter', 'Buy a few on promotion', 0, '#urgent #grocery #dairy')
+        list.CreateTask('Milk', 'As fat as you can', 0, '#grocery #dairy')   
+        list.CreateTask('Bread', 'Take three, two of them will be frozen', 100, '#urgent #grocery')
         list.CreateTask('Tomatos', '', 0, '#grocery #party');
         list.CreateTask('Lettuce', 'Must be fresh!', 0, '#grocery #party')
         list.CreateTask('Beer', "Hefeweizens and Pilsners only, they don't drink modern styles", STATE_FINISHED, '#grocery #party')
-        list.CreateTask('Honey', "It's needed for outmeal", STATE_FINISHED, '#grocery', alice)
-        list.CreateTask('Toothpaste', '', 100, '#beauty', alice)
-        list.CreateTask('Shower gel', '', 100, '#beauty', alice)
-        list.CreateTask('Sneakers', "It's already spring, I need new shoes", 3, '#urgent #clothes', alice)
+        list.CreateTask('Honey', "It's needed for outmeal", STATE_FINISHED, '#grocery')
+        list.CreateTask('Toothpaste', '', 100, '#beauty')
+        list.CreateTask('Shower gel', '', 100, '#beauty')
+        list.CreateTask('Sneakers', "It's already spring, I need new shoes", 3, '#urgent #clothes')
     list.ReorderTasks()
 
     list = homeGroup.Lists.newElement(element.Order = 10)
@@ -89,14 +81,13 @@ post:
     
 
 
-    ------------------------------  Work group -------------------------------
+    ------------------------------  Dreams group -------------------------------
 
     let dreamsGroup: Group = new Group
-    dreamsGroup.Name = 'My Work group'
+    dreamsGroup.IsPublic = true
+    dreamsGroup.Name = 'My dreams group'
     dreamsGroup.Lists.removeAll
-    dreamsGroup.AddUser(alice)
-    dreamsGroup.AddUser(bob)
-
+    
     -- Add some data
     list = dreamsGroup.Lists.newElement(element.Order = 0)
     list.Name = "Actors to meet" 
@@ -119,6 +110,118 @@ post:
     list.ReorderTasks()
 
 
+
+
+context App::InitSample
+post:
+    self.ClearData()
+   
+    self.ResetDemoData()
+
+    -- Add sample users
+    let alice: User = new User in
+    alice.login = "alice@example.com"
+    alice.Name = "Alice"
+    
+    let bob: User = new User in
+    bob.login = "bob@example.com"
+    bob.Name = "Bob"
+
+    
+    -- -------------------- Motorcycle's production --------------------------
+    let motorcycleCompany: Group = new Group
+    motorcycleCompany.Name = "Motorcycle's production"
+    motorcycleCompany.Lists.removeAll
+    motorcycleCompany.OnAddUser(alice)
+    motorcycleCompany.OnAddUser(bob)
+
+    motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
+
+    -- Add some data
+    let list: TaskList in
+    list = motorcycleCompany.Lists.newElement(element.Order = 0)
+    
+    -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
+    let states: JsonObject = [
+        {
+            name: 'Preparing',
+            state: 0
+        },
+        {
+            name: 'In progress',
+            state: 100
+        },
+        {
+            name: 'Done',
+            state: STATE_FINISHED
+        }
+    ]
+
+    list.TaskStates = states.ToString()
+
+    list.Name = "Design"
+    list.IndexPrefix = 'DGN'
+        list.CreateTask('Target Audience Definition', 'Identify the specific demographics and needs of the intended buyers', STATE_FINISHED, '#urgent', alice)
+        list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '', alice)   
+        list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', 100, '#prototype', alice)
+        list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', 0, '#prototype');
+        list.CreateTask('Ergonomics Testing', 'Ensure the motorcycle provides a comfortable and functional ride for the target user.', 0, '#prototype')
+        list.CreateTask('Prototype Development', "Build a working prototype to test the design and functionality", 0, '#prototype')
+    list.ReorderTasks()
+
+    list = motorcycleCompany.Lists.newElement(element.Order = 10)
+    list.Name = "Engineering" 
+    list.IndexPrefix = 'ENG'
+        list.CreateTask('Performance Testing', 'Test the prototype for speed, handling, durability, and efficiency.', 0)
+        list.CreateTask('Safety Testing', 'Ensure compliance with safety regulations and conduct crash tests where necessary.', 0)
+        list.CreateTask('Environmental Compliance', 'Meet emissions standards and other environmental regulations.', 0)
+        list.CreateTask('Refinement', 'Address issues identified during testing, including mechanical, aesthetic, and ergonomic concerns.', 0)
+    list.ReorderTasks()
+    
+    list = motorcycleCompany.Lists.newElement(element.Order = 20)
+    list.Name = "Branding" 
+    list.IndexPrefix = 'BRD'
+        list.CreateTask('Product Naming and Branding', 'Develop a name, logo, and identity for the new motorcycle.', 0)
+        list.CreateTask('Marketing Strategy', 'Plan campaigns, including online, print, and event-based marketing.', 0)
+        list.CreateTask('Customer Engagement', 'Organize focus groups or pre-launch surveys to gather feedback.', 0)
+        list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
+    list.ReorderTasks()
+    
+
+
+    ------------------------------  Publishing company -------------------------------
+
+    let publishingCompany: Group = new Group
+    publishingCompany.Name = 'Publishing company'
+    publishingCompany.Lists.removeAll
+    publishingCompany.OnAddUser(alice)
+    publishingCompany.OnAddUser(bob)
+
+    -- Add some data
+    list = publishingCompany.Lists.newElement(element.Order = 0)
+    list.Name = "Publishing" 
+    list.IndexPrefix = 'PUB'
+        list.CreateTask('Writing', '', 0)
+        list.CreateTask('Editing', '', 0)
+        list.CreateTask('Typesetting', '', 0)
+        list.CreateTask('Cover design', '', 0)
+        list.CreateTask('ISBN', '', 0)
+        list.CreateTask('Copyright', '', 0)
+    list.ReorderTasks()
+    
+    list = publishingCompany.Lists.newElement(element.Order = 20)
+    list.Name = "Marketing and Sales" 
+    list.IndexPrefix = 'MAS'
+        list.CreateTask('Promotion plan', '', 0)
+        list.CreateTask('Promo materials', '', 0)
+        list.CreateTask('Contact with media', '', 0)
+        list.CreateTask('Book launch', '', 0)
+        list.CreateTask('Choosing sales platforms', '', 0)
+        list.CreateTask('Shipping logistics', '', 0)
+    list.ReorderTasks()
+
+
+
 context TaskList::ReorderTasks()
 post:
     let order: integer = MIN_USER_TASK_ORDER in
@@ -128,8 +231,3 @@ post:
 
 
 
-context Group::AddUser(u: User)
-pre:
-    u <> null
-post:
-    self.Members.newElement(element.User = u)

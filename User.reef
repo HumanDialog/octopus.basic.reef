@@ -12,12 +12,6 @@ class User
 end class
 
 
-context User::OnAfterCreate
-post:
-    if group <> null then
-        group.Members.newElement(element.User = self)
-    end if
-
 
 constraint User::MyTasks
     element.ActorId = self.Id and element.Status = STATUS_ACTIVE
