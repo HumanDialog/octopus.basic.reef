@@ -30,15 +30,6 @@ post:
     firstList.Name = "Things to do"
     
 
--- callback invoked by system --
-context Group::OnAddUser(u: User)
-pre:
-    u <> null
-post:
-    self.Members.newElement(element.User = u)
-
-
-
 constraint Group::Lists
     element.GroupId = self.Id and element.Archived = false
 

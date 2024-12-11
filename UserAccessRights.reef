@@ -75,6 +75,5 @@ access role Employee:  default
 
     nav Group, UserGroup, User, TaskList, Task, TaskStep
 
-access role Developer
-    acc App,Group,TaskList,Task,TaskStep,UserGroup,User = ACC_FULL
+
     

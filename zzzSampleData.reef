@@ -132,8 +132,8 @@ post:
     let motorcycleCompany: Group = new Group
     motorcycleCompany.Name = "Motorcycle's production"
     motorcycleCompany.Lists.removeAll
-    motorcycleCompany.OnAddUser(alice)
-    motorcycleCompany.OnAddUser(bob)
+    motorcycleCompany.AddUser(alice)
+    motorcycleCompany.AddUser(bob)
 
     motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
 
@@ -194,8 +194,8 @@ post:
     let publishingCompany: Group = new Group
     publishingCompany.Name = 'Publishing company'
     publishingCompany.Lists.removeAll
-    publishingCompany.OnAddUser(alice)
-    publishingCompany.OnAddUser(bob)
+    publishingCompany.AddUser(alice)
+    publishingCompany.AddUser(bob)
 
     -- Add some data
     list = publishingCompany.Lists.newElement(element.Order = 0)
@@ -231,3 +231,8 @@ post:
 
 
 
+context Group::AddUser(u: User)
+pre:
+    u <> null
+post:
+    self.Members.newElement(element.User = u)
