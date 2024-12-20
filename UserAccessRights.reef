@@ -36,7 +36,7 @@ access role Anonymous: guest
         end if
 
     acc User = ACC_DENIED
-    nav App, Group, UserGroup, TaskList, Task, TaskStep
+    nav Group, UserGroup, TaskList, Task, TaskStep
 
 access role Employee:  default
     --acc App[DEMO] = ACC_READ
