@@ -162,6 +162,20 @@ post:
     list.Name = "Design"
     list.IndexPrefix = 'DGN'
         list.CreateTask('Target Audience Definition', 'Identify the specific demographics and needs of the intended buyers', STATE_FINISHED, '#urgent', alice)
+            list.Tasks.last.AddAttachement('Deer.jpg', 'deer.jpg')
+            list.Tasks.last.AddAttachement('Flowers.png', 'flowers.png')
+            list.Tasks.last.AddAttachement('Tree.webp', 'tree.webp')
+            
+            
+            list.Tasks.last.Description = '<h1>Description with images</h1>
+            <p>Deer</p>
+            <img alt="Deer" src="http://localhost:1996/json/anyv/Group/13/Lists/19/Tasks/38/Attachements/11/blob"/>
+            <p>Flowers</p>
+            <img alt="Flowers" src="http://localhost:1996/json/anyv/Group/13/Lists/19/Tasks/38/Attachements/12/blob"/>
+            <p>Tree</p>
+            <img alt="Tree" src="http://localhost:1996/json/anyv/Group/13/Lists/19/Tasks/38/Attachements/13/blob"/>
+            '
+
         list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '', alice)   
         list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', 100, '#prototype', alice)
         list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', 0, '#prototype');
@@ -236,3 +250,10 @@ pre:
     u <> null
 post:
     self.Members.newElement(element.User = u)
+
+context Task::AddAttachement(name: string, key: string) : File
+post:
+    --let file: File in
+    result = self.Attachements.newElement(element.Name = name)
+    result.Key = key
+    --result = file

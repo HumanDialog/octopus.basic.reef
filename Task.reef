@@ -35,6 +35,8 @@ class Task
     UserOrder:              integer
     Status:                 integer
 
+    Attachements[0..n]:     File
+
     TaskListId:             integer
     ActorId:                integer
 end class
