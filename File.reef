@@ -1,6 +1,0 @@
-
-class File
-    Key:    string      -- system field, do not remove it
-    Name:   string
-end class
-

@@ -29,13 +29,12 @@ class Task
    
     Steps[0..n]:	        TaskStep 
     Description:	        string     
+    Images:                 string  -- todo readonly property. Set by system on /blob API calls
 
     TaskList(0..1):         TaskList
     ListOrder:              integer
     UserOrder:              integer
     Status:                 integer
-
-    Attachements[0..n]:     File
 
     TaskListId:             integer
     ActorId:                integer
