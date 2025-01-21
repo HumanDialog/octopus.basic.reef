@@ -3,7 +3,7 @@ class App
     Users<all>:     User
     Groups<all>:    Group
 
-public DEMO:
+--public DEMO:
     PublicGroups(0..n): Group
 
 end class 

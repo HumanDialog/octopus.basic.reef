@@ -1,9 +1,9 @@
 class Group
-public MAN:
+--public:
     Members[0..n]:	        UserGroup       <backNav: Group>
     IsPublic:               boolean
 
-public:
+--public:
     Name:                   string
 
     Lists(0..n):            TaskList
