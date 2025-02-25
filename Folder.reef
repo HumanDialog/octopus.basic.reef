@@ -1,0 +1,64 @@
+
+const FS_SHARED = 9
+const FS_PUBLIC = 10
+
+class Folder
+    Title(128):         string
+    Summary(196):       string
+    Group:              Group       <backNav: Folders>
+    User:               User        <backNav: Folders>
+    Kind:               string
+    Status:             integer
+    Folders[0..n]:      FolderFolder
+    InFolders[0..n]:    FolderFolder
+    Notes[0..n]:        FolderNote
+    Tasks[0..n]:        FolderTask
+    GroupId:            integer             
+end class
+
+
+class FolderFolder
+    Title(128):         string  
+    Kind:               integer   
+    Group:              Group 
+    Folder(0..1):       Folder      <backNav: InFolders[0..n]>
+    InFolder(0..1):     Folder      <backNav: Folders[0..n]>
+    GroupId:            integer     
+    InFolderId:         integer
+    FolderId:           integer
+end class
+
+context FolderFolder
+inv:
+    self.Title = self.Folder.Title
+
+constraint Folder::Folders
+    element.InFolderId = self.Id 
+    
+constraint FolderFolder::Folder
+    self.FolderId = element.Id    
+
+class FolderNote
+    Title(128):     string
+    Folder(0..1):   Folder  <backNav: Notes[0..n]>
+    Note(0..1):     Note    <backNav: InFolders[0..n]>
+end class
+
+context FolderFolder
+inv:
+    self.Title = self.Folder.Title
+
+class FolderTask
+    Folder(0..1):   Folder <backNav: Tasks[0..n]>
+    Task(0..1):     Task   <backNav: InFolders[0..n]>
+end class      
+
+context Folder::IsPublic: boolean
+post:
+     result = (self.Status = FS_PUBLIC)
+        
+context Folder::IsShared: boolean
+post:
+     result = (self.Status = FS_SHARED)        
+     
+     

@@ -247,3 +247,17 @@ pre:
     u <> null
 post:
     self.Members.newElement(element.User = u)
+
+
+context Group::CheckFolder(Title: string)
+post:
+    if not self.Folders.select(e | e.Title = Title).exists then
+        self.Folders.newElement(e | e.Title = Title)        
+    end if
+    
+context Group::CheckFolders
+post:
+    self.CheckFolder("Notes")
+    self.CheckFolder("Projects")
+    self.CheckFolder("Ideas")    
+        

@@ -83,6 +83,21 @@ access role GroupOwner: Employee
             ACC_DENIED
         end if
         end if
+        
+    acc Folder = 
+        if self.GroupId = group.Id then
+            ACC_FULL
+        else 
+            self.CalculateAccessLevel
+        end if     
+    
+    acc FolderFolder = 
+        if self.GroupId = group.Id then
+            ACC_FULL
+        else
+            ACC_READ    
+        end if    
+            
 
     nav Group, UserGroup, User, TaskList, Task, TaskStep
 
@@ -91,4 +106,15 @@ context User::IsInGroup(g: Group): boolean
 post:
     result = self.Groups.exists(element.Group = g)
 
-    
+context Folder::CalculateAccessLevel: integer
+post:
+    result = ACC_DENIED
+    if self.IsPublic then
+        result = ACC_FULL
+    else 
+        if self.IsShared then
+            if self.InFolders.exists(element.GroupId = group.Id) then
+                result = ACC_READ       
+            end if
+        end if
+    end if    

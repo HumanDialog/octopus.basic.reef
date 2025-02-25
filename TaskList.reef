@@ -1,3 +1,11 @@
+const TLK_KANBAN    =  0
+const TLK_LIST      =  1
+const TLK_CALENDAR  =  2
+const TLK_DAY       = 10
+const TLK_WEEK      = 11
+const TLK_MONTH     = 12
+
+
 class TaskList
     Name:                   string
     Tasks(0..n):            Task
@@ -6,7 +14,7 @@ class TaskList
     TaskStates:             string
     Archived:               boolean
     IndexPrefix:            string
-
+    Kind:                   integer
     Group:                  Group
     GroupId:                integer
 end class
@@ -23,6 +31,22 @@ constraint TaskList::ArchivedTasks
 
 constraint TaskList::Group
     self.GroupId = element.Id
+    
+context TaskList::href: string
+post:
+    select case self.Kind
+    case TLK_KANBAN --0:  
+        result = '#/listboard/' + self.Id 
+    case TLK_LIST    
+        result = '#/tasklist/' + self.Id
+    case TLK_CALENDAR
+        result = '#/listboard/' + self.Id      
+    case TLK_DAY
+        result = '#/tasklist/' + self.Id
+    case else
+        result = '#/tasklist/' + self.Id
+    end select    
+                
 
 
 context TaskList::FinishAll()

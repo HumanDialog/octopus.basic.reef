@@ -16,26 +16,27 @@ const ORDER_STEP        = 64
 
 
 class Task
-    Title:                  string
+    Title(128):             string
     Summary(196):	        string
     Tags(64):               string
     Index(16):              string
-    
+    Kind:                   integer
     State:                  integer
-    DueDate:		        date
- 
     Actor:                  User
+    DueDate:		        date
     Effort:                 integer
-   
+    Status:                 integer
+       
     Steps[0..n]:	        TaskStep 
     Description:	        string     
     Images:                 string      <readOnly>
 
     TaskList(0..1):         TaskList
+    InFolders[0..n]:        FolderTask
+    Notes[0..n]:            TaskNote
     ListOrder:              integer
     UserOrder:              integer
-    Status:                 integer
-
+    
     TaskListId:             integer
     ActorId:                integer
 end class
@@ -45,6 +46,11 @@ class TaskStep
     Label:                  string
     Done:                   boolean
     Order:                  integer
+end class
+
+class TaskNote
+    Note:                   Note <backNav: InTasks>
+    Task:                   Task <backNav: Notes>
 end class
 
 
@@ -60,4 +66,9 @@ post:
 context Task::Archive()
 post:
     self.Status = STATUS_ARCHIVED
+    
+context Task::MainPage: string
+post:
+    result = "TaskDoc/"+self.Id
+    
 

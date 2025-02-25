@@ -1,0 +1,33 @@
+class MessageChannel
+    Title(128):             string
+    Summary(196):           string
+    Group(0..1):            Group <backNav: MessageChannels[0..n]>
+    Messages(0..n):         Message  
+end class
+
+class Message
+    Text(196):	            string
+    Tags(64):               string
+    Index(8):               string
+    Kind:                   integer
+    State:                  integer
+    Author:                 User
+    Date:    	            date
+    Images:                 string          <readOnly>
+    Notes[0..n]:            MessageNote 
+    Tasks[0..n]:            MessageTask
+    Channel(0..1):          MessageChannel  <backNav: Messages>
+end class
+
+class MessageNote
+    Title(128):     string
+    Message(0..1):  Message
+    Note(0..1):     Note
+end class
+
+class MessageTask
+    Title(128):     string
+    Message(0..1):  Message
+    Task(0..1):     Task
+end class     
+

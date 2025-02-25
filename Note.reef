@@ -1,0 +1,18 @@
+class Note
+    Title(128):             string
+    Summary(196):	        string
+    Tags(64):               string
+    Index(16):              string
+    Kind:                   integer
+    State:                  integer
+    CreationDate:	        date
+    ModificationDate:       date
+    CreatedBy:              User
+    ModifiedBy:             User
+    
+    Content:	            string     
+    Images:                 string      <readOnly>
+    InFolders[0..n]:        FolderNote
+    InTasks[0..n]:          TaskNote
+    InMessages[0..n]:       MessageNote
+end class

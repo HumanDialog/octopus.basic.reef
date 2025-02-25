@@ -9,6 +9,7 @@ class User
     Email:              string
     MyTasks(0..n):      Task            <backNav: Actor(0..1)>
     Groups(0..n):       UserGroup       <backNav: User>
+    Folders(0..n):      Folder          <backNav: User>
 end class
 
 

@@ -7,13 +7,23 @@ class Group
     Name:                   string
 
     Lists(0..n):            TaskList
-    ArchivedLists(0..n):    TaskList        
+    ArchivedLists(0..n):    TaskList     
+    Folders(0..n):          Folder
+    MessageChannels(0..n):  MessageChannel  <backNav: Group> 
 
     AllTags:                string
     ListIndexPrefix:        string
+    
+    RelatedGroups(0..n):    GroupGroup   <backNav: FromGroup>
+    RelatedToGroups(0..n):  GroupGroup   <backNav: Group>
+        
     TaskIndexCounter:       integer
 end class
 
+class GroupGroup
+    Group:                  Group
+    FromGroup:              Group
+end class
 
 class UserGroup
     Group:                  Group           <backNav: Members[0..n]>
