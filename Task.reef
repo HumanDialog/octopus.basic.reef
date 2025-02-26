@@ -31,9 +31,10 @@ class Task
     Description:	        string     
     Images:                 string      <readOnly>
 
-    TaskList(0..1):         TaskList
+    TaskList(0..1):         TaskList    <backNav: AllTasks>
     InFolders[0..n]:        FolderTask
     Notes[0..n]:            TaskNote
+    InMessages[0..n]:       MessageTask
     ListOrder:              integer
     UserOrder:              integer
     

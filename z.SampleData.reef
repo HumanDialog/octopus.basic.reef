@@ -1,10 +1,10 @@
 
 context App::ClearData
 post:
-    self.Groups.forAll( element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
+    self.Groups.forAll( element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.AllTasks.removeAll)
                         element.Lists.removeAll
-                        element.ArchivedLists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
-                        element.ArchivedLists.removeAll
+                        element.AllLists.forAll(list: TaskList| list.Tasks.removeAll and list.AllTasks.removeAll)
+                        element.AllLists.removeAll
                         element.Members.removeAll)
     self.Groups.removeAll
     self.Users.removeAll
@@ -12,10 +12,10 @@ post:
 
 context App::ResetDemoData
 post:
-    self.PublicGroups.forAll(   element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
+    self.PublicGroups.forAll(   element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.AllTasks.removeAll)
                                 element.Lists.removeAll
-                                element.ArchivedLists.forAll(list: TaskList| list.Tasks.removeAll and list.ArchivedTasks.removeAll)
-                                element.ArchivedLists.removeAll
+                                element.AllLists.forAll(list: TaskList| list.Tasks.removeAll and list.AllTasks.removeAll)
+                                element.AllLists.removeAll
                                 element.Members.removeAll)
     self.PublicGroups.removeAll
 
@@ -260,4 +260,54 @@ post:
     self.CheckFolder("Notes")
     self.CheckFolder("Projects")
     self.CheckFolder("Ideas")    
+    
+context Group::DeleteAllFolders
+post:
+    self.AllFolders.removeAll    
         
+context User::CheckFolder(Title: string)
+post:
+    if not self.Folders.select(e | e.Title = Title).exists then
+        let f: Folder = self.Folders.newElement(e | e.Title = Title) in
+        f.CreateSubFolders(3)
+        f.CreateTasks(3)
+        f.CreateNotes(3)              
+    end if
+    
+context Folder::CreateSubFolders(no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateSubFolder(self.Title + " F" + i))
+    
+context Folder::CreateSubFolder(Title: string)
+post:
+    let subfolder: Folder = new Folder in
+    subfolder.Title = Title     
+    self.Folders.newElement(ff| ff.Folder = subfolder)    
+    
+context Folder::CreateNotes(no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateNote(self.Title + " Note " + i))
+    
+context Folder::CreateNote(Title: string)
+post:
+    let note: Note = new Note in
+    note.Title = Title     
+    self.Notes.newElement(nn | nn.Note = note)    
+   
+context Folder::CreateTasks(no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateTask(self.Title + " Task " + i))
+    
+context Folder::CreateTask(Title: string)
+post:
+    let task: Task = new Task in
+    task.Title = Title     
+    self.Tasks.newElement(tt | tt.Task = task)      
+        
+    
+context User::CheckFolders
+post:
+    self.CheckFolder("My Notes")
+    self.CheckFolder("My Projects")
+    self.CheckFolder("My Ideas") 
+    self.GetBasketFolder()           

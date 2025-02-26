@@ -1,7 +1,12 @@
+const CS_GROUP_ROOT_CHANNEL = 1
+
 class MessageChannel
     Title(128):             string
     Summary(196):           string
-    Group(0..1):            Group <backNav: MessageChannels[0..n]>
+    Status:                 integer
+    Group(0..1):            Group <backNav: MessageChannels(0..n)>
+    GroupId:                 integer
+    Users[0..n]:            MessageChannelUser <backNav: MessageChannel>             
     Messages(0..n):         Message  
 end class
 
@@ -11,23 +16,28 @@ class Message
     Index(8):               string
     Kind:                   integer
     State:                  integer
-    Author:                 User
+    Author:                 User            <backNav: MyMessages(0..n)>
     Date:    	            date
     Images:                 string          <readOnly>
-    Notes[0..n]:            MessageNote 
-    Tasks[0..n]:            MessageTask
+    Notes[0..n]:            MessageNote     <backNav: Message>
+    Tasks[0..n]:            MessageTask     <backNav: Message>
     Channel(0..1):          MessageChannel  <backNav: Messages>
 end class
 
 class MessageNote
     Title(128):     string
-    Message(0..1):  Message
-    Note(0..1):     Note
+    Message(0..1):  Message     <backNav: Notes>
+    Note(0..1):     Note        <backNav: InMessages>
 end class
 
 class MessageTask
     Title(128):     string
-    Message(0..1):  Message
-    Task(0..1):     Task
+    Message(0..1):  Message     <backNav: Tasks>
+    Task(0..1):     Task        <backNav: InMessages>
 end class     
 
+class MessageChannelUser
+    MessageChannel:     MessageChannel
+    User:               User
+    UserId:             integer
+end class
