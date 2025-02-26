@@ -5,17 +5,22 @@ const TLK_DAY       = 10
 const TLK_WEEK      = 11
 const TLK_MONTH     = 12
 
+const TLS_GROUP_ACTIVE_LIST     = 0
+const TLS_GROUP_ARCHVIVED_LIST  = 1000
+
 
 class TaskList
     Name:                   string
-    Tasks(0..n):            Task
-    ArchivedTasks(0..n):    Task
+    Tasks(0..n):            Task     
+    AllTasks(0..n):         Task    <backNav: TaskList>
     Order:                  integer
     TaskStates:             string
     Archived:               boolean
     IndexPrefix:            string
     Kind:                   integer
+    Status:                 integer
     Group:                  Group
+    InGroup:                Group
     GroupId:                integer
 end class
  
@@ -25,12 +30,24 @@ constraint TaskList::Tasks
  
 
 
-constraint TaskList::ArchivedTasks
-    element.TaskListId = self.Id and element.Status = STATUS_ARCHIVED
+constraint TaskList::AllTasks
+    element.TaskListId = self.Id 
 
 
 constraint TaskList::Group
     self.GroupId = element.Id
+    
+context TaskList::SwitchToList    
+post:
+    self.Kind = TLK_LIST
+    
+context TaskList::SwitchToKanban    
+post:
+    self.Kind = TLK_KANBAN
+    
+context TaskList::SwitchToCalendar    
+post:
+    self.Kind = TLK_CALENDAR    
     
 context TaskList::href: string
 post:

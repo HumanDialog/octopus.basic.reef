@@ -1,26 +1,33 @@
 
-const FS_SHARED = 9
-const FS_PUBLIC = 10
+const FS_SHARED_FOLDER      = 9
+const FS_PUBLIC_FOLDER      = 10
+const FS_USER_ROOT_FOLDER   = 101
+const FS_GROUP_ROOT_FOLDER  = 102
+
+const FK_BASKET             = 101
 
 class Folder
     Title(128):         string
     Summary(196):       string
-    Group:              Group       <backNav: Folders>
+    Group:              Group       <backNav: AllFolders>
     User:               User        <backNav: Folders>
-    Kind:               string
+    FolderOwner:        User        <backNav: AllFolders>
+    Kind:               integer
     Status:             integer
     Folders[0..n]:      FolderFolder
     InFolders[0..n]:    FolderFolder
     Notes[0..n]:        FolderNote
     Tasks[0..n]:        FolderTask
-    GroupId:            integer             
+    Order:              integer
+    GroupId:            integer
+    UserId:             integer             
 end class
 
 
 class FolderFolder
     Title(128):         string  
     Kind:               integer   
-    Group:              Group 
+    Group:              Group       <backNav: FolderFolder>
     Folder(0..1):       Folder      <backNav: InFolders[0..n]>
     InFolder(0..1):     Folder      <backNav: Folders[0..n]>
     GroupId:            integer     
@@ -55,10 +62,12 @@ end class
 
 context Folder::IsPublic: boolean
 post:
-     result = (self.Status = FS_PUBLIC)
+     result = (self.Status = FS_PUBLIC_FOLDER)
         
 context Folder::IsShared: boolean
 post:
-     result = (self.Status = FS_SHARED)        
+     result = (self.Status = FS_SHARED_FOLDER)        
      
-     
+context Folder::href: string
+post:
+    result = "Folder/" + self.Id    

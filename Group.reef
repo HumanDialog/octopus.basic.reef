@@ -6,17 +6,18 @@ class Group
 --public:
     Name:                   string
 
-    Lists(0..n):            TaskList
-    ArchivedLists(0..n):    TaskList     
-    Folders(0..n):          Folder
-    MessageChannels(0..n):  MessageChannel  <backNav: Group> 
-
+    Lists(0..n):                TaskList        <backNav: InGroup>
+    AllLists(0..n):             TaskList        <backNav: Group>
+    Folders(0..n):              Folder          <backNav: InGroup>
+    AllFolders(0..n):           Folder          <backNav: Group>
+    MessageChannels(0..n):      MessageChannel  <backNav: InGroup> 
+    AllMessageChannels(0..n):   MessageChannel  <backNav: Group> 
     AllTags:                string
     ListIndexPrefix:        string
     
     RelatedGroups(0..n):    GroupGroup   <backNav: FromGroup>
     RelatedToGroups(0..n):  GroupGroup   <backNav: Group>
-        
+    FolderFolder[0..n]:     FolderFolder <backNav: Group>   
     TaskIndexCounter:       integer
 end class
 
@@ -41,9 +42,24 @@ post:
     
 
 constraint Group::Lists
-    element.GroupId = self.Id and element.Archived = false
+    element.GroupId = self.Id and element.Status = TLS_GROUP_ACTIVE_LIST
 
 
-constraint Group::ArchivedLists
-    element.GroupId = self.Id and element.Archived = true
+constraint Group::AllLists
+    element.GroupId = self.Id 
+
+
+constraint Group::Folders
+    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_FOLDER
+
+
+constraint Group::AllFolders
+    element.GroupId = self.Id 
+
+constraint Group::MessageChannels
+    element.GroupId = self.Id and element.Status = CS_GROUP_ROOT_CHANNEL
+
+
+constraint Group::AllMessageChannels
+    element.GroupId = self.Id 
 
