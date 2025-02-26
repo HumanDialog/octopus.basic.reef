@@ -1,0 +1,57 @@
+
+--context App::MigrateStructure(FromVersion: string)
+--post:
+--    self.MigrateTo150(FromVersion)
+--
+--
+--context App::MigrateTo150(FromVersion: string)
+--post:
+--    select case FromVersion
+--        case '1.4.0'
+--            self.MigrateFrom140To150()
+--    end select
+--
+--
+--context App::MigrateFrom140To150()
+--post:
+--    system.allInstances('Task').forAll(element.State = "_" + element.StateOLD + "_")
+--    system.allInstances('TaskList').forAll(element.Summary = "A sample " + element.Name + " list")
+
+context App::MigrateStructure(): string
+post:
+    result = self.MigrateFrom100()
+
+context App::MigrateFrom100(): string
+post:
+    result = ""
+
+    let g: Group = new Group
+
+    -- removing default Things to do list created on Group::OnAfterCreate
+    g.Lists.removeAll
+    
+    g.IsPublic = false
+    g.Name = "Human Dialog"
+    result = result + "Group " + g.Name + " created"
+
+    -- Group::Members
+    system.allInstances("User").forAll(g.AddUser(element))  
+    result = result + "Users added: " + g.Members.count + "\n"
+    
+
+    -- Group::Lists
+    system.allInstances("TaskList").select(element.Archived = false).forAll(g.Lists.insert(element))
+    result = result + "Lists added: " + g.Lists.count + "\n"
+
+
+    -- Group::ArchivedLists
+    system.allInstances("TaskList").select(element.Archived = true).forAll(g.ArchivedLists.insert(element))
+    result = result + "ArchivedLists added: " + g.ArchivedLists.count + "\n"
+
+
+    -- hardcoded because no such properties in App anymore
+    g.AllTags = "#Error:bg-red-600 #Sample:bg-rose-600 #Svelte:bg-violet-600 #AWS:bg-orange-600 #cluster:bg-sky-600 #auth:bg-emerald-600 #Feature:bg-blue-600 #Model:bg-sky-600 #docs:bg-violet-600 #general:bg-blue-600 #Rvm:bg-fuchsia-600 #??:bg-rose-600 #blog:bg-lime-600 #Firma:bg-emerald-600"
+    g.ListIndexPrefix = 'OCT'
+    g.TaskIndexCounter = 314
+    
+    
