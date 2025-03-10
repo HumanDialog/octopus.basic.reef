@@ -1,25 +1,22 @@
 
---context App::MigrateStructure(FromVersion: string)
---post:
---    self.MigrateTo150(FromVersion)
---
---
---context App::MigrateTo150(FromVersion: string)
---post:
---    select case FromVersion
---        case '1.4.0'
---            self.MigrateFrom140To150()
---    end select
---
---
---context App::MigrateFrom140To150()
---post:
---    system.allInstances('Task').forAll(element.State = "_" + element.StateOLD + "_")
---    system.allInstances('TaskList').forAll(element.Summary = "A sample " + element.Name + " list")
-
-context App::MigrateStructure(): string
+context App::MigrateStructure(FromVersion: string): string
 post:
-    result = self.MigrateFrom100()
+    select case FromVersion
+        case "1.1.0"
+            result = self.MigrateFrom110()
+        case "1.0.0"
+            result = self.MigrateFrom100()
+        case else
+            result = "Unknown version to migrate from " + FromVersion
+    end select
+
+
+context App::MigrateFrom110(): string
+post:
+    result = "Migration to 1.2.0:\n"
+    result = result + "TaskList::Summary field added for:\n"
+    system.allInstances("TaskList").forAll( result = result + element.Name + "\n")
+
 
 context App::MigrateFrom100(): string
 post:
