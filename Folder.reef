@@ -35,9 +35,28 @@ class FolderFolder
     FolderId:           integer
 end class
 
+class FolderNote
+    Title(128):     string
+    Folder(0..1):   Folder  <backNav: Notes[0..n]>
+    Note(0..1):     Note    <backNav: InFolders[0..n]>
+end class
+
+class FolderTask
+    Folder(0..1):   Folder <backNav: Tasks[0..n]>
+    Task(0..1):     Task   <backNav: InFolders[0..n]>
+end class      
+
 context FolderFolder
 inv:
     self.Title = self.Folder.Title
+    
+context FolderNote
+inv:
+    self.Title = self.Note.Title
+    
+context FolderTask::Title
+inv:
+    result = self.Task.Title
 
 constraint Folder::Folders
     element.InFolderId = self.Id 
@@ -45,20 +64,11 @@ constraint Folder::Folders
 constraint FolderFolder::Folder
     self.FolderId = element.Id    
 
-class FolderNote
-    Title(128):     string
-    Folder(0..1):   Folder  <backNav: Notes[0..n]>
-    Note(0..1):     Note    <backNav: InFolders[0..n]>
-end class
 
 context FolderFolder
 inv:
     self.Title = self.Folder.Title
 
-class FolderTask
-    Folder(0..1):   Folder <backNav: Tasks[0..n]>
-    Task(0..1):     Task   <backNav: InFolders[0..n]>
-end class      
 
 context Folder::IsPublic: boolean
 post:
@@ -70,4 +80,31 @@ post:
      
 context Folder::href: string
 post:
-    result = "Folder/" + self.Id    
+    result = '#/folder/' + self.Id  
+    
+context Folder::fref: string
+post:
+    result = '/folder/' + self.Id  
+    
+    
+context FolderFolder::href: string
+post:
+    result = self.Folder.href
+    
+context FolderFolder::fref: string
+post:
+    result = self.Folder.fref
+    
+context FolderNote::href: string
+post:
+    result = self.Note.href
+    
+context FolderNote::fref: string
+post:
+    result = self.Note.fref
+            
+context FolderFolder::Summary: string
+post:
+    result = self.Folder.Summary
+    
+        
