@@ -30,7 +30,7 @@ class FolderFolder
     Title(128):         string  
     Kind:               integer
     Order:              integer
-    Placement(8):       string   
+    Pos(8):             string   
     Group:              Group       <backNav: FolderFolder>
     Folder(0..1):       Folder      <backNav: InFolders[0..n]>
     InFolder(0..1):     Folder      <backNav: Folders[0..n]>
@@ -41,11 +41,16 @@ end class
 
 class FolderNote
     Title(128):     string
+    Order:          integer
+    Pos(8):         string   
     Folder(0..1):   Folder  <backNav: Notes[0..n]>
     Note(0..1):     Note    <backNav: InFolders[0..n]>
 end class
 
 class FolderTask
+    Title(128):     string
+    Order:          integer
+    Pos(8):         string   
     Folder(0..1):   Folder <backNav: Tasks[0..n]>
     Task(0..1):     Task   <backNav: InFolders[0..n]>
 end class      
@@ -58,9 +63,9 @@ context FolderNote
 inv:
     self.Title = self.Note.Title
     
-context FolderTask::Title
+context FolderTask
 inv:
-    result = self.Task.Title
+    self.Title = self.Task.Title
 
 constraint Folder::Folders
     element.InFolderId = self.Id 
