@@ -10,8 +10,8 @@ const TLS_GROUP_ARCHVIVED_LIST  = 1000
 
 
 class TaskList
-    Name:                   string
-    Summary:                string
+    Name(128):              string
+    Summary(196):           string
     Tasks(0..n):            Task     
     AllTasks(0..n):         Task    <backNav: TaskList>
     Order:                  integer

@@ -1,0 +1,16 @@
+class Team
+    Name:               string
+    Status:             integer
+    Members[0..n]:      TeamUser <backNav: Team>
+    RelatedTeams[0..n]: TeamTeam <backNav: RelatedTeams>
+end class
+
+class TeamUser
+    Team:           Team <backNav: Members>
+    User:           User <backNav: Teams>
+end class
+
+class TeamTeam
+    FromTeam:       Team <backNav: RelatedTeams>
+    Team:           Team 
+end class

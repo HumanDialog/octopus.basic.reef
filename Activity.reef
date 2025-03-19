@@ -1,0 +1,288 @@
+const TK_SUMMARY = 1
+const GWT_AFTER_HIDEAREA = 1
+const GWT_BEFORE_HIDEAREA = -1
+
+class Activity
+    Title:						string
+			
+    StartDate:					date
+    Duration:					timespan
+    EndDate:					date
+    KindKey:					integer
+	PercentageDone:				integer		
+    IsSummary:					boolean
+    SummaryEndDate:				date
+    LastReportingTime:			date
+	Calendar:					Calendar		
+	CalendarId:					integer
+	LeftDuration:				timespan
+	RealEndDate:				date
+    Project:					Project
+    Summary:            		Activity
+    SubActivities<0..n>:		Activity <backNav: Summary>
+	
+	Tasks<0..n>:				Task <backNav: Activity>
+	Notes[0..n]:            	ActivityNote <backNav: Activity>
+end class
+
+class Calendar
+	Name:						string
+end class
+
+class ActivityNote
+	Title(128):					string
+	Activity:					Activity
+	Note:						Note  <backNav: InActivities>
+end class
+
+context Activity	
+inv:
+	self.EndDate = self.GetEndDate()	
+	
+constraint Activity::Calendar
+	self.CalendarId = element.Id	
+
+context Activity::GetEndDate () : date
+post:
+	if self.IsSummary and not self.SummaryEndDate.IsNullDate then
+		result = self.SummaryEndDate
+	else
+		result = self.CalculateEndDate()
+	end if
+	
+context Activity::CalculateEndDate(): date
+post:
+	if self.LastReportingTime.IsNullDate () then
+		result = self.AddWT(self.StartDate, self.LeftDuration)
+	else
+		if self.PercentageDone < 100.0 then
+			if self.LastReportingTime < self.StartDate then
+				result = self.AddWT(self.StartDate, self.LeftDuration)
+			else
+				result = self.AddWT(self.LastReportingTime, self.LeftDuration)			
+			end if		
+		else
+			result = self.RealEndDate
+		end if		
+	end if
+    
+--Set	
+context Activity::EndDate_OnNewDataEvaluate(UserInput : date)
+post:
+	let prevStartDate: date = self.StartDate in
+	let prevEndDate: date = self.EndDate in
+
+	if self.StartDate > UserInput then
+		UserInput = self.StartDate
+	end if
+	self.SetEndDate(UserInput)
+	self.AfterChangingTaskDates(prevStartDate, prevEndDate)
+	
+context Activity::SetEndDate(endDate : date)
+post:
+	if endDate<>self.EndDate then
+		if endDate > self.StartDate then
+			if self.IsSummary then
+				--@self.SetDuration (self.GetWTBetween (self.StartDate, endDate)) -- potrzebne do oblicze� worka			
+				self.SummaryEndDate = endDate
+			else
+				self.Duration = self.GetWTBetween (self.StartDate, endDate) -- potrzebne do oblicze� worka			
+			end if
+		else
+			self.Duration = 0 
+		end if
+	end if
+
+
+context Activity::AfterChangingTaskDates(prevStartDate: date, prevEndDate: date)
+post:
+	select case self.KindKey
+	case TK_SUMMARY
+		self.OnEndTrackingSummaryTask(prevStartDate)
+	case else
+	end select
+	if self.Summary <> null then
+		self.AfterChangingTaskDatesCheckSummaryDates(prevStartDate, prevEndDate)
+	end if	
+	
+   
+context Activity::OnEndTrackingSummaryTask(beforeTrackingStartDate: date)
+post:
+	if self.SubActivities.first<> null then
+		let minSubTasksStartDate: date = 2100.12.31 in
+		let maxSubTasksEndDate: date = 1950.01.01 in
+		self.SubActivities.forAll(element.ChangeStartDateAccordingToSummaryShift(self.StartDate, beforeTrackingStartDate, minSubTasksStartDate, maxSubTasksEndDate))
+		self.StartDate = minSubTasksStartDate
+		self.SummaryEndDate = maxSubTasksEndDate
+	else
+--		let timeShift: timespan = self.StartDate - beforeTrackingStartDate in
+--		self.StartDate = startDate
+--		self.SummaryEndDate = self.SummaryEndDate + timeShift
+	end if	
+    
+context Activity::ChangeStartDateAccordingToSummaryShift(newStartDate: date, prevStartDate: date, minStartDate: date, maxEndDate: date)
+post:
+	select case self.KindKey
+	case TK_SUMMARY
+		if self.SubActivities.first<> null then
+			let minSubTasksStartDate: date = 2100.12.31 in
+			let maxSubTasksEndDate: date = 1950.01.01 in
+			self.SubActivities.forAll(element.ChangeStartDateAccordingToSummaryShift(newStartDate, prevStartDate, minSubTasksStartDate, maxSubTasksEndDate))
+			self.StartDate = minSubTasksStartDate
+			self.SummaryEndDate = maxSubTasksEndDate
+		else
+			let timeShift: timespan = newStartDate - prevStartDate in  
+			self.StartDate 	= self.StartDate + timeShift
+			self.SummaryEndDate = self.SummaryEndDate + timeShift
+		end if	
+	case else
+		if newStartDate > prevStartDate then
+			self.StartDate = self.AddWT(self.StartDate, self.GetWTBetween(newStartDate, prevStartDate))
+		else	
+			self.StartDate = self.SubWT(self.StartDate, self.GetWTBetween(prevStartDate, newStartDate))
+		end if	
+	end select
+	if	self.StartDate < minStartDate then
+		minStartDate = self.StartDate
+	end if
+	if self.EndDate > maxEndDate then
+		maxEndDate = self.EndDate		
+	end if	
+
+admin context Activity::AddWT (dt : date, ts : timespan) : date
+post:
+
+		if self.CalendarId<>0 then
+			result = dt + ts--system.AddWorkTimeExt(dt,ts,0, self.TimeTypeId, 0, self.GetTimeOperator(), self.GetCalendarSnappingFlag() | iif (self.IsSummary, cofISC, 0), self.Calendar.CalendarMemData, app.GlobalSettings.ExceptionMemData, self.Calendar.CalendarExceptionMemData, self.TaskResponsible.ExceptionMemData)
+		else
+			result = dt + ts--system.AddWorkTimeExt(dt,ts,0, self.TimeTypeId, 0, self.GetTimeOperator(), self.GetCalendarSnappingFlag() | iif (self.IsSummary, cofISC, 0), null)
+		end if		
+
+--	else
+--		result = system.AddWorkTime(self.CalendarId , dt, ts)
+--	end if
+
+
+--[CALENDAR]
+admin context Activity::AddWTExt (dt : date, ts : timespan, afterNonwork : boolean) : date
+post:
+	result = self.AddWT (dt, ts)
+	if afterNonwork then
+		result = self.GetWT (result, GWT_AFTER_HIDEAREA)
+	else
+		result = self.GetWT (result, GWT_BEFORE_HIDEAREA)
+	end if	
+	
+--[CALENDAR]
+admin context Activity::SubWT (dt : date, ts : timespan) : date
+post:
+
+		if self.CalendarId<>0 then
+			result = dt - ts--system.SubWorkTimeExt(dt,ts,0, self.TimeTypeId, 0, self.GetTimeOperator(), self.GetCalendarSnappingFlag() | iif (self.IsSummary, cofISC, 0), self.Calendar.CalendarMemData, app.GlobalSettings.ExceptionMemData, self.Calendar.CalendarExceptionMemData, self.TaskResponsible.ExceptionMemData)
+		else
+			result = dt - ts--system.SubWorkTimeExt(dt,ts,0, self.TimeTypeId, 0, self.GetTimeOperator(), self.GetCalendarSnappingFlag() | iif (self.IsSummary, cofISC, 0), null)
+		end if		
+
+
+	
+--[CALENDAR]
+admin context Activity::GetWTBetweenCalendar () : Calendar
+post:
+	result = self.Calendar 
+--	if result = null then
+--		if self.IsSummary then
+--			result = app.GlobalSettings.SummaryDurationCalendar
+--		end if		
+--	end if
+	
+	
+
+--[CALENDAR]
+admin context Activity::GetWTBetween (dt1 : date, dt2 : date) : long
+post: 	
+		if self.GetWTBetweenCalendar() <> null then
+			result = dt1 - dt2--system.GetWorkTimeBetweenExt(dt1, dt2 , 0, 0, self.TimeTypeId, 0, self.GetTimeOperator(), self.GetWTBetweenCalendar().CalendarMemData, app.GlobalSettings.ExceptionMemData, self.GetWTBetweenCalendar().CalendarExceptionMemData, self.TaskResponsible.ExceptionMemData)
+		else
+			result = dt1 - dt2--system.GetWorkTimeBetweenExt(dt1, dt2 , 0, 0, self.TimeTypeId, 0, self.GetTimeOperator(), null) 
+		end if			
+
+	
+	
+admin context Activity::GetWTBetweenExt (dt1 : date, dt2 : date, mode : long) : long
+post: 	
+		if self.GetWTBetweenCalendar() <> null then
+
+			result = 0--system.GetWorkTimeBetweenExt(dt1, dt2, mode + 1,0, self.TimeTypeId, 0, cofDefault, self.GetWTBetweenCalendar().CalendarMemData, app.GlobalSettings.ExceptionMemData, self.GetWTBetweenCalendar().CalendarExceptionMemData, self.TaskResponsible.ExceptionMemData)
+		else
+			result = 0--system.GetWorkTimeBetweenExt(dt1, dt2, mode + 1,0, self.TimeTypeId, 0, cofDefault, null)
+		end if		
+
+
+
+
+context Activity::GetWT (dt1 : date, mode : long) : date
+post: 	
+	result = self.GetWTExt (dt1, mode, true)
+	
+admin context Activity::GetWTExt (dt1 : date, mode : long, UseSnapping : boolean)-- : date
+post: 	
+		if self.CalendarId <> 0 then
+			result = dt1 --system.GetWorkTimeExt(dt1, mode,0, self.TimeTypeId, 0,0, iif(UseSnapping, self.GetCalendarSnappingFlag(), cofNoSnap) | iif (self.IsSummary, cofISC, 0), self.Calendar.CalendarMemData, app.GlobalSettings.ExceptionMemData, self.Calendar.CalendarExceptionMemData, self.TaskResponsible.ExceptionMemData)
+		else
+			result = dt1 --system.GetWorkTimeExt(dt1, mode,0, self.TimeTypeId, 0,0, iif(UseSnapping, self.GetCalendarSnappingFlag(), cofNoSnap) | iif (self.IsSummary, cofISC, 0), null)
+		end if		
+	
+
+
+context Activity::AfterChangingTaskDatesCheckSummaryDates(prevStartDate: date, prevEndDate: date)
+post:
+	if self.Summary.StartDate > self.StartDate then
+		self.Summary.ShiftBackSummaryStartDate(self.StartDate)
+	else if self.Summary.StartDate = prevStartDate then
+	 	self.Summary.ShiftForwardSummaryStartDate()
+	end if end if
+	
+	if self.Summary.EndDate < self.EndDate then
+		self.Summary.ShiftForwardSummaryEndDate(self.EndDate)
+	else if self.Summary.EndDate = prevEndDate then
+			self.Summary.ShiftBackSummaryEndDate()
+	end if	end if	
+			    	    
+context Activity::ShiftBackSummaryStartDate(startDate: date)
+post:	
+	self.StartDate = startDate
+		
+	if self.Summary <> null and self.Summary.StartDate > startDate then
+		self.Summary.ShiftBackSummaryStartDate(startDate)
+	end if
+
+context Activity::ShiftForwardSummaryStartDate()
+post:
+	let startDate: date = self.SubActivities.min(element.StartDate) in
+	if self.Summary <> null and self.Summary.StartDate = self.StartDate then
+		self.StartDate = startDate
+		self.Summary.ShiftForwardSummaryStartDate()
+	else
+		self.StartDate = startDate		
+	end if
+	
+	
+context Activity::ShiftForwardSummaryEndDate(endDate: date)
+post:
+	self.SummaryEndDate = endDate
+	if self.Summary <> null and self.Summary.EndDate < endDate then
+		self.Summary.ShiftForwardSummaryEndDate(endDate)
+	end if	
+	
+
+context Activity::ShiftBackSummaryEndDate()
+post:
+	let endDate: date = self.SubActivities.max(element.EndDate) in
+	if self.Summary <> null and self.Summary.EndDate = self.EndDate then
+		self.SummaryEndDate = endDate
+		self.Summary.ShiftBackSummaryEndDate()
+	else
+		self.SummaryEndDate = endDate
+	end if	
+	
+						

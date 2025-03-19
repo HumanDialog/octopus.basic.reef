@@ -1,10 +1,10 @@
 class Group
 --public:
-    Members[0..n]:	        UserGroup       <backNav: Group>
-    IsPublic:               boolean
+    Members[0..n]:	            UserGroup       <backNav: Group>
+    IsPublic:                   boolean
 
 --public:
-    Name:                   string
+    Name:                       string
 
     Lists(0..n):                TaskList        <backNav: InGroup>
     AllLists(0..n):             TaskList        <backNav: Group>
@@ -12,13 +12,15 @@ class Group
     AllFolders(0..n):           Folder          <backNav: Group>
     MessageChannels(0..n):      MessageChannel  <backNav: InGroup> 
     AllMessageChannels(0..n):   MessageChannel  <backNav: Group> 
-    AllTags:                string
-    ListIndexPrefix:        string
+    AllTags:                    string
+    ListIndexPrefix:            string
+    ActiveProjects(0..n):       Project         
+    AllProjects(0..n):          Project
     
-    RelatedGroups(0..n):    GroupGroup   <backNav: FromGroup>
-    RelatedToGroups(0..n):  GroupGroup   <backNav: Group>
-    FolderFolder[0..n]:     FolderFolder <backNav: Group>   
-    TaskIndexCounter:       integer
+    RelatedGroups(0..n):        GroupGroup   <backNav: FromGroup>
+    RelatedToGroups(0..n):      GroupGroup   <backNav: Group>
+    FolderFolder[0..n]:         FolderFolder <backNav: Group>   
+    TaskIndexCounter:           integer
 end class
 
 class GroupGroup
