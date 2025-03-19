@@ -8,16 +8,23 @@ class User
     Name:                   string
     Email:                  string
     MyTasks(0..n):          Task                <backNav: Actor(0..1)>
+    MyLists(0..n):          TaskList            <backNav: User>
     Groups(0..n):           UserGroup           <backNav: User>
     Folders(0..n):          Folder              <backNav: User>
     AllFolders(0..n):       Folder              <backNav: Owner>
+    PinnedFolders:          Folder
+    BasketFolder:           Folder              
     MessageChannels[0..n]:  MessageChannelUser  <backNav: User>
     CreatedNotes(0..n):     Note                <backNav: CreatedBy>
     ModifiedNotes(0..n):    Note                <backNav: ModifiedBy>
     MyMessages(0..n):       Message
 end class
 
+constraint User::PinnedFolders
+    element.UserId = self.Id and element.Status = FS_PINNED_ROOT_FOLDER
 
+constraint User::BasketFolder
+    element.UserId = self.Id and element.Status = FS_BASKET_ROOT_FOLDER
 
 constraint User::MyTasks
     element.ActorId = self.Id and element.Status = STATUS_ACTIVE
@@ -33,12 +40,12 @@ constraint User::MessageChannels
     
 context User::GetBasketFolder: Folder
 post:
-    let f: Folder = self.Folders.select(element.Kind = FK_BASKET).first in 
-    if f.isNull then
-        f = self.Folders.newElement(e | e.Title = user.Name + " Basket" and e.Kind = FK_BASKET)
+   
+    if self.BasketFolder.isNull then
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = user.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER)
     end if
     
-    result = f         
+    result = self.BasketFolder       
 
 
 context User::FinishTasks()

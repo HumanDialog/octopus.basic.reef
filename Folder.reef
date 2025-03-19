@@ -3,6 +3,8 @@ const FS_SHARED_FOLDER      = 9
 const FS_PUBLIC_FOLDER      = 10
 const FS_USER_ROOT_FOLDER   = 101
 const FS_GROUP_ROOT_FOLDER  = 102
+const FS_PINNED_ROOT_FOLDER = 103
+const FS_BASKET_ROOT_FOLDER = 104
 
 const FK_BASKET             = 101
 
@@ -26,7 +28,9 @@ end class
 
 class FolderFolder
     Title(128):         string  
-    Kind:               integer   
+    Kind:               integer
+    Order:              integer
+    Placement(8):       string   
     Group:              Group       <backNav: FolderFolder>
     Folder(0..1):       Folder      <backNav: InFolders[0..n]>
     InFolder(0..1):     Folder      <backNav: Folders[0..n]>
@@ -47,6 +51,8 @@ constraint FolderFolder::Folder
 
 class FolderNote
     Title(128):     string
+    Order:          integer
+    Placement(8):   string      
     Folder(0..1):   Folder  <backNav: Notes[0..n]>
     Note(0..1):     Note    <backNav: InFolders[0..n]>
 end class
@@ -56,6 +62,9 @@ inv:
     self.Title = self.Folder.Title
 
 class FolderTask
+    Title(128):         string
+    Order:              integer
+    Placement(8):       string  
     Folder(0..1):   Folder <backNav: Tasks[0..n]>
     Task(0..1):     Task   <backNav: InFolders[0..n]>
 end class      

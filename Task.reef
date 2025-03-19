@@ -71,5 +71,9 @@ post:
 context Task::MainPage: string
 post:
     result = "TaskDoc/"+self.Id
+
+context Task::href: string
+post:
+    result = '/task/' + self.Id
     
 

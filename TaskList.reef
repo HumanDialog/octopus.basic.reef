@@ -20,6 +20,7 @@ class TaskList
     IndexPrefix:            string
     Kind:                   integer
     Status:                 integer
+    User:                   User   <backNav: MyLists>
     Group:                  Group
     InGroup:                Group
     GroupId:                integer
