@@ -54,15 +54,15 @@ context TaskList::href: string
 post:
     select case self.Kind
     case TLK_KANBAN --0:  
-        result = '#/listboard/' + self.Id 
+        result = '/listboard/' + self.Id 
     case TLK_LIST    
-        result = '#/tasklist/' + self.Id
+        result = '/tasklist/' + self.Id
     case TLK_CALENDAR
-        result = '#/listboard/' + self.Id      
+        result = '/listboard/' + self.Id      
     case TLK_DAY
-        result = '#/tasklist/' + self.Id
+        result = '/tasklist/' + self.Id
     case else
-        result = '#/tasklist/' + self.Id
+        result = '/tasklist/' + self.Id
     end select    
                 
 

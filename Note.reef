@@ -16,3 +16,7 @@ class Note
     InTasks[0..n]:          TaskNote
     InMessages[0..n]:       MessageNote
 end class
+
+context Note::href: string
+post:
+    result = '/note/' + self.Id

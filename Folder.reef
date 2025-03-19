@@ -70,4 +70,4 @@ post:
      
 context Folder::href: string
 post:
-    result = "Folder/" + self.Id    
+    result = "/folder/" + self.Id    
