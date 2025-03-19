@@ -1,0 +1,2 @@
+- Odwrócić ikony w mobilnym nawigatorze
+- Uporządkować rozmiar ikon - do czego są te inne opcje? <IconEx .../>

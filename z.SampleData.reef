@@ -123,10 +123,13 @@ post:
     alice.login = "alice@example.com"
     alice.Name = "Alice"
     
+    alice.CheckFolders
+    
     let bob: User = new User in
     bob.login = "bob@example.com"
     bob.Name = "Bob"
 
+    bob.CheckFolders
     
     -- -------------------- Motorcycle's production --------------------------
     let motorcycleCompany: Group = new Group
@@ -136,6 +139,8 @@ post:
     motorcycleCompany.AddUser(bob)
 
     motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
+    
+    motorcycleCompany.CheckFolders
 
     -- Add some data
     let list: TaskList in
@@ -198,7 +203,7 @@ post:
         list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
     list.ReorderTasks()
     
-
+    motorcycleCompany.CheckFolders
 
     ------------------------------  Publishing company -------------------------------
 
@@ -252,7 +257,10 @@ post:
 context Group::CheckFolder(Title: string)
 post:
     if not self.Folders.select(e | e.Title = Title).exists then
-        self.Folders.newElement(e | e.Title = Title)        
+        let f: Folder = self.Folders.newElement(e | e.Title = Title) in
+        f.CreateSubFolders(3)
+        f.CreateTasks(5)
+        f.CreateNotes(4)              
     end if
     
 context Group::CheckFolders

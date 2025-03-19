@@ -20,3 +20,6 @@ end class
 context Note::href: string
 post:
     result = '/note/' + self.Id
+context Note::fref: string
+post:
+    result = '/note/' + self.Id    
