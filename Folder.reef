@@ -47,6 +47,7 @@ class FolderNote
     Note(0..1):     Note    <backNav: InFolders[0..n]>
 end class
 
+
 class FolderTask
     Title(128):     string
     Order:          integer
@@ -54,80 +55,119 @@ class FolderTask
     Folder(0..1):   Folder <backNav: Tasks[0..n]>
     Task(0..1):     Task   <backNav: InFolders[0..n]>
 end class      
+  
 
-context FolderFolder
-inv:
-    self.Title = self.Folder.Title
-    
-context FolderNote
-inv:
-    self.Title = self.Note.Title
-    
-context FolderTask
-inv:
-    self.Title = self.Task.Title
+
+-- ==============================================================================
+
 
 constraint Folder::Folders
     element.InFolderId = self.Id 
-    
-constraint FolderFolder::Folder
-    self.FolderId = element.Id    
 
-class FolderNote
-    Title(128):     string
-    Order:          integer
-    Placement(8):   string      
-    Folder(0..1):   Folder  <backNav: Notes[0..n]>
-    Note(0..1):     Note    <backNav: InFolders[0..n]>
-end class
-
-context FolderFolder
-inv:
-    self.Title = self.Folder.Title
-
-class FolderTask
-    Title(128):         string
-    Order:              integer
-    Placement(8):       string  
-    Folder(0..1):   Folder <backNav: Tasks[0..n]>
-    Task(0..1):     Task   <backNav: InFolders[0..n]>
-end class      
 
 context Folder::IsPublic: boolean
 post:
      result = (self.Status = FS_PUBLIC_FOLDER)
-        
+
+
 context Folder::IsShared: boolean
 post:
      result = (self.Status = FS_SHARED_FOLDER)        
-     
+
+
 context Folder::href: string
 post:
     result = "/folder/" + self.Id    
 
-context Folder::fref: string
+context Folder::IsPinned: boolean
 post:
-    result = '/folder/' + self.Id  
-    
-    
+    result = user.PinnedFolders.Folders.exists(element.Folder.Id = self.Id)
+
+
+context Folder::IsBasket: boolean
+post:
+    if user.BasketFolder.Id = self.Id then
+        result = true
+    else
+        result = false
+    end if
+
+
+context Folder::CreateSubFolderEx(properties: JsonObject) : FolderFolder
+post:
+    let f: Folder = new Folder in
+
+    f.Title = properties.Title
+    f.Summary = properties.Summary
+
+    self.Folders.newElement( e | e.Folder = f and e.Order = properties.Order)
+
+-- ==============================================================================
+
+
+context FolderFolder
+inv:
+    self.Title = self.Folder.Title
+
+constraint FolderFolder::Folder
+    self.FolderId = element.Id    
+
+
 context FolderFolder::href: string
 post:
     result = self.Folder.href
     
-context FolderFolder::fref: string
-post:
-    result = self.Folder.fref
-    
-context FolderNote::href: string
-post:
-    result = self.Note.href
-    
-context FolderNote::fref: string
-post:
-    result = self.Note.fref
-            
+
 context FolderFolder::Summary: string
 post:
     result = self.Folder.Summary
+
+context FolderFolder::IsPinned: boolean
+post:
+    result = self.Folder.IsPinned
+
+-- ==============================================================================
+
+
+context FolderNote
+inv:
+    self.Title = self.Note.Title
+
+
+context FolderNote::href: string
+post:
+    result = self.Note.href
+
+
+context FolderNote::Summary: string
+post:
+    result = self.Note.Summary
+
+
+-- ==============================================================================
+
+
+context FolderTask
+inv:
+    self.Title = self.Task.Title
+    
+
+context FolderTask::href: string
+post:
+    result = self.Task.href
+
+
+context FolderTask::Summary: string
+post:
+    result = self.Task.Summary 
+
+context FolderTask::State: string
+post:
+    result = self.Task.State 
+
+    
+
+            
+
     
         
