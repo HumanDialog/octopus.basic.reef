@@ -75,5 +75,13 @@ post:
 context Task::href: string
 post:
     result = '/task/' + self.Id
+
+
+context Task::DeletePermanently
+post:
+    self.InFolders.removeAll
+    self.InMessages.removeAll
+    self.Notes.removeAll
+    self.delete
     
 

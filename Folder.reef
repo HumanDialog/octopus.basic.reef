@@ -100,7 +100,218 @@ post:
     f.Title = properties.Title
     f.Summary = properties.Summary
 
-    self.Folders.newElement( e | e.Folder = f and e.Order = properties.Order)
+    result = self.Folders.newElement( e | e.Folder = f and e.Order = properties.Order)
+
+
+context Folder::CreateNoteEx(properties: JsonObject) : FolderNote
+post:
+    let n: Note = new Note in
+
+    n.Title = properties.Title
+    n.Summary = properties.Summary
+
+    result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
+
+
+context Folder::CreateTaskEx(properties: JsonObject) : FolderTask
+post:
+    let t: Task = new Task in
+
+    t.Title = properties.Title
+    t.Summary = properties.Summary
+
+    result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
+
+context Folder::DeletePermanently
+post:
+    -- what to do with content?
+    --self.Folders
+    --self.Notes
+    --self.Tasks
+
+    self.InFolders.removeAll    -- links leading to me
+    self.delete
+
+context Folder::DettachSubFolder(folderLink: FolderFolder)
+pre:
+    folderLink.InFolder.Id = self.Id
+post:
+    folderLink.delete
+
+context Folder::DeletePermanentlyFolder(folderLink: FolderFolder)
+post:
+    let folder: Folder = folderLink.Folder
+    folder.DeletePermanently()
+
+
+context Folder::CopySubFolderToBasket(folderLink: FolderFolder): FolderFolder
+post:
+    let folder: Folder = folderLink.Folder
+    let basket: Folder = user.BasketFolder
+    
+    if not basket.Folders.exists(element.Folder.Id = folder.Id) then
+        let maxOrder: integer = basket.Folders.max(element.Order)
+        result = basket.Folders.newElement(e | e.Folder = folder and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+
+context Folder::CutSubFolderToBasket(folderLink: FolderFolder): FolderFolder
+post:
+    result = self.CopySubFolderToBasket(folderLink)
+    self.DettachSubFolder(folderLink)
+
+context Folder::DettachAllContent
+post:
+    self.Folders.removeAll
+    self.Notes.removeAll
+    self.Tasks.removeAll
+
+
+context Folder::AttachFolder(folder: Folder, optional order: integer = 0) : boolean
+post:
+    if not self.Folders.exists(element.Folder.Id = folder.Id) then
+        if order = 0 then
+            order = self.Folders.max(element.Order) + ORDER_STEP
+        end if
+
+        self.Folders.newElement(e | e.Folder=folder and e.Order=order)
+        result = true
+    else
+        result = false
+    end if
+
+context Folder::AttachNote(note: Note, optional order: integer = 0) : boolean
+post:
+    if not self.Notes.exists(element.Note.Id = note.Id) then
+        if order = 0 then
+            order = self.Notes.max(element.Order) + ORDER_STEP
+        end if
+        
+        self.Notes.newElement(e | e.Note=note and e.Order=order)
+        result = true
+    else
+        result = false
+    end if
+
+context Folder::AttachTask(task: Task, optional order: integer = 0) : boolean
+post:
+    if not self.Tasks.exists(element.Task.Id = task.Id) then
+        if order = 0 then
+            order = self.Tasks.max(element.Order) + ORDER_STEP
+        end if
+        
+        self.Tasks.newElement(e | e.Task=task and e.Order=order)
+        result = true
+    else
+        result = false
+    end if
+    
+
+context Folder::AttachMyContentTo(destFolder: Folder): Folder
+post:
+    let maxOrder: integer = destFolder.Folders.max(element.Order)
+    let order: integer = maxOrder + ORDER_STEP
+   
+    self.Folders.forAll(
+            if destFolder.AttachFolder(element.Folder, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    maxOrder = destFolder.Notes.max(element.Order)
+    order = maxOrder + ORDER_STEP
+    self.Notes.forAll(
+            if destFolder.AttachNote(element.Note, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    maxOrder = destFolder.Tasks.max(element.Order)
+    order = maxOrder + ORDER_STEP
+    self.Tasks.forAll(
+            if destFolder.AttachTask(element.Task, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    result = destFolder
+
+
+context Folder::AttachMyContentToAndClear(destFolder: Folder): Folder
+post:
+    self.AttachMyContentTo(destFolder)
+    self.DettachAllContent()
+    result = destFolder
+
+context Folder::DettachNote(noteLink: FolderNote)
+pre:
+    noteLink.Folder.Id = self.Id
+post:
+    noteLink.delete
+
+context Folder::DeletePermanentlyNote(noteLink: FolderNote)
+post:
+    let note: Note = noteLink.Note
+    note.DeletePermanently()
+
+
+context Folder::CopyNoteToBasket(noteLink: FolderNote): FolderNote
+post:
+    let note: Note = noteLink.Note
+    let basket: Folder = user.BasketFolder
+    
+    if not basket.Notes.exists(element.Note.Id = note.Id) then
+        let maxOrder: integer = basket.Notes.max(element.Order)
+        result = basket.Notes.newElement(e | e.Note = note and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+
+context Folder::CutNoteToBasket(noteLink: FolderNote): FolderNote
+post:
+    result = self.CopyNoteToBasket(noteLink)
+    self.DettachNote(noteLink)
+
+
+context Folder::DettachTask(taskLink: FolderTask)
+pre:
+    taskLink.Folder.Id = self.Id
+post:
+    taskLink.delete    -- Will the task be automatically deleted if this was the only reference to it?
+
+
+context Folder::DeletePermanentlyTask(taskLink: FolderTask)
+post:
+    let task: Task = taskLink.Task
+    task.DeletePermanently()
+
+
+context Folder::CopyTaskToBasket(taskLink: FolderTask): FolderTask
+post:
+    let task: Task = taskLink.Task
+    let basket: Folder = user.BasketFolder
+    
+    if not basket.Tasks.exists(element.Task.Id = task.Id) then
+        let maxOrder: integer = basket.Tasks.max(element.Order)
+        result = basket.Tasks.newElement(e | e.Task = task and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+
+context Folder::CutTaskToBasket(taskLink: FolderTask): FolderTask
+post:
+    result = self.CopyTaskToBasket(taskLink)
+    self.DettachTask(taskLink)
+
+
+context Folder::TogglePinned : FolderFolder
+post:
+    let pinnedLink :FolderFolder = user.PinnedFolders.Folders.select(element.Folder.Id = self.Id).first
+    if pinnedLink <> null then
+        pinnedLink.delete
+        result = null
+    else
+        let maxOrder :integer = user.PinnedFolders.Folders.max(element.Order)
+        result = user.PinnedFolders.Folders.newElement(e | e.Folder = self and e.Order = maxOrder+ORDER_STEP)
+    end if
 
 -- ==============================================================================
 

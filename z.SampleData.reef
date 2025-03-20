@@ -262,7 +262,8 @@ post:
         let f: Folder = self.Folders.newElement(e | e.Title = Title) in
         f.CreateSubFolders(3)
         f.CreateTasks(5)
-        f.CreateNotes(4)              
+        f.CreateNotes(4)    
+        f.ReorderElements()          
     end if
     
 context Group::CheckFolders
@@ -284,7 +285,7 @@ post:
         f.CreateSubFolders(3)
         f.CreateTasks(3)
         f.CreateNotes(3)    
-        f.ReorderElements();          
+        f.ReorderElements()         
     end if
     
 context Folder::CreateSubFolders(no: integer)

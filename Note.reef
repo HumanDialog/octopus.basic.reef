@@ -21,7 +21,14 @@ context Note::href: string
 post:
     result = '/note/' + self.Id
 
-    
+
 context Note::fref: string
 post:
     result = '/note/' + self.Id    
+
+context Note::DeletePermanently
+post:
+    self.InFolders.removeAll
+    self.InTasks.removeAll
+    self.InMessages.removeAll
+    self.delete
