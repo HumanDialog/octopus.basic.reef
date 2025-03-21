@@ -61,3 +61,11 @@ context User::FinishTasks()
 post:
     self.MyTasks.select(element.State <> STATE_FINISHED).forAll(element.Finish())
 
+
+--context User::MoveFolderToBasket(folder: Folder): FolderFolder
+--pre:
+--    self.Folders.exists(element.Id = folder.Id)
+--post:
+--    folder.User = null      -- removing from Folders collection
+--    result = folder.CopyToBasket()
+    

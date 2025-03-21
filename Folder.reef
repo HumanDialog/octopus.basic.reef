@@ -144,15 +144,20 @@ post:
     folder.DeletePermanently()
 
 
+context Folder::CopyToBasket(): FolderFolder
+post:
+    let basket: Folder = user.BasketFolder
+    
+    if not basket.Folders.exists(element.Folder.Id = self.Id) then
+        let maxOrder: integer = basket.Folders.max(element.Order)
+        result = basket.Folders.newElement(e | e.Folder = self and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+
 context Folder::CopySubFolderToBasket(folderLink: FolderFolder): FolderFolder
 post:
     let folder: Folder = folderLink.Folder
-    let basket: Folder = user.BasketFolder
-    
-    if not basket.Folders.exists(element.Folder.Id = folder.Id) then
-        let maxOrder: integer = basket.Folders.max(element.Order)
-        result = basket.Folders.newElement(e | e.Folder = folder and e.Order = maxOrder + ORDER_STEP)
-    end if
+    result = folder.CopyToBasket()
 
 
 context Folder::CutSubFolderToBasket(folderLink: FolderFolder): FolderFolder
