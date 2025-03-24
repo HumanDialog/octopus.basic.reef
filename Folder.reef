@@ -325,6 +325,21 @@ context FolderFolder
 inv:
     self.Title = self.Folder.Title
 
+
+context FolderFolder::SetTitle(value: string)
+post:
+    self.Folder.Title = value
+
+
+context FolderFolder::Summary: string
+post:
+    result = self.Folder.Summary
+
+context FolderFolder::SetSummary(value: string)
+post:
+    self.Folder.Summary = value
+
+
 constraint FolderFolder::Folder
     self.FolderId = element.Id    
 
@@ -333,10 +348,6 @@ context FolderFolder::href: string
 post:
     result = self.Folder.href
     
-
-context FolderFolder::Summary: string
-post:
-    result = self.Folder.Summary
 
 context FolderFolder::IsPinned: boolean
 post:
@@ -350,14 +361,24 @@ inv:
     self.Title = self.Note.Title
 
 
-context FolderNote::href: string
+context FolderNote::SetTitle(value: string)
 post:
-    result = self.Note.href
+    self.Note.Title = value
 
 
 context FolderNote::Summary: string
 post:
     result = self.Note.Summary
+
+
+context FolderNote::SetSummary(value: string)
+post:
+    self.Note.Summary = value
+
+
+context FolderNote::href: string
+post:
+    result = self.Note.href
 
 
 -- ==============================================================================
@@ -368,14 +389,26 @@ inv:
     self.Title = self.Task.Title
     
 
+context FolderTask::SetTitle(value: string)
+post:
+    self.Task.Title = value
+
+
+context FolderTask::Summary: string
+post:
+    result = self.Task.Summary
+
+
+context FolderTask::SetSummary(value: string)
+post:
+    self.Task.Summary = value
+
+
 context FolderTask::href: string
 post:
     result = self.Task.href
 
 
-context FolderTask::Summary: string
-post:
-    result = self.Task.Summary 
 
 context FolderTask::State: string
 post:
