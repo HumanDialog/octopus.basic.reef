@@ -379,7 +379,7 @@ post:
  
     labels = ['X','Y','Z','A','B','C','D','E']   
     labels = ['red_label', 'green_label']
-    bwlabels = ['white_label', 'black_label']   
+    bwlabels = [{a:'white_label', b:'black_label'}]   
             
     labels = [..., b + '_label', y + '_label', ...bwlabels]        
     
@@ -531,7 +531,20 @@ post:
 
     result = builder
 
-context TaskList::AddColumn3(): string`
+context TaskList::AddColumn3(): string
+post:
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+
+    let newColumn: JsonObject = {
+        name: 'New',
+        state: 555
+    }
+
+    let r: JsonObject = [..., newColumn]
+    result = r.ToString
+    
+context TaskList::AddColumn4(): string
 post:
     let states: JsonObject = new JsonObject
     states.Parse(self.TaskStates)
@@ -541,6 +554,42 @@ post:
         state: 555
     }]
 
-    let r: JsonObject = [..., ...newColumn]
+    let r: JsonObject = [..., ...states, ...newColumn]
     result = r.ToString
-    
+
+
+context TaskList::AddColumnX(): JsonBuilder
+post:
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+
+    let builder: JsonBuilder = new JsonBuilder
+    let newState :integer = states.select(element.state < 1000).max(element.state) + 1
+
+    let s: integer
+    let maxs: integer
+
+
+    builder.StartTable()
+        states.select(element.state < 1000).forAll(
+            builder.StartObject()
+                builder.PushKey("state").PushInteger(element.state)
+                builder.PushKey("name").PushString(element.name)
+            builder.EndObject()
+        )
+
+        builder.StartObject()
+            builder.PushKey("state").PushInteger(newState)
+            builder.PushKey("name").PushString('Nowa')
+        builder.EndObject()
+
+        states.select(element.state >= 1000).forAll(
+            builder.StartObject()
+                builder.PushKey("state").PushInteger(element.state)
+                builder.PushKey("name").PushString(element.name)
+            builder.EndObject()
+        )
+
+    builder.EndTable()
+
+    result = builder
