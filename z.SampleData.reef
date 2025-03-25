@@ -554,9 +554,51 @@ post:
         state: 555
     }]
 
-    let r: JsonObject = [..., ...states, ...newColumn]
+    let r: JsonObject
+    r = states[1]
+    r = [..., ...newColumn]
     result = r.ToString
 
+context TaskList::AddColumn4a(): string
+post:
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+
+    let newColumn: JsonObject = [{
+        name: 'New',
+        state: 555
+    }]
+
+    let r: JsonObject = []
+    let a: JsonObject
+    states.forAll(  a=[{state: element.state, name: element.name }] 
+                    r=[...,...a])
+
+    r = [..., ...newColumn]
+    result = r.ToString    
+
+context TaskList::AddColumn5(): string
+post:
+    let states: JsonObject = [
+        {
+            name: 'A',
+            state: 0
+        },
+        {
+            name: 'B',
+            state: 1
+        }
+    ]
+
+    let newColumn: JsonObject = [{
+        name: 'New',
+        state: 555
+    }]
+
+    let r: JsonObject
+    r = states
+    r = [..., ...newColumn]
+    result = r.ToString
 
 context TaskList::AddColumnX(): JsonBuilder
 post:
