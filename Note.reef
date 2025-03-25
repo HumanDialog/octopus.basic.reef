@@ -17,14 +17,16 @@ class Note
     InMessages[0..n]:       MessageNote
 end class
 
+context Note::OnAfterCreate
+post:
+    self.CreationDate.SetUTCDate()
+    self.CreatedBy = user
+
+
 context Note::href: string
 post:
     result = '/note/' + self.Id
 
-
-context Note::fref: string
-post:
-    result = '/note/' + self.Id    
 
 context Note::DeletePermanently
 post:
@@ -32,3 +34,36 @@ post:
     self.InTasks.removeAll
     self.InMessages.removeAll
     self.delete
+
+context Note::UpdateMetaInfo
+post:
+    self.ModificationDate.SetUTCDate()
+    self.ModifiedBy = user
+
+context Note::SetTitle(val: string)
+post:
+    self.Title = val
+    self.UpdateMetaInfo()
+
+context Note::SetSummary(val: string)
+post:
+    self.Summary = val
+    self.UpdateMetaInfo()
+
+context Note::SetTags(val: string)
+post:
+    self.Tags = val
+    self.UpdateMetaInfo()
+
+context Note::SetIndex(val: string)
+post:
+    self.Index = val
+    self.UpdateMetaInfo()
+
+context Note::SetContent(val: string)
+post:
+    self.Content = val
+    self.UpdateMetaInfo()
+
+
+    
