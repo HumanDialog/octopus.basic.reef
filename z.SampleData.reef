@@ -541,8 +541,9 @@ post:
         state: 555
     }
 
-    let r: JsonObject = [..., newColumn]
-    result = r.ToString
+    --let r: JsonObject = [..., newColumn]
+    --result = r.ToString
+    result = states.ToString
     
 context TaskList::AddColumn4(): string
 post:
