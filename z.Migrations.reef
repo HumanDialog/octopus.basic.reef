@@ -7,7 +7,7 @@ post:
         case "1.0.0"
             result = self.MigrateFrom100()
         case else
-            result = "Unknown version to migrate from " + FromVersion
+            result = "No special structure treatment when migrating from version " + FromVersion
     end select
 
 
