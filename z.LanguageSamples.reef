@@ -3,13 +3,16 @@ post:
     let sres: string 
     
     let src: JsonObject = [{id:1, v:"a"},{id:2, v:"b"},{id:3, v:"c"}]
-    let osrc: JsonObject = {id:4, v:"d"}
+    let osrc: JsonObject = {id:4, v:"d", f:false, t:true, n:null, tt: ["a", "b", "c"]}
     let jres: JsonObject = [{id:5, v:"e"}]
 
-    jres = [...,osrc.id,src[2]] 
-    jres = [...,src[2]] 
-    sres = jres.ToString
+    --jres = [..., osrc.id, osrc.v, src[2], osrc.f, osrc.t, osrc.n, osrc.tt] 
+    --jres = [...,...src[2]] 
+    osrc = {..., ...osrc}
+    
+    sres = ores.ToString
     --jres = src[0]
     -- result = jres.ToString -- Nie działa!
     result = sres
     
+

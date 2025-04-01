@@ -570,13 +570,13 @@ post:
     
     if pos > 0 then
         set(0 .. pos - 1).forAll(i |
-            states = [..., i, prevStates[i]]
+            states = [..., prevStates[i]]
         )
     end if    
     states = [..., newColumn]
     if pos < columnsNo then
         set(pos .. columnsNo).forAll(j |
-            states = [..., j, prevStates[i]]
+            states = [..., prevStates[i]]
         )
     end if    
     
