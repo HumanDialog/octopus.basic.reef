@@ -1,0 +1,12 @@
+context App::J1: string
+post:
+    let s: string = "Blue" 
+    let json: JsonObject = { 
+                T:      s + "Sky",
+                2:      "two",
+                colors:         ['Red', 'Green', s] 
+            }
+    let res: string = "T= " + json.T        
+            
+    result = res
+
