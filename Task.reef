@@ -1,15 +1,26 @@
 -- Genaral status of Tasks, TaskLists and Projects
 const STATUS_ACTIVE = 0     -- This is a data we usually work on
 const STATUS_ARCHIVED = 1
---Genaral status of Tasks, TaskLists and Projects
-const STATE_DRAFT       = 0     --Draft, Under construction, Concept, Story 
-const STATE_PREPARED    = 1     --This is a data we usually work on
--- <2 .. 99> ARE USER DEFINED STATES IN WORKFLOWS FOR PLANNING PHASES
-const STATE_ACCEPTED    = 100
-const STATE_STARTED     = 101
--- <102 .. 99998> ARE USER DEFINED STATES IN WORKFLOWS FOR PRODUCTION
-const STATE_FINISHED    = 1000     
-const STATE_CANCELLED   = 1001    
+
+
+-- --Genaral status of Tasks, TaskLists and Projects
+-- const STATE_DRAFT       = 0     --Draft, Under construction, Concept, Story 
+-- const STATE_PREPARED    = 1     --This is a data we usually work on
+-- -- <2 .. 99> ARE USER DEFINED STATES IN WORKFLOWS FOR PLANNING PHASES
+-- const STATE_ACCEPTED    = 100
+-- const STATE_STARTED     = 101
+-- -- <102 .. 99998> ARE USER DEFINED STATES IN WORKFLOWS FOR PRODUCTION
+-- const STATE_FINISHED    = 1000     
+-- const STATE_CANCELLED   = 1001    
+
+const STATE_UNSPECIFIED       = 0     -- [000-999]
+const STATE_IN_PREPARATION    = 1000  -- [1000-1999]
+const STATE_PLANNED           = 2000  -- [2000-2999]
+const STATE_READY             = 3000  -- [3000-3999] 
+const STATE_EXECUTING         = 4000  -- [4000 - 6999]
+const STATE_FINISHED          = 7000  -- [7000 - 7999]
+const STATE_CLOSED            = 8000  -- [8000 - 8999] 
+const STATE_ARCHIVED          = 9000  -- [9000 - 9999]
 
 --?enum state = [draft: 0, prepared: 1, accepted: 100, started: 101]
 const ORDER_STEP        = 64
@@ -85,3 +96,12 @@ post:
     self.delete
     
 
+context Task::ChangeTaskState(newState: integer)
+post:
+    self.State = newState
+
+context Task::MoveToList(list: TaskList)
+post:
+    let newState: integer = list.FindRightStateIncommingTask(self)
+    self.TaskList = list
+    self.State = newState
