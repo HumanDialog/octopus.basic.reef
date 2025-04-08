@@ -65,3 +65,133 @@ constraint Group::MessageChannels
 constraint Group::AllMessageChannels
     element.GroupId = self.Id 
 
+
+context Group::GetPredefinedTaskStates(): JsonObject
+post:
+    result = [
+         {
+            name: "Unspecified",
+            state: STATE_UNSPECIFIED
+        },
+        {
+            name: "In preparation",
+            state: STATE_IN_PREPARATION
+        },
+        {
+            name: "Planned",
+            state: STATE_PLANNED
+        },
+        {
+            name: "Ready",
+            state: STATE_READY
+        },
+        {
+            name: "Executing",
+            state: STATE_EXECUTING
+        },
+        {
+            name: "Finished",
+            state: STATE_FINISHED
+        },
+        {
+            name: "Closed",
+            state: STATE_CLOSED
+        },
+        {
+            name: "Archived",
+            state: STATE_ARCHIVED
+        }
+    ]
+
+
+context Group::GetChecklistDefaultColumns(): JsonObject
+post:
+    let checkColumns :JsonObject = [
+        {
+            name: 'To do',
+            state: STATE_UNSPECIFIED
+        },
+        {
+            name: 'Finished',
+            state: STATE_FINISHED
+        }
+    ]
+    result = checkColumns
+
+context Group::CreateList(name: string, optional order: integer = 0): TaskList
+post:
+    let list: TaskList = new TaskList
+    self.Lists.insert(list)
+
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.TaskStates = self.GetChecklistDefaultColumns().ToString()
+    list.Name = name
+    list.Order = order
+
+    result = list
+
+context Group::GetTaskListTypes: JsonObject
+post:
+    -- simple predefined:
+    let checkList: JsonObject = {
+        Name: 'Checklist',
+        Kind: TLK_KANBAN_CHECKLIST,
+        TaskStates: self.GetChecklistDefaultColumns()
+    }
+
+    -- process predefined lists:
+    let strintColumns: JsonObject = [
+            {
+                name: "Preparing",
+                state: STATE_IN_PREPARATION
+            },
+            {
+                name: "Ready",
+                state: STATE_PLANNED
+            },
+            {
+                name: "Under work",
+                state: STATE_EXECUTING
+            },
+            {
+                name: "To check",
+                state: 5000
+            },
+            {
+                name: "Finished",
+                state: STATE_FINISHED
+            }
+        ]
+    let sprintList: JsonObject = {
+        Name: 'Sprint',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: strintColumns
+    }
+
+
+    let ideasColumns: JsonObject = [
+            {
+                name: "Notes",
+                state: STATE_IN_PREPARATION
+            },
+            {
+                name: "Spec",
+                state: STATE_EXECUTING
+            },
+            {
+                name: "Knowledge",
+                state: STATE_FINISHED
+            }
+    ] 
+
+    let ideasList: JsonObject = {
+        Name: 'Ideas',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: ideasColumns
+    }
+
+    result = [
+        checkList,
+        sprintList,
+        ideasList
+    ]

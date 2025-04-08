@@ -7,6 +7,7 @@ const TLK_WEEK              = 11
 const TLK_MONTH             = 12
 
 const TLS_GROUP_ACTIVE_LIST     = 0
+const TLS_GROUP_TEMPLATE_LIST   = 1
 const TLS_GROUP_ARCHVIVED_LIST  = 1000
 
 
@@ -40,13 +41,19 @@ constraint TaskList::AllTasks
 constraint TaskList::Group
     self.GroupId = element.Id
     
+
 context TaskList::SwitchToList    
 post:
-    self.Kind = TLK_LIST
+    if self.Kind = TLK_KANBAN_CHECKLIST then
+        self.Kind = TLK_LIST
+    end if
     
+
 context TaskList::SwitchToKanban    
 post:
-    self.Kind = TLK_KANBAN_CHECKLIST
+    if self.Kind = TLK_LIST then
+        self.Kind = TLK_KANBAN_CHECKLIST
+    end if
     
 context TaskList::SwitchToCalendar    
 post:
@@ -213,14 +220,50 @@ post:
     result = states
 
 
-context TaskList::AddProcessColumn(pos: integer, optional state: integer, optional name: string): JsonObject
+context TaskList::AddProcessColumn(pos: integer, state: integer, name: string): JsonObject
 pre:
-    self.TaskStates.isEmpty() = true
+    self.TaskStates.isEmpty() = false
 post:
-    -- todo
-    result = new JsonObject
-    result.Parse(self.TaskStates)
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
 
+    let columnsNo: integer = prevStates.count 
+
+    let canAddColumn: boolean = true
+    let colState: integer
+    set(0 .. columnsNo-1).forAll(i | 
+        colState = prevStates[i].state
+        if colState = state then
+            canAddColumn = false
+        end if 
+    )
+
+    if canAddColumn then
+        let newColumn: JsonObject = {
+            name: name,
+            state: state
+        }
+        
+        let states: JsonObject = []
+        
+        if pos > 0 then
+            set(0 .. pos - 1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+        end if    
+
+        states = [..., newColumn]
+
+        if pos < columnsNo then
+            set(pos .. columnsNo-1).forAll(j |
+                states = [..., prevStates[j]]
+            )
+        end if 
+        self.TaskStates = states.ToString
+        result = states  
+    else
+        result = null
+    end if
 
 context TaskList::MoveColumn(pos: integer, shift: integer): JsonObject
 pre:
@@ -348,9 +391,27 @@ pre:
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
-    
-    -- todo
-    result = prevStates
+
+    let columnsNo: integer = prevStates.count
+    let states: JsonObject = []
+
+    set(0 .. pos-1).forAll(i | 
+        states = [..., prevStates[i]]
+    )
+
+    set(pos+1 .. columnsNo-1).forAll(i |
+        states = [..., prevStates[i]]
+    )
+
+    let removingState: integer = prevStates[pos].state
+    self.Tasks.forAll(t |
+        if t.State = removingState then
+            t.ChangeTaskState(moveTasksTo)
+        end if
+    )
+
+    self.TaskStates = states.ToString()
+    result = states
 
 
 context TaskList::CreateTaskInColumn(properties: JsonObject, pos: integer): Task
@@ -379,8 +440,41 @@ post:
 
 
 context TaskList::FindRightStateIncommingTask(task: Task): integer
-pre:
-    self.TaskStates.isEmpty = false
 post:
     -- na razie prosto
     result = STATE_UNSPECIFIED
+
+
+context TaskList::ChangeListKind(template: JsonObject)
+post:
+    self.Kind = template.Kind
+
+    let newTaskStates: string = template.TaskStates.ToString()
+    
+    if self.TaskStates <> newTaskStates then
+        self.Tasks.forAll(t | 
+            if t.State < STATE_UNSPECIFIED then
+                t.State = STATE_UNSPECIFIED
+            else if t.State > STATE_UNSPECIFIED and t.State < STATE_IN_PREPARATION then
+                t.State = STATE_UNSPECIFIED
+            else if t.State > STATE_IN_PREPARATION and t.State < STATE_PLANNED then
+                t.State = STATE_IN_PREPARATION
+            else if t.State > STATE_PLANNED and t.State < STATE_READY then
+                t.State = STATE_PLANNED
+            else if t.State > STATE_READY and t.State < STATE_EXECUTING then
+                t.State = STATE_READY
+            else if t.State > STATE_EXECUTING and t.State < STATE_FINISHED then
+                t.State = STATE_EXECUTING
+            else if t.State > STATE_FINISHED and t.State < STATE_CLOSED then
+                t.State = STATE_FINISHED
+            else if t.State > STATE_CLOSED and t.State < STATE_ARCHIVED then
+                t.State = STATE_ARCHIVED
+            else if t.State > STATE_ARCHIVED then
+                t.State = STATE_ARCHIVED
+            end if  end if    end if     end if  end if   end if    end if     end if  end if
+
+        ) 
+    end if
+
+    self.TaskStates = newTaskStates
+
