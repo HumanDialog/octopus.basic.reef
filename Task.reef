@@ -100,8 +100,42 @@ context Task::ChangeTaskState(newState: integer)
 post:
     self.State = newState
 
-context Task::MoveToList(list: TaskList)
+context Task::ReduceStateToBase()
 post:
-    let newState: integer = list.FindRightStateIncommingTask(self)
+    if self.State < STATE_UNSPECIFIED then
+        self.State = STATE_UNSPECIFIED
+    else if self.State > STATE_UNSPECIFIED and self.State < STATE_IN_PREPARATION then
+        self.State = STATE_UNSPECIFIED
+    else if self.State > STATE_IN_PREPARATION and self.State < STATE_PLANNED then
+        self.State = STATE_IN_PREPARATION
+    else if self.State > STATE_PLANNED and self.State < STATE_READY then
+        self.State = STATE_PLANNED
+    else if self.State > STATE_READY and self.State < STATE_EXECUTING then
+        self.State = STATE_READY
+    else if self.State > STATE_EXECUTING and self.State < STATE_FINISHED then
+        self.State = STATE_EXECUTING
+    else if self.State > STATE_FINISHED and self.State < STATE_CLOSED then
+        self.State = STATE_FINISHED
+    else if self.State > STATE_CLOSED and self.State < STATE_ARCHIVED then
+        self.State = STATE_ARCHIVED
+    else if self.State > STATE_ARCHIVED then
+        self.State = STATE_ARCHIVED
+    end if  end if    end if     end if  end if   end if    end if     end if  end if
+
+
+context Task::MoveToList(list: TaskList, optional order: integer = 0)
+post:
     self.TaskList = list
-    self.State = newState
+    self.ReduceStateToBase()
+    if order <> 0 then
+        self.ListOrder = order
+    end if
+
+context Task::CopyToBasket(): FolderTask
+post:
+    let basket: Folder = user.BasketFolder
+    
+    if not basket.Tasks.exists(element.Task.Id = self.Id) then
+        let maxOrder: integer = basket.Tasks.max(element.Order)
+        result = basket.Tasks.newElement(e | e.Task = self and e.Order = maxOrder + ORDER_STEP)
+    end if

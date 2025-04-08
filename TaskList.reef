@@ -114,7 +114,33 @@ post:
     result = task
 
 
+--context TaskList::CreateTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
+--post:
+--    let props :JsonObject = {
+--        Title: title,
+--        Summary: summary,
+--        State: state,
+--        Tags: tags
+--    }
+--
+--    result = self.CreateTaskEx(props)
+--    result.Actor = actor
+
+
 context TaskList::CreateTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
+post:
+    let task: Task = self.Tasks.newElement(t| t.Title = title and t.Summary = summary and t.State = state and t.Tags = tags and t.Actor = actor) in
+    if self.IndexPrefix.Len <> 0 then
+        task.Index = self.IndexPrefix + '-' + (self.Tasks.count + 1)
+    else
+        self.Group.TaskIndexCounter = self.Group.TaskIndexCounter + 1
+        task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
+    end if
+
+    result = task
+
+
+context TaskList::CreateJTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
 post:
     let props :JsonObject = {
         Title: title,
@@ -125,6 +151,15 @@ post:
 
     result = self.CreateTaskEx(props)
     result.Actor = actor
+
+
+context TaskList::TasksCount: integer
+post:
+    result = self.Tasks.count
+
+context TaskList::TasksInfo: string
+post:
+    result = self.Tasks.sum(element.Title + "; ")
 
 
 -- ===========================================================================================
@@ -439,42 +474,38 @@ post:
     result = task
 
 
-context TaskList::FindRightStateIncommingTask(task: Task): integer
-post:
-    -- na razie prosto
-    result = STATE_UNSPECIFIED
 
 
-context TaskList::ChangeListKind(template: JsonObject)
+context TaskList::ChangeListKind(template: JsonObject): string
 post:
     self.Kind = template.Kind
 
     let newTaskStates: string = template.TaskStates.ToString()
     
     if self.TaskStates <> newTaskStates then
-        self.Tasks.forAll(t | 
-            if t.State < STATE_UNSPECIFIED then
-                t.State = STATE_UNSPECIFIED
-            else if t.State > STATE_UNSPECIFIED and t.State < STATE_IN_PREPARATION then
-                t.State = STATE_UNSPECIFIED
-            else if t.State > STATE_IN_PREPARATION and t.State < STATE_PLANNED then
-                t.State = STATE_IN_PREPARATION
-            else if t.State > STATE_PLANNED and t.State < STATE_READY then
-                t.State = STATE_PLANNED
-            else if t.State > STATE_READY and t.State < STATE_EXECUTING then
-                t.State = STATE_READY
-            else if t.State > STATE_EXECUTING and t.State < STATE_FINISHED then
-                t.State = STATE_EXECUTING
-            else if t.State > STATE_FINISHED and t.State < STATE_CLOSED then
-                t.State = STATE_FINISHED
-            else if t.State > STATE_CLOSED and t.State < STATE_ARCHIVED then
-                t.State = STATE_ARCHIVED
-            else if t.State > STATE_ARCHIVED then
-                t.State = STATE_ARCHIVED
-            end if  end if    end if     end if  end if   end if    end if     end if  end if
-
-        ) 
+        self.Tasks.forAll(element.ReduceStateToBase()) 
     end if
 
     self.TaskStates = newTaskStates
+    result = self.href()
 
+
+context TaskList::AttachBasketContent(): TaskList
+post:
+    let basket: Folder = user.BasketFolder
+   
+    let maxOrder: integer = self.Tasks.max(element.ListOrder)
+    let order: integer = maxOrder + ORDER_STEP
+    basket.Tasks.forAll(
+            if element.Task.MoveToList(self, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    result = self
+
+
+context TaskList::AttachAndClearBasketContent(): TaskList
+post:
+    result = self.AttachBasketContent()
+    user.BasketFolder.Tasks.removeAll       -- user.BasketFolder.DettachAllContent

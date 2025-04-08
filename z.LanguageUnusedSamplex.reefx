@@ -599,3 +599,50 @@ post:
     jres = src[0]
     -- result = jres.ToString -- Nie działa!
     result = jres.v
+
+
+-------------------------
+context App::PX: string
+post:
+    let sres: string 
+    
+    let src: JsonObject = [{id:1, v:"a"},{id:2, v:"b"},{id:3, v:"c"}]
+    let osrc: JsonObject = {id:4, v:"d"}
+    let jres: JsonObject = [{id:5, v:"e"}]
+
+    jres = [...src,osrc.id,src[2]] 
+    jres = [...,src[2]] 
+    sres = jres[1].v
+    --jres = src[0]
+    -- result = jres.ToString -- Nie działa!
+    result = sres
+    
+    
+context TaskList::AddColumn(pos: integer, optional state: integer, optional name: string): JsonObject
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let newColumn: JsonObject = {
+        name: name,
+        state: state
+    }
+    
+    let states: JsonObject = []
+    
+    let columnsNo: integer = prevStates.count 
+    
+    if pos > 0 then
+        set(0 .. pos - 1).forAll(i |
+            states = [..., prevStates[i]]
+        )
+    end if    
+    states = [..., newColumn]
+    if pos < columnsNo then
+        set(pos..columnsNo-1).forAll(j |
+            states = [..., prevStates[j]]
+        )
+    end if    
+    
+    result = states
+    

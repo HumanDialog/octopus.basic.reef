@@ -134,13 +134,24 @@ context Group::GetTaskListTypes: JsonObject
 post:
     -- simple predefined:
     let checkList: JsonObject = {
-        Name: 'Checklist',
+        Name: 'List',
+        Summary: 'Simple task list',
+        Kind: TLK_LIST,
+        TaskStates: []
+    }
+
+    let simplaBoard: JsonObject = {
+        Name: 'Board',
+        Summary: 'Simple kanban board',
         Kind: TLK_KANBAN_CHECKLIST,
         TaskStates: self.GetChecklistDefaultColumns()
     }
 
     -- process predefined lists:
-    let strintColumns: JsonObject = [
+    let sprintList: JsonObject = {
+        Name: 'Sprint',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: [
             {
                 name: "Preparing",
                 state: STATE_IN_PREPARATION
@@ -162,14 +173,13 @@ post:
                 state: STATE_FINISHED
             }
         ]
-    let sprintList: JsonObject = {
-        Name: 'Sprint',
-        Kind: TLK_KANBAN_PROCESS,
-        TaskStates: strintColumns
     }
 
 
-    let ideasColumns: JsonObject = [
+    let ideasList: JsonObject = {
+        Name: 'Ideas',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: [
             {
                 name: "Notes",
                 state: STATE_IN_PREPARATION
@@ -182,16 +192,12 @@ post:
                 name: "Knowledge",
                 state: STATE_FINISHED
             }
-    ] 
-
-    let ideasList: JsonObject = {
-        Name: 'Ideas',
-        Kind: TLK_KANBAN_PROCESS,
-        TaskStates: ideasColumns
+        ]
     }
 
     result = [
         checkList,
+        simplaBoard,
         sprintList,
         ideasList
     ]

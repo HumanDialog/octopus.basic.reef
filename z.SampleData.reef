@@ -1,4 +1,5 @@
 
+
 context App::ClearData
 post:
     self.Groups.forAll( element.Lists.forAll(list: TaskList| list.Tasks.removeAll and list.AllTasks.removeAll)
@@ -24,13 +25,13 @@ post:
     homeGroup.IsPublic = true
     homeGroup.Name = 'My home group'
     homeGroup.Lists.removeAll
-    
+
     homeGroup.AllTags = "#urgent #grocery #dairy #beauty #clothes #party"
 
     -- Add some data
     let list: TaskList in
     list = homeGroup.Lists.newElement(element.Order = 0)
-    
+
     let states: JsonObject = [
         {
             name: 'Required',
@@ -51,7 +52,7 @@ post:
     list.Name = "Shopping list"
     list.IndexPrefix = 'SHP'
         list.CreateTask('Butter', 'Buy a few on promotion', 0, '#urgent #grocery #dairy')
-        list.CreateTask('Milk', 'As fat as you can', 0, '#grocery #dairy')   
+        list.CreateTask('Milk', 'As fat as you can', 0, '#grocery #dairy')
         list.CreateTask('Bread', 'Take three, two of them will be frozen', 100, '#urgent #grocery')
         list.CreateTask('Tomatos', '', 0, '#grocery #party');
         list.CreateTask('Lettuce', 'Must be fresh!', 0, '#grocery #party')
@@ -63,22 +64,22 @@ post:
     list.ReorderTasks()
 
     list = homeGroup.Lists.newElement(element.Order = 10)
-    list.Name = "Movies to watch" 
+    list.Name = "Movies to watch"
     list.IndexPrefix = 'MVS'
         list.CreateTask('From Dusk Till Dawn', '', 0)
         list.CreateTask('The Lion King', '', 0)
         list.CreateTask('Back to the Future', '', 0)
     list.ReorderTasks()
-    
+
     list = homeGroup.Lists.newElement(element.Order = 20)
-    list.Name = "Places to visit" 
+    list.Name = "Places to visit"
     list.IndexPrefix = 'PLC'
         list.CreateTask('Paris', '', 0)
         list.CreateTask('Swiss Alps', '', 0)
         list.CreateTask('Bora Bora', '', 0)
         list.CreateTask('Rio de Janeiro', '', 0)
     list.ReorderTasks()
-    
+
 
 
     ------------------------------  Dreams group -------------------------------
@@ -87,10 +88,10 @@ post:
     dreamsGroup.IsPublic = true
     dreamsGroup.Name = 'My dreams group'
     dreamsGroup.Lists.removeAll
-    
+
     -- Add some data
     list = dreamsGroup.Lists.newElement(element.Order = 0)
-    list.Name = "Actors to meet" 
+    list.Name = "Actors to meet"
     list.IndexPrefix = 'ACT'
         list.CreateTask('Jim Carrey', '', 0)
         list.CreateTask('Tobey Maguire', '', 0)
@@ -99,9 +100,9 @@ post:
         list.CreateTask('Ice Cube', '', 0)
         list.CreateTask('Chris Rock', '', 0)
     list.ReorderTasks()
-    
+
     list = dreamsGroup.Lists.newElement(element.Order = 20)
-    list.Name = "Cars to buy" 
+    list.Name = "Cars to buy"
     list.IndexPrefix = 'CAR'
         list.CreateTask('Aston Martin DB5', '', 0)
         list.CreateTask('DeLorean DMC-12', '', 0)
@@ -115,22 +116,22 @@ post:
 context App::InitSample
 post:
     self.ClearData()
-   
+
     self.ResetDemoData()
 
     -- Add sample users
     let alice: User = new User in
     alice.login = "alice@example.com"
     alice.Name = "Alice"
-    
+
     alice.CheckFolders
-    
+
     let bob: User = new User in
     bob.login = "bob@example.com"
     bob.Name = "Bob"
 
     bob.CheckFolders
-    
+
     -- -------------------- Motorcycle's production --------------------------
     let motorcycleCompany: Group = new Group
     motorcycleCompany.Name = "Motorcycle's production"
@@ -139,13 +140,13 @@ post:
     motorcycleCompany.AddUser(bob)
 
     motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
-    
+
     motorcycleCompany.CheckFolders
 
     -- Add some data
     let list: TaskList in
     list = motorcycleCompany.Lists.newElement(element.Order = 0)
-    
+
     -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
     let states: JsonObject = [
         {
@@ -167,7 +168,7 @@ post:
     list.Name = "Design"
     list.IndexPrefix = 'DGN'
         list.CreateTask('Target Audience Definition', 'Identify the specific demographics and needs of the intended buyers', STATE_FINISHED, '#urgent', alice)
-            
+
             list.Tasks.last.Description = '<h1>Description with images</h1>
             <p>Deer</p>
             <img alt="Deer" src="" data-path="group/Lists/19/Tasks/38/Images/blob?key=deer.jpg"/>
@@ -178,7 +179,7 @@ post:
             '
             list.Tasks.last.Images = 'deer.jpg;flowers.png;tree.webp'
 
-        list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '', alice)   
+        list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '', alice)
         list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', 100, '#prototype', alice)
         list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', 0, '#prototype');
         list.CreateTask('Ergonomics Testing', 'Ensure the motorcycle provides a comfortable and functional ride for the target user.', 0, '#prototype')
@@ -186,24 +187,24 @@ post:
     list.ReorderTasks()
 
     list = motorcycleCompany.Lists.newElement(element.Order = 10)
-    list.Name = "Engineering" 
+    list.Name = "Engineering"
     list.IndexPrefix = 'ENG'
         list.CreateTask('Performance Testing', 'Test the prototype for speed, handling, durability, and efficiency.', 0)
         list.CreateTask('Safety Testing', 'Ensure compliance with safety regulations and conduct crash tests where necessary.', 0)
         list.CreateTask('Environmental Compliance', 'Meet emissions standards and other environmental regulations.', 0)
         list.CreateTask('Refinement', 'Address issues identified during testing, including mechanical, aesthetic, and ergonomic concerns.', 0)
     list.ReorderTasks()
-    
+
     list = motorcycleCompany.Lists.newElement(element.Order = 20)
-    list.Name = "Branding" 
+    list.Name = "Branding"
     list.IndexPrefix = 'BRD'
         list.CreateTask('Product Naming and Branding', 'Develop a name, logo, and identity for the new motorcycle.', 0)
         list.CreateTask('Marketing Strategy', 'Plan campaigns, including online, print, and event-based marketing.', 0)
         list.CreateTask('Customer Engagement', 'Organize focus groups or pre-launch surveys to gather feedback.', 0)
         list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
     list.ReorderTasks()
-    
-    
+
+
 
     ------------------------------  Publishing company -------------------------------
 
@@ -217,7 +218,7 @@ post:
 
     -- Add some data
     list = publishingCompany.Lists.newElement(element.Order = 0)
-    list.Name = "Publishing" 
+    list.Name = "Publishing"
     list.IndexPrefix = 'PUB'
         list.CreateTask('Writing', '', 0)
         list.CreateTask('Editing', '', 0)
@@ -226,9 +227,9 @@ post:
         list.CreateTask('ISBN', '', 0)
         list.CreateTask('Copyright', '', 0)
     list.ReorderTasks()
-    
+
     list = publishingCompany.Lists.newElement(element.Order = 20)
-    list.Name = "Marketing and Sales" 
+    list.Name = "Marketing and Sales"
     list.IndexPrefix = 'MAS'
         list.CreateTask('Promotion plan', '', 0)
         list.CreateTask('Promo materials', '', 0)
@@ -262,20 +263,20 @@ post:
         let f: Folder = self.Folders.newElement(e | e.Title = Title) in
         f.CreateSubFolders(3)
         f.CreateTasks(5)
-        f.CreateNotes(4)    
-        f.ReorderElements()          
+        f.CreateNotes(4)
+        f.ReorderElements()
     end if
-    
+
 context Group::CheckFolders
 post:
     self.CheckFolder("Notes")
     self.CheckFolder("Projects")
-    self.CheckFolder("Ideas")    
-    
+    self.CheckFolder("Ideas")
+
 
 context Group::DeleteAllFolders
 post:
-    self.AllFolders.removeAll    
+    self.AllFolders.removeAll
 
 
 context User::CheckFolder(Title: string)
@@ -284,50 +285,50 @@ post:
         let f: Folder = self.Folders.newElement(e | e.Title = Title) in
         f.CreateSubFolders(3)
         f.CreateTasks(3)
-        f.CreateNotes(3)    
-        f.ReorderElements()         
+        f.CreateNotes(3)
+        f.ReorderElements()
     end if
-    
+
 context Folder::CreateSubFolders(no: integer)
 post:
     set(1 .. no).forAll(i | self.CreateSubFolder(self.Title + " F" + i))
 
-    
+
 context Folder::CreateSubFolder(Title: string)
 post:
     let subfolder: Folder = new Folder in
-    subfolder.Title = Title     
-    self.Folders.newElement(ff| ff.Folder = subfolder)    
-    
+    subfolder.Title = Title
+    self.Folders.newElement(ff| ff.Folder = subfolder)
+
 context Folder::CreateNotes(no: integer)
 post:
     set(1 .. no).forAll(i | self.CreateNote(self.Title + " Note " + i))
-    
+
 context Folder::CreateNote(Title: string)
 post:
     let note: Note = new Note in
-    note.Title = Title     
-    self.Notes.newElement(nn | nn.Note = note)    
-   
+    note.Title = Title
+    self.Notes.newElement(nn | nn.Note = note)
+
 context Folder::CreateTasks(no: integer)
 post:
     set(1 .. no).forAll(i | self.CreateTask(self.Title + " Task " + i))
-    
+
 context Folder::CreateTask(Title: string)
 post:
     let task: Task = new Task in
-    task.Title = Title     
-    self.Tasks.newElement(tt | tt.Task = task)      
-        
-    
+    task.Title = Title
+    self.Tasks.newElement(tt | tt.Task = task)
+
+
 context User::CheckFolders
 post:
     self.CheckFolder("My Notes")
     self.CheckFolder("My Projects")
-    self.CheckFolder("My Ideas") 
-    self.GetBasketFolder() 
-    self.GetPinnedFolders()      
-    self.ReorderFolders()     
+    self.CheckFolder("My Ideas")
+    self.GetBasketFolder()
+    self.GetPinnedFolders()
+    self.ReorderFolders()
 
 context User::ReorderFolders()
 post:
@@ -365,5 +366,3 @@ post:
     self.ReorderSubFolders()
     self.ReorderNotes()
     self.ReorderTasks()
-
-
