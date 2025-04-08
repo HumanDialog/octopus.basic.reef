@@ -1,12 +1,11 @@
 context App::J1: string
 post:
-    let s: string = "Blue" 
-    let json: JsonObject = { 
-                T:      s + "Sky",
-                2:      "two",
-                colors:         ['Red', 'Green', s] 
-            }
-    let res: string = "T= " + json.T        
-            
-    result = res
 
+    let json: JsonObject = {
+                title:          "Sky",
+                colors:     ['Red', 'Green', {x: 1, y:2}] ,
+                pos: {x: 3, y: 4}
+            }
+    let res: string = json.ToString
+
+    result = res

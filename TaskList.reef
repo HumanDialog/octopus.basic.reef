@@ -12,7 +12,7 @@ const TLS_GROUP_ARCHVIVED_LIST  = 1000
 class TaskList
     Name(128):              string
     Summary(196):           string
-    Tasks(0..n):            Task     
+    Tasks(0..n):            Task
     AllTasks(0..n):         Task    <backNav: TaskList>
     Order:                  integer
     TaskStates:             string
@@ -25,47 +25,47 @@ class TaskList
     InGroup:                Group
     GroupId:                integer
 end class
- 
+
 
 constraint TaskList::Tasks
     element.TaskListId = self.Id and element.Status = STATUS_ACTIVE
- 
+
 
 
 constraint TaskList::AllTasks
-    element.TaskListId = self.Id 
+    element.TaskListId = self.Id
 
 
 constraint TaskList::Group
     self.GroupId = element.Id
-    
-context TaskList::SwitchToList    
+
+context TaskList::SwitchToList
 post:
     self.Kind = TLK_LIST
-    
-context TaskList::SwitchToKanban    
+
+context TaskList::SwitchToKanban
 post:
     self.Kind = TLK_KANBAN
-    
-context TaskList::SwitchToCalendar    
+
+context TaskList::SwitchToCalendar
 post:
-    self.Kind = TLK_CALENDAR    
-    
+    self.Kind = TLK_CALENDAR
+
 context TaskList::href: string
 post:
     select case self.Kind
-    case TLK_KANBAN --0:  
-        result = '/listboard/' + self.Id 
-    case TLK_LIST    
+    case TLK_KANBAN --0:
+        result = '/listboard/' + self.Id
+    case TLK_LIST
         result = '/tasklist/' + self.Id
     case TLK_CALENDAR
-        result = '/listboard/' + self.Id      
+        result = '/listboard/' + self.Id
     case TLK_DAY
         result = '/tasklist/' + self.Id
     case else
         result = '/tasklist/' + self.Id
-    end select    
-                
+    end select
+
 
 
 context TaskList::FinishAll()
@@ -84,7 +84,7 @@ context TaskList::CreateTaskEx(properties: JsonObject): Task
 post:
     let task: Task = new Task
     self.Tasks.insert(task)
-    
+
     task.Title = properties.Title
     task.Summary = properties.Summary
     task.Description = properties.Description
@@ -95,16 +95,28 @@ post:
 
     if self.IndexPrefix.Len <> 0 then
         task.Index = self.IndexPrefix + '-' + (self.Tasks.count + 1)
-    else 
+    else
         self.Group.TaskIndexCounter = self.Group.TaskIndexCounter + 1
         task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
     end if
 
-    
+
     result = task
 
 
 context TaskList::CreateTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
+post:
+    let task: Task = self.Tasks.newElement(t| t.Title = title and t.Summary = summary and t.State = state and t.Tags = tags and t.Actor = actor) in
+    if self.IndexPrefix.Len <> 0 then
+        task.Index = self.IndexPrefix + '-' + (self.Tasks.count + 1)
+    else
+        self.Group.TaskIndexCounter = self.Group.TaskIndexCounter + 1
+        task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
+    end if
+
+    result = task
+
+context TaskList::CreateJTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
 post:
     let props :JsonObject = {
         Title: title,
@@ -117,4 +129,10 @@ post:
     result.Actor = actor
 
 
+context TaskList::TasksCount: integer
+post:
+    result = self.Tasks.count
 
+context TaskList::TasksInfo: string
+post:
+    result = self.Tasks.sum(element.Title + "; ")
