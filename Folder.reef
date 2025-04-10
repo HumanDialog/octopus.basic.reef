@@ -211,42 +211,43 @@ post:
         result = false
     end if
     
-
-context Folder::AttachMyContentTo(destFolder: Folder): Folder
+context Folder::AttachBasketContent(): Folder
 post:
-    let maxOrder: integer = destFolder.Folders.max(element.Order)
+    let basket: Folder = user.BasketFolder
+    
+    let maxOrder: integer = self.Folders.max(element.Order)
     let order: integer = maxOrder + ORDER_STEP
-   
-    self.Folders.forAll(
-            if destFolder.AttachFolder(element.Folder, order) then
+    basket.Folders.forAll(
+            if self.AttachFolder(element.Folder, order) then
                 order = order + ORDER_STEP
             end if
     )
 
-    maxOrder = destFolder.Notes.max(element.Order)
+    maxOrder = self.Notes.max(element.Order)
     order = maxOrder + ORDER_STEP
-    self.Notes.forAll(
-            if destFolder.AttachNote(element.Note, order) then
+    basket.Notes.forAll(
+            if self.AttachNote(element.Note, order) then
                 order = order + ORDER_STEP
             end if
     )
 
-    maxOrder = destFolder.Tasks.max(element.Order)
+    maxOrder = self.Tasks.max(element.Order)
     order = maxOrder + ORDER_STEP
-    self.Tasks.forAll(
-            if destFolder.AttachTask(element.Task, order) then
+    basket.Tasks.forAll(
+            if self.AttachTask(element.Task, order) then
                 order = order + ORDER_STEP
             end if
     )
 
-    result = destFolder
+    result = self
 
 
-context Folder::AttachMyContentToAndClear(destFolder: Folder): Folder
+
+context Folder::AttachAndClearBasketContent(): Folder
 post:
-    self.AttachMyContentTo(destFolder)
-    self.DettachAllContent()
-    result = destFolder
+    self.AttachBasketContent()
+    user.BasketFolder.DettachAllContent()
+    result = self
 
 context Folder::DettachNote(noteLink: FolderNote)
 pre:
@@ -293,13 +294,8 @@ post:
 context Folder::CopyTaskToBasket(taskLink: FolderTask): FolderTask
 post:
     let task: Task = taskLink.Task
-    let basket: Folder = user.BasketFolder
+    result = task.CopyToBasket()
     
-    if not basket.Tasks.exists(element.Task.Id = task.Id) then
-        let maxOrder: integer = basket.Tasks.max(element.Order)
-        result = basket.Tasks.newElement(e | e.Task = task and e.Order = maxOrder + ORDER_STEP)
-    end if
-
 
 context Folder::CutTaskToBasket(taskLink: FolderTask): FolderTask
 post:

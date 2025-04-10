@@ -1,18 +1,20 @@
-const TLK_KANBAN    =  0
-const TLK_LIST      =  1
-const TLK_CALENDAR  =  2
-const TLK_DAY       = 10
-const TLK_WEEK      = 11
-const TLK_MONTH     = 12
+const TLK_KANBAN_CHECKLIST     =  0
+const TLK_KANBAN_PROCESS   =  1
+const TLK_LIST              =  2
+const TLK_CALENDAR          =  3
+const TLK_DAY               = 10
+const TLK_WEEK              = 11
+const TLK_MONTH             = 12
 
 const TLS_GROUP_ACTIVE_LIST     = 0
+const TLS_GROUP_TEMPLATE_LIST   = 1
 const TLS_GROUP_ARCHVIVED_LIST  = 1000
 
 
 class TaskList
     Name(128):              string
     Summary(196):           string
-    Tasks(0..n):            Task
+    Tasks(0..n):            Task     
     AllTasks(0..n):         Task    <backNav: TaskList>
     Order:                  integer
     TaskStates:             string
@@ -25,47 +27,55 @@ class TaskList
     InGroup:                Group
     GroupId:                integer
 end class
-
+ 
 
 constraint TaskList::Tasks
     element.TaskListId = self.Id and element.Status = STATUS_ACTIVE
-
+ 
 
 
 constraint TaskList::AllTasks
-    element.TaskListId = self.Id
+    element.TaskListId = self.Id 
 
 
 constraint TaskList::Group
     self.GroupId = element.Id
+    
 
-context TaskList::SwitchToList
+context TaskList::SwitchToList    
 post:
-    self.Kind = TLK_LIST
+    if self.Kind = TLK_KANBAN_CHECKLIST then
+        self.Kind = TLK_LIST
+    end if
+    
 
-context TaskList::SwitchToKanban
+context TaskList::SwitchToKanban    
 post:
-    self.Kind = TLK_KANBAN
-
-context TaskList::SwitchToCalendar
+    if self.Kind = TLK_LIST then
+        self.Kind = TLK_KANBAN_CHECKLIST
+    end if
+    
+context TaskList::SwitchToCalendar    
 post:
-    self.Kind = TLK_CALENDAR
-
+    self.Kind = TLK_CALENDAR    
+    
 context TaskList::href: string
 post:
     select case self.Kind
-    case TLK_KANBAN --0:
-        result = '/listboard/' + self.Id
-    case TLK_LIST
+    case TLK_KANBAN_CHECKLIST --0:  
+        result = '/listboard/' + self.Id 
+    case TLK_KANBAN_PROCESS --0:  
+        result = '/listboard/' + self.Id 
+    case TLK_LIST    
         result = '/tasklist/' + self.Id
     case TLK_CALENDAR
-        result = '/listboard/' + self.Id
+        result = '/listboard/' + self.Id      
     case TLK_DAY
         result = '/tasklist/' + self.Id
     case else
         result = '/tasklist/' + self.Id
-    end select
-
+    end select    
+                
 
 
 context TaskList::FinishAll()
@@ -84,7 +94,7 @@ context TaskList::CreateTaskEx(properties: JsonObject): Task
 post:
     let task: Task = new Task
     self.Tasks.insert(task)
-
+    
     task.Title = properties.Title
     task.Summary = properties.Summary
     task.Description = properties.Description
@@ -95,13 +105,26 @@ post:
 
     if self.IndexPrefix.Len <> 0 then
         task.Index = self.IndexPrefix + '-' + (self.Tasks.count + 1)
-    else
+    else 
         self.Group.TaskIndexCounter = self.Group.TaskIndexCounter + 1
         task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
     end if
 
-
+    
     result = task
+
+
+--context TaskList::CreateTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
+--post:
+--    let props :JsonObject = {
+--        Title: title,
+--        Summary: summary,
+--        State: state,
+--        Tags: tags
+--    }
+--
+--    result = self.CreateTaskEx(props)
+--    result.Actor = actor
 
 
 context TaskList::CreateTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
@@ -115,6 +138,7 @@ post:
     end if
 
     result = task
+
 
 context TaskList::CreateJTask(title: string, summary: string, state: integer, optional tags: string, optional actor: User): Task
 post:
@@ -136,3 +160,352 @@ post:
 context TaskList::TasksInfo: string
 post:
     result = self.Tasks.sum(element.Title + "; ")
+
+
+-- ===========================================================================================
+
+
+context TaskList::GetTaskStates(): JsonObject
+post:
+    if self.TaskStates.isEmpty() = false then
+        result = new JsonObject
+        result.Parse(self.TaskStates)
+    else
+        result = [
+            {
+                name: 'To Do',
+                state: STATE_UNSPECIFIED
+            },
+            {
+                name: 'Finished',
+                state: STATE_FINISHED
+            }
+        ]
+
+        self.TaskStates = result.ToString()
+    end if
+    
+
+
+context TaskList::AddColumn(pos: integer, optional state: integer = 0, optional name: string = ""): JsonObject
+post:
+    if self.Kind = TLK_KANBAN_CHECKLIST then
+        result = self.AddChecklistColumn(pos, state, name)
+    else if self.Kind = TLK_KANBAN_PROCESS then
+        result = self.AddProcessColumn(pos, state, name)
+    end if
+    end if
+
+
+context TaskList::AddChecklistColumn(pos: integer, optional state: integer, optional name: string): JsonObject
+pre:
+    self.TaskStates.isEmpty() = false
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let columnsNo: integer = prevStates.count 
+
+    let maxToDoState: integer = 0
+    let todoStates: JsonObject = []
+    let colState: integer
+
+    set(0 .. columnsNo-1).forAll(i | 
+        colState = prevStates[i].state
+        
+        if colState < STATE_FINISHED then
+            todoStates = [..., prevStates[i]]    
+            if colState > maxToDoState then
+                maxToDoState = colState
+            end if
+        end if
+    )
+
+
+    if state = 0 then
+        state = maxToDoState + 1
+    end if
+
+    if name.isEmpty then
+        name = "To Do (" + todoStates.count + ")"
+    end if
+
+    let newColumn: JsonObject = {
+        name: name,
+        state: state
+    }
+    
+    let states: JsonObject = []
+    
+    if pos > 0 then
+        set(0 .. pos - 1).forAll(i |
+            states = [..., prevStates[i]]
+        )
+    end if    
+
+    states = [..., newColumn]
+
+    if pos < columnsNo then
+        set(pos .. columnsNo-1).forAll(j |
+            states = [..., prevStates[j]]
+        )
+    end if    
+
+    self.TaskStates = states.ToString
+    result = states
+
+
+context TaskList::AddProcessColumn(pos: integer, state: integer, name: string): JsonObject
+pre:
+    self.TaskStates.isEmpty() = false
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let columnsNo: integer = prevStates.count 
+
+    let canAddColumn: boolean = true
+    let colState: integer
+    set(0 .. columnsNo-1).forAll(i | 
+        colState = prevStates[i].state
+        if colState = state then
+            canAddColumn = false
+        end if 
+    )
+
+    if canAddColumn then
+        let newColumn: JsonObject = {
+            name: name,
+            state: state
+        }
+        
+        let states: JsonObject = []
+        
+        if pos > 0 then
+            set(0 .. pos - 1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+        end if    
+
+        states = [..., newColumn]
+
+        if pos < columnsNo then
+            set(pos .. columnsNo-1).forAll(j |
+                states = [..., prevStates[j]]
+            )
+        end if 
+        self.TaskStates = states.ToString
+        result = states  
+    else
+        result = null
+    end if
+
+context TaskList::MoveColumn(pos: integer, shift: integer): JsonObject
+pre:
+    self.TaskStates.isEmpty() = false
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let statesNo: integer = prevStates.count
+    let newPos: integer = pos + shift
+    if newPos < 0 then
+        newPos = 0
+    else if newPos >= statesNo then
+        newPos = statesNo-1
+    end if
+    end if
+
+    if newPos = pos then
+        result = prevStates
+    else
+        let states: JsonObject = []
+
+        if newPos < pos then
+            set(0 .. newPos-1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+
+            states = [..., prevStates[pos]]
+
+            set(newPos .. pos-1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+
+            set(pos+1 .. statesNo-1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+        else
+            set(0 .. pos-1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+
+            set(pos+1 .. newPos).forAll(i |
+                states = [..., prevStates[i]]
+            )
+            
+            states = [..., prevStates[pos]]
+
+            set(newPos+1 .. statesNo-1).forAll(i |
+                states = [..., prevStates[i]]
+            )
+        end if
+
+        self.TaskStates = states.ToString()
+        result = states
+    end if
+
+context TaskList::ChangeColumnName(pos: integer, newName: string): JsonObject
+pre:
+    self.TaskStates.isEmpty = false
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let columnsNo: integer = prevStates.count
+
+    let states: JsonObject = []
+    set(0 .. pos-1).forAll(i |
+        states = [..., prevStates[i]]
+    )
+
+    let changedColumn: JsonObject = {
+        name: newName,
+        state: prevStates[pos].state,
+    }
+
+    states = [..., changedColumn]
+
+    set(pos+1 .. columnsNo).forAll(i |
+        states = [..., prevStates[i]]
+    )
+
+    self.TaskStates = states.ToString()
+    result = states
+
+context TaskList::RemoveColumn(pos: integer, optional moveTasksTo: integer=STATE_UNSPECIFIED): JsonObject
+post:
+     if self.Kind = TLK_KANBAN_CHECKLIST then
+        result = self.RemoveChecklistColumn(pos, moveTasksTo)
+    else if self.Kind = TLK_KANBAN_PROCESS then
+        result = self.RemoveProcessColumn(pos, moveTasksTo)
+    end if
+    end if
+
+context TaskList::RemoveChecklistColumn(pos: integer, optional moveTasksTo: integer=STATE_UNSPECIFIED): JsonObject
+pre:
+    self.TaskStates.isEmpty = false
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let columnsNo: integer = prevStates.count
+    let states: JsonObject = []
+
+    set(0 .. pos-1).forAll(i | 
+        states = [..., prevStates[i]]
+    )
+
+    set(pos+1 .. columnsNo-1).forAll(i |
+        states = [..., prevStates[i]]
+    )
+
+    let removingState: integer = prevStates[pos].state
+    self.Tasks.forAll(t |
+        if t.State = removingState then
+            t.ChangeTaskState(moveTasksTo)
+        end if
+    )
+
+    self.TaskStates = states.ToString()
+    result = states
+
+context TaskList::RemoveProcessColumn(pos: integer, optional moveTasksTo: integer=STATE_UNSPECIFIED): JsonObject
+pre:
+    self.TaskStates.isEmpty = false
+post:
+    let prevStates: JsonObject = new JsonObject
+    prevStates.Parse(self.TaskStates)
+
+    let columnsNo: integer = prevStates.count
+    let states: JsonObject = []
+
+    set(0 .. pos-1).forAll(i | 
+        states = [..., prevStates[i]]
+    )
+
+    set(pos+1 .. columnsNo-1).forAll(i |
+        states = [..., prevStates[i]]
+    )
+
+    let removingState: integer = prevStates[pos].state
+    self.Tasks.forAll(t |
+        if t.State = removingState then
+            t.ChangeTaskState(moveTasksTo)
+        end if
+    )
+
+    self.TaskStates = states.ToString()
+    result = states
+
+
+context TaskList::CreateTaskInColumn(properties: JsonObject, pos: integer): Task
+pre:
+    self.TaskStates.isEmpty = false
+post:
+    result = self.CreateTaskEx(properties)
+    
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+
+    let newTaskState: integer = states[pos].state
+    result.ChangeTaskState(newTaskState)
+
+
+context TaskList::ChangeTaskColumn(task: Task, columnNo: integer): Task
+pre:
+    self.TaskStates.isEmpty = false
+post:
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+
+    let newState: integer = states[columnNo].state
+    task.ChangeTaskState(newState)
+    result = task
+
+
+
+
+context TaskList::ChangeListKind(template: JsonObject): string
+post:
+    self.Kind = template.Kind
+
+    let newTaskStates: string = template.TaskStates.ToString()
+    
+    if self.TaskStates <> newTaskStates then
+        self.Tasks.forAll(element.ReduceStateToBase()) 
+    end if
+
+    self.TaskStates = newTaskStates
+    result = self.href()
+
+
+context TaskList::AttachBasketContent(): TaskList
+post:
+    let basket: Folder = user.BasketFolder
+   
+    let maxOrder: integer = self.Tasks.max(element.ListOrder)
+    let order: integer = maxOrder + ORDER_STEP
+    basket.Tasks.forAll(
+            if element.Task.MoveToList(self, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    result = self
+
+
+context TaskList::AttachAndClearBasketContent(): TaskList
+post:
+    result = self.AttachBasketContent()
+    user.BasketFolder.Tasks.removeAll       -- user.BasketFolder.DettachAllContent

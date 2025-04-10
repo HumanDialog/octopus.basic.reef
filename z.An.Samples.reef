@@ -1,8 +1,7 @@
 context App::J1: string
 post:
 
-    let json: JsonObject = {
-                title:          "Sky",
+    let json: JsonObject = { title:          "Sky",
                 colors:     ['Red', 'Green', {x: 1, y:2}] ,
                 pos: {x: 3, y: 4}
             }
