@@ -8,3 +8,15 @@ post:
     let res: string = json.ToString
 
     result = res
+
+
+context TaskList::TI: string
+post:
+    result = self.Tasks.sum('' + element.Id + ':' + element.Title + "[" + element.State + "]; ")
+
+
+context TaskList::FLT: integer
+post:
+    let task: Task = self.Tasks.select(element.State < STATE_FINISHED).first in
+    task.State = task.State + 1
+    result = task.State
