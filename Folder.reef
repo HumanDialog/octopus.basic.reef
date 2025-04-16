@@ -314,6 +314,71 @@ post:
         result = user.PinnedFolders.Folders.newElement(e | e.Folder = self and e.Order = maxOrder+ORDER_STEP)
     end if
 
+
+context Folder::GetBasketContents: JsonObject
+pre:
+    self = user.BasketFolder
+post:
+    result = []
+
+    self.Folders.forAll(
+        result = [..., {
+            Type: 'Folder', 
+            Id: element.FolderId,
+            Title: element.Title
+            }
+        ]    
+    )
+
+    self.Notes.forAll(
+        result = [..., {
+            Type: 'Note',
+            Id: element.NoteId,
+            Title: element.Title
+        }]
+    )
+
+    self.Tasks.forAll(
+        result = [..., {
+            Type: 'Task',
+            Id: element.TaskId,
+            Title: element.Title
+        }]
+    )
+
+context Folder::GetBasketContentsAndClear : JsonObject
+pre:
+    self = user.BasketFolder
+post:
+    result = []
+
+    self.Folders.forAll(
+        result = [..., {
+            Type: 'Folder', 
+            Id: element.FolderId,
+            Title: element.Title
+            }
+        ]    
+    )
+
+    self.Notes.forAll(
+        result = [..., {
+            Type: 'Note',
+            Id: element.NoteId,
+            Title: element.Title
+        }]
+    )
+
+    self.Tasks.forAll(
+        result = [..., {
+            Type: 'Task',
+            Id: element.TaskId,
+            Title: element.Title
+        }]
+    )
+
+    self.DettachAllContent()
+
 -- ==============================================================================
 
 

@@ -124,13 +124,13 @@ post:
     alice.login = "alice@example.com"
     alice.Name = "Alice"
 
-    alice.CheckFolders
+    alice.CheckFolders()
 
     let bob: User = new User in
     bob.login = "bob@example.com"
     bob.Name = "Bob"
 
-    bob.CheckFolders
+    bob.CheckFolders()
 
     -- -------------------- Motorcycle's production --------------------------
     let motorcycleCompany: Group = new Group
@@ -141,7 +141,11 @@ post:
 
     motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
 
-    motorcycleCompany.CheckFolders
+    motorcycleCompany.CheckFolders()
+
+    motorcycleCompany.AddGeneralMessageChannels()
+    let channel: MessageChannel = alice.AddDirectMesssageChannel(bob)
+    self.AddSampleConversation(channel, bob, alice)
 
     -- Add some data
     let list: TaskList in
@@ -366,3 +370,49 @@ post:
     self.ReorderSubFolders()
     self.ReorderNotes()
     self.ReorderTasks()
+
+
+context Group::AddGeneralMessageChannels()
+post:
+    self.AddGeneralMessageChannel("Announcements")
+    self.AddGeneralMessageChannel("Bugs")
+    self.AddGeneralMessageChannel("Feedback")
+    self.AddGeneralMessageChannel("General")
+    self.AddGeneralMessageChannel("Random")
+
+
+context App::AddSampleConversation(channel: MessageChannel, bob: User, alice: User): MessageChannel
+post:
+    channel.Messages.removeAll
+    let msg: Message in 
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.08 and element.Date.Time = "09:02"
+            element.Text = "Hi Alice,\nI hope your morning is going well. I've just finished reading the initial draft of the client proposal. There's a lot of good content there, but I had a couple of thoughts I wanted to run by you before we move forward.")
+    
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.08 and element.Date.Time = "11:18" 
+            element.Text = "Hi Bob,\nThanks for the feedback. I'm glad you had a look at it. I agree—it's starting to come together. Let me know which parts you'd like to discuss. I'm happy to make adjustments if something doesn't align with the client's expectations.")
+    
+
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.08 and element.Date.Time = "16:47" 
+            element.Text = "Great. One thing I noticed was that the timeline section might be a bit too optimistic, especially given the recent delays on the vendor side. I think we should consider padding it slightly to manage expectations.")
+    
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.09 and element.Date.Time = "11:18"
+            element.Text = "That's a good point. I was thinking the same, especially since we're still waiting for final confirmation from the design team.\nWe could shift the delivery estimate by a week and add a note explaining the reasoning. That way, it's transparent, but not alarming.")
+    
+
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.09 and element.Date.Time = "13:26" 
+            element.Text = "I like that approach. It sounds reasonable and professional.\nAlso, did you get a chance to check in with Sam regarding the cost estimates? I think we're still missing the final numbers for the second phase of the project.")
+    
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.Time = "08:55" 
+            element.Text = "Yes, I followed up with him this morning. He said he's finalizing those figures and will send them over by the end of the day. I'll keep an eye out and forward them to you as soon as they arrive.")
+    
+
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.11 and element.Date.Time = "12:11" 
+            element.Text = "Perfect, thanks.\nLet's regroup tomorrow after we've got all the numbers. I'll prepare a summary doc in the meantime and send it to you for review.")
+    
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.Time = "14:39" 
+            element.Text = "Sounds like a plan. Thanks for staying on top of this, Bob.")
+    

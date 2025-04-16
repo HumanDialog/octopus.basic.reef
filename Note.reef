@@ -66,4 +66,11 @@ post:
     self.UpdateMetaInfo()
 
 
+context Note::CopyToBasket(): FolderNote
+post:
+    let basket: Folder = user.BasketFolder
     
+    if not basket.Notes.exists(element.Note.Id = self.Id) then
+        let maxOrder: integer = basket.Notes.max(element.Order)
+        result = basket.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
+    end if

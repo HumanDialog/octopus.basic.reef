@@ -167,7 +167,7 @@ post:
 
 context TaskList::GetTaskStates(): JsonObject
 post:
-    if self.TaskStates.isEmpty() = false then
+    if self.TaskStates.Len <> 0 then
         result = new JsonObject
         result.Parse(self.TaskStates)
     else
@@ -199,7 +199,7 @@ post:
 
 context TaskList::AddChecklistColumn(pos: integer, optional state: integer, optional name: string): JsonObject
 pre:
-    self.TaskStates.isEmpty() = false
+    self.TaskStates.Len <> 0
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
@@ -226,7 +226,7 @@ post:
         state = maxToDoState + 1
     end if
 
-    if name.isEmpty then
+    if name.Len = 0 then
         name = "To Do (" + todoStates.count + ")"
     end if
 
@@ -257,7 +257,7 @@ post:
 
 context TaskList::AddProcessColumn(pos: integer, state: integer, name: string): JsonObject
 pre:
-    self.TaskStates.isEmpty() = false
+    self.TaskStates.Len <> 0
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
@@ -302,7 +302,7 @@ post:
 
 context TaskList::MoveColumn(pos: integer, shift: integer): JsonObject
 pre:
-    self.TaskStates.isEmpty() = false
+    self.TaskStates.Len <> 0
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
@@ -357,7 +357,7 @@ post:
 
 context TaskList::ChangeColumnName(pos: integer, newName: string): JsonObject
 pre:
-    self.TaskStates.isEmpty = false
+    self.TaskStates.Len <> 0
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
@@ -394,7 +394,7 @@ post:
 
 context TaskList::RemoveChecklistColumn(pos: integer, optional moveTasksTo: integer=STATE_UNSPECIFIED): JsonObject
 pre:
-    self.TaskStates.isEmpty = false
+    self.TaskStates.Len <> 0
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
@@ -422,7 +422,7 @@ post:
 
 context TaskList::RemoveProcessColumn(pos: integer, optional moveTasksTo: integer=STATE_UNSPECIFIED): JsonObject
 pre:
-    self.TaskStates.isEmpty = false
+    self.TaskStates.Len <> 0
 post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
@@ -451,7 +451,7 @@ post:
 
 context TaskList::CreateTaskInColumn(properties: JsonObject, pos: integer): Task
 pre:
-    self.TaskStates.isEmpty = false
+    self.TaskStates.Len <> 0
 post:
     result = self.CreateTaskEx(properties)
     
@@ -464,7 +464,7 @@ post:
 
 context TaskList::ChangeTaskColumn(task: Task, columnNo: integer): Task
 pre:
-    self.TaskStates.isEmpty = false
+    self.TaskStates.Len <> 0
 post:
     let states: JsonObject = new JsonObject
     states.Parse(self.TaskStates)
