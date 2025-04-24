@@ -12,6 +12,7 @@ class Note
     
     Content:	            string     
     Images:                 string      <readOnly>
+    AttachedFiles:          string      <readOnly>
     InFolders[0..n]:        FolderNote
     InTasks[0..n]:          TaskNote
     InMessages[0..n]:       MessageNote

@@ -175,17 +175,19 @@ post:
 
             list.Tasks.last.Description = '<h1>Description with images</h1>
             <p>Deer</p>
-            <img alt="Deer" src="" data-path="group/Lists/19/Tasks/38/Images/blob?key=deer.jpg"/>
+            <img alt="Deer" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=deer.jpg"/>
             <p>Flowers</p>
-            <img alt="Flowers" src="" data-path="group/Lists/19/Tasks/38/Images/blob?key=flowers.png"/>
+            <img alt="Flowers" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=flowers.png"/>
             <p>Tree</p>
-            <img alt="Tree" src="" data-path="group/Lists/19/Tasks/38/Images/blob?key=tree.webp"/>
+            <img alt="Tree" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=tree.webp"/>
             '
             list.Tasks.last.Images = 'deer.jpg;flowers.png;tree.webp'
 
         list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '', alice)
         list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', 100, '#prototype', alice)
         list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', 0, '#prototype');
+        list.Tasks.last.AttachedFiles='lorem.txt';
+
         list.CreateTask('Ergonomics Testing', 'Ensure the motorcycle provides a comfortable and functional ride for the target user.', 0, '#prototype')
         list.CreateTask('Prototype Development', "Build a working prototype to test the design and functionality", 0, '#prototype')
     list.ReorderTasks()

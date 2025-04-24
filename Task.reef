@@ -41,6 +41,7 @@ class Task
     Steps[0..n]:	        TaskStep 
     Description:	        string     
     Images:                 string      <readOnly>
+    AttachedFiles:          string      <readOnly>
 
     TaskList(0..1):         TaskList    <backNav: AllTasks>
     InFolders[0..n]:        FolderTask
