@@ -1,5 +1,3 @@
-const NS_PUBLISHED_NOTE = 10000
-
 class Note
     Title(128):             string
     Summary(196):	        string
@@ -14,6 +12,7 @@ class Note
 
     Content:	            string
     Images:                 string      <readOnly>
+    AttachedFiles:          string      <readOnly>
     InFolders[0..n]:        FolderNote
     InTasks[0..n]:          TaskNote
     InMessages[0..n]:       MessageNote
@@ -67,5 +66,12 @@ post:
     self.Content = val
     self.UpdateMetaInfo()
 
-context Note::IsInGroupFolder(group: Group)
+
+context Note::CopyToBasket(): FolderNote
 post:
+    let basket: Folder = user.BasketFolder
+
+    if not basket.Notes.exists(element.Note.Id = self.Id) then
+        let maxOrder: integer = basket.Notes.max(element.Order)
+        result = basket.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
+    end if

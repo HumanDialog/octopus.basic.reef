@@ -18,7 +18,7 @@ post:
     result = "Migration from 1.3.3:\n"
 
     -- TLK_... constants changes
-    result = result + "\t* Punching TaskLists's Kinds\n"
+    result = result + "\t* Punching TaskLists's Kinds and TaskStates\n"
     system.allInstances("TaskList").forAll(list |
         if list.Kind = 1 then
             list.Kind = TLK_LIST
@@ -28,6 +28,8 @@ post:
             list.Kind = TLK_KANBAN_CHECKLIST
         end if 
         end if
+
+        list.MigrateTaskStatesFrom133to134()
     )
 
 
@@ -41,6 +43,41 @@ post:
         end if
         end if
     )
+
+context TaskList::MigrateTaskStatesFrom133to134
+post:
+    if self.TaskStates.Len <> 0 then
+        let prevStates: JsonObject = new JsonObject
+        prevStates.Parse(self.TaskStates)
+
+        let statesNo: integer = prevStates.count
+        let newStates: JsonObject = []
+
+        let stateValue: integer = 0
+        let stateName: string
+        let newState: JsonObject
+
+        set(0 .. statesNo-1).forAll(i | 
+            stateValue = prevStates[i].state
+            if stateValue = 1000 then
+                stateValue = STATE_FINISHED
+            else if stateValue > 1000 then
+                stateValue = stateValue - 900
+            end if
+            end if
+
+            stateName = prevStates[i].name
+            newState = {
+                state: stateValue,
+                name: stateName
+            }
+            
+            newStates = [..., newState]
+        )
+
+        self.TaskStates = newStates.ToString()
+
+    end if
 
 context App::MigrateFrom110(): string
 post:

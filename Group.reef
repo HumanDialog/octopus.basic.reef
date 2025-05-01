@@ -201,3 +201,39 @@ post:
         sprintList,
         ideasList
     ]
+
+
+
+    ------------ Messages -------------
+
+context Group::AddGeneralMessageChannel(title: string, optional order: integer): MessageChannel
+post:
+    if order = 0 then
+        order = self.MessageChannels.max(element.Order) + ORDER_STEP
+    end if
+
+    result = self.MessageChannels.newElement(element.Title = title and element.Order = order)
+
+context Group::GetPossibleDirectChannelUsers(optional excludeExisting: boolean = false): JsonObject
+post:
+    result = []
+
+    let canAdd: boolean = false
+    self.Members.select(element.User <> user).forAll(ug | 
+        if excludeExisting then
+            if user.FindMessageChannelWith(ug.User) <> null then
+                canAdd = false
+            else
+                canAdd = true
+            end if
+        else
+            canAdd = true
+        end if
+
+        if canAdd then
+            result = [..., {
+                ref: './User/' + ug.UserId,
+                Name: ug.User.Name
+            }]
+        end if
+    )

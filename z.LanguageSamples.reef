@@ -1,0 +1,4 @@
+
+context TaskList::tt(): boolean
+post:
+    result = self.TaskStates.isEmpty()

@@ -5,9 +5,10 @@ class MessageChannel
     Summary(196):           string
     Status:                 integer
     Group(0..1):            Group <backNav: MessageChannels(0..n)>
-    GroupId:                 integer
+    GroupId:                integer
     Users[0..n]:            MessageChannelUser <backNav: MessageChannel>             
     Messages(0..n):         Message  
+    Order:                  integer
 end class
 
 class Message
@@ -40,4 +41,92 @@ class MessageChannelUser
     MessageChannel:     MessageChannel
     User:               User
     UserId:             integer
+    Summary(196):       string
+    Order:              integer
 end class
+
+
+-----------------------------------------------------------------------------------------------------
+
+
+context MessageChannel::href: string
+post:
+    result = '/chat/' + self.Id
+
+
+context MessageChannel::AddMessage(text: string, optional attachements: JsonObject): Message
+post:
+    result = self.Messages.newElement(element.Author=user and element.Date.SetUTCDate and element.Text=text)
+        
+    let attachementsNo: integer = attachements.count
+    let note: Note 
+    let task: Task
+
+    let itemId: integer
+    let itemType: string
+
+    set(0 .. attachementsNo-1).forAll(i | 
+        itemType = attachements[i].Type
+        itemId = attachements[i].Id
+
+        if itemType = "Note" then
+            
+            note = system.GetItem(itemId, "Note")
+            if note <> null then
+                result.Notes.newElement(element.Note=note and element.Title=note.Title)
+            end if
+
+        else if itemType = "Task" then
+
+            task = system.GetItem(itemId, "Task")
+            if task <> null then
+                result.Tasks.newElement(element.Task=task and element.Title=task.Title)
+            end if
+
+        else if itemType = "Folder" then
+            -- Folders cannot be attached to message
+        end if
+        end if
+        end if
+    )
+    
+
+context MessageChannel::GetTitle: string
+post:
+    if self.Users.count > 0 then
+        result = ""
+        self.Users.select(element.UserId <> user.Id).forAll(e | 
+            if not result.isEmpty then
+                result = result + ", "
+            end if    
+        result = result + e.User.Name
+        )
+    else
+        result = self.Title
+    end if
+    
+
+context MessageChannelUser::href: string
+post:
+    result = self.MessageChannel.href()
+
+
+context MessageChannelUser::Title: string
+post:
+    result = ""
+    self.MessageChannel.Users.select(element.UserId <> self.UserId).forAll(e |
+        if not result.isEmpty then
+            result = result + ", "
+        end if    
+        result = result + e.User.Name
+    )
+
+context MessageTask::href: string
+post:
+    result = self.Task.href
+
+context MessageNote::href: string
+post:
+    result = self.Note.href
+
+-----------------------------------------------------------------------------------------------------
