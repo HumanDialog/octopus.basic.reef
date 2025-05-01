@@ -1,0 +1,87 @@
+
+class Puchar
+    Final: Mecz
+    ---
+end class
+
+class Mecz
+  Sedzia1:  Uczen
+  Sedzia2:  Uczen
+  Opiekun:  Nauczyciel
+  Data:     Date
+  BramkiA:  Integer
+  BramkiB:  Integer
+  ZespolA:  Zespol
+  ZespolB:  Zespol
+  WygranyA: Mecz
+  WygranyB: Mecz
+end class
+
+class GrupaRozgrywek
+    Nazwa: string
+    Zespoly[0..n]: GrupaZespol
+
+end class
+
+class GrupaZespol
+    Grupa:  GrupaRozgrywek
+    Zespol: Zespol
+end class
+
+class Zespol
+  Nazwa
+
+  Zawodnicy [0..n]: ZespolUczen
+end class
+
+class ZespolUczen
+  Zespol (0..1): Zespol
+  Uczen  (0..1): Uczen
+end class
+
+
+class Klasa
+  Nazwa
+  Uczniowie (0..n): Uczen <backNav: Klasa>
+end class
+
+class Uczen
+  Imie:       string
+  Nazwisko:   string
+  Klasa:      Klasa
+  ---
+end class
+
+const WUEFISTA  = 1
+const SEDZIA    = 2
+---
+
+class Nauczyciel
+  Imie, Nazwisko
+
+  Rola: integer
+end class
+
+const BOISKO  = 1
+const SALA = 2
+const KORYTARZ = 3
+const KORTDOBADMINTONA = 10
+
+
+class Miejsce
+  Nazwa: string
+
+  Rodzaj: integer
+  Rezerwacje[0..n]: Rezerwacja <backNav: Miejsce>
+end class
+
+class Rezerwacja
+  Data:    date
+  Czas:    timespan
+  Miejsce: Miejsce
+
+  Opis:    string
+  Klasa:   Klasa
+  Mecz:    Mecz
+  ---
+end class

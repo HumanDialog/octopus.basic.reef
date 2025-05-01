@@ -1,3 +1,5 @@
+const NS_PUBLISHED_NOTE = 10000
+
 class Note
     Title(128):             string
     Summary(196):	        string
@@ -9,8 +11,8 @@ class Note
     ModificationDate:       date
     CreatedBy:              User
     ModifiedBy:             User
-    
-    Content:	            string     
+
+    Content:	            string
     Images:                 string      <readOnly>
     InFolders[0..n]:        FolderNote
     InTasks[0..n]:          TaskNote
@@ -65,5 +67,5 @@ post:
     self.Content = val
     self.UpdateMetaInfo()
 
-
-    
+context Note::IsInGroupFolder(group: Group)
+post:

@@ -1,25 +1,58 @@
 const ACC_DENIED = 0
 const ACC_READ   = 1
 const ACC_WRITE  = 2
-const ACC_FULL   = 3
+const ACC_READWRITE   = 3
+--> sys/login?u=alice;g=13;r=Guest
 
 access role Guest
     acc App = ACC_READ
 
     acc Group =
         if self = group then
-            ACC_FULL
-        else
-            ACC_DENIED
+            ACC_READ
         end if
 
     acc TaskList =
         if self.Group <> null and self.Group = group then
-            ACC_FULL
-        else
-            ACC_DENIED
+            ACC_READWRITE
         end if
 
+    acc Task =
+        if self.Actor = user then
+            ACC_READWRITE
+        else if self.TaskList.Group = group then
+            ACC_READ
+        end if
+        end if
+
+    acc Note =
+        if self.CreatedBy = user then
+            ACC_READWRITE
+        else if self.State = NS_PUBLISHED_NOTE then
+            ACC_READ
+        else
+            self.AccGuest
+        end if
+        end if
+
+    acc Folder = self.AccGuest
+
+
+context Folder::AccGuest: integer
+post:
+    if self.FolderOwner = user then
+        result = ACC_READWRITE
+    else if self.Status = FS_PUBLIC_FOLDER then
+        result = ACC_READ
+    else if self.Group = group then
+        result = ACC_READ
+    end if
+    end if
+    end if
+
+context Note::AccGuest: integer
+post:
+    result = self.InFolders.iterate(f; ac: integer | ac = ac | f.Folder.AccGuest)
 
 
 access role GroupOwner: Employee
@@ -27,28 +60,28 @@ access role GroupOwner: Employee
 
     acc Group =
         if self.IsPublic or user.IsInGroup(self) then
-            ACC_FULL
+            ACC_READWRITE
         else
             ACC_DENIED
         end if
 
     acc TaskList =
         if self.Group.IsPublic or user.IsInGroup(self.Group) then
-            ACC_FULL
+            ACC_READWRITE
         else
             ACC_DENIED
         end if
 
     acc Task =
         if self.Actor = user or self.TaskList.Group.IsPublic or user.IsInGroup(self.TaskList.Group) then
-            ACC_FULL
+            ACC_READWRITE
         else
             ACC_DENIED
         end if
 
     acc User =
         if self.Id = user.Id then
-            ACC_FULL
+            ACC_READWRITE
         else if user.Groups.exists(element.User = self) then
             ACC_READ
         else
@@ -58,14 +91,14 @@ access role GroupOwner: Employee
 
     acc Folder =
         if self.GroupId = group.Id then
-            ACC_FULL
+            ACC_READWRITE
         else
             self.CalculateAccessLevel
         end if
 
     acc FolderFolder =
         if self.GroupId = group.Id then
-            ACC_FULL
+            ACC_READWRITE
         else
             ACC_READ
         end if
@@ -82,7 +115,7 @@ context Folder::CalculateAccessLevel: integer
 post:
     result = ACC_DENIED
     if self.IsPublic then
-        result = ACC_FULL
+        result = ACC_READWRITE
     else
         if self.IsShared then
             if self.InFolders.exists(element.GroupId = group.Id) then
