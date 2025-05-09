@@ -1,5 +1,8 @@
- const NK_DOCUMENT          = 0
- const NK_POST              = 1
+
+const NK_DOCUMENT          = 0
+const NK_POST              = 1
+
+const NS_PUBLISHED_NOTE = 10
 
 class Note
     Title(128):             string
@@ -23,6 +26,7 @@ class Note
     Notes[0..n]:            NoteNote
     InNotes[0..n]:          NoteNote
 end class
+
 
 class NoteNote
     Title(128):             string  

@@ -10,16 +10,16 @@ class Group
     AllLists(0..n):             TaskList        <backNav: Group>
     Folders(0..n):              Folder          <backNav: InGroup>
     AllFolders(0..n):           Folder          <backNav: Group>
-    MessageChannels(0..n):      MessageChannel  <backNav: InGroup> 
-    AllMessageChannels(0..n):   MessageChannel  <backNav: Group> 
+    MessageChannels(0..n):      MessageChannel  <backNav: InGroup>
+    AllMessageChannels(0..n):   MessageChannel  <backNav: Group>
     AllTags:                    string
     ListIndexPrefix:            string
-    ActiveProjects(0..n):       Project         
+    ActiveProjects(0..n):       Project
     AllProjects(0..n):          Project
-    
+
     RelatedGroups(0..n):        GroupGroup   <backNav: FromGroup>
     RelatedToGroups(0..n):      GroupGroup   <backNav: Group>
-    FolderFolder[0..n]:         FolderFolder <backNav: Group>   
+    FolderFolder[0..n]:         FolderFolder <backNav: Group>
     TaskIndexCounter:           integer
 end class
 
@@ -33,22 +33,25 @@ class UserGroup
     User:                   User            <backNav: Groups(0..n)>
 end class
 
+context Group::Info: string
+post:
+    result = "" + self.Id + ": " + self.Name
 
 context Group::OnAfterCreate
 post:
     self.ListIndexPrefix = 'OCT'
     let firstList: TaskList in
-    
+
     firstList = self.Lists.newElement
     firstList.Name = "Things to do"
-    
+
 
 constraint Group::Lists
     element.GroupId = self.Id and element.Status = TLS_GROUP_ACTIVE_LIST
 
 
 constraint Group::AllLists
-    element.GroupId = self.Id 
+    element.GroupId = self.Id
 
 
 constraint Group::Folders
@@ -56,14 +59,14 @@ constraint Group::Folders
 
 
 constraint Group::AllFolders
-    element.GroupId = self.Id 
+    element.GroupId = self.Id
 
 constraint Group::MessageChannels
     element.GroupId = self.Id and element.Status = CS_GROUP_ROOT_CHANNEL
 
 
 constraint Group::AllMessageChannels
-    element.GroupId = self.Id 
+    element.GroupId = self.Id
 
 
 context Group::GetPredefinedTaskStates(): JsonObject
@@ -219,7 +222,7 @@ post:
     result = []
 
     let canAdd: boolean = false
-    self.Members.select(element.User <> user).forAll(ug | 
+    self.Members.select(element.User <> user).forAll(ug |
         if excludeExisting then
             if user.FindMessageChannelWith(ug.User) <> null then
                 canAdd = false

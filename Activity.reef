@@ -3,26 +3,26 @@ const GWT_AFTER_HIDEAREA = 1
 const GWT_BEFORE_HIDEAREA = -1
 
 class Activity
-    Title:						string
+    Title:									string
 
-    StartDate:					date
-    Duration:					timespan
-    EndDate:					date
-    KindKey:					integer
-		PercentageDone:				integer
-    IsSummary:					boolean
-    SummaryEndDate:				date
+    StartDate:							date
+    Duration:								timespan
+    EndDate:								date
+    KindKey:								integer
+		PercentageDone:					integer
+    IsSummary:							boolean
+    SummaryEndDate:					date
     LastReportingTime:			date
-		Calendar:					Calendar
-		CalendarId:					integer
-		LeftDuration:				timespan
-		RealEndDate:				date
-    Project:					Project
+		Calendar:								Calendar
+		CalendarId:							integer
+		LeftDuration:						timespan
+		RealEndDate:						date
+    Project:								Project
     Summary:            		Activity
     SubActivities<0..n>:		Activity <backNav: Summary>
 
-	Tasks<0..n>:				Task <backNav: Activity>
-	Notes[0..n]:            	ActivityNote <backNav: Activity>
+		Tasks<0..n>:						Task <backNav: Activity>
+		Notes[0..n]:            ActivityNote <backNav: Activity>
 end class
 
 class Calendar

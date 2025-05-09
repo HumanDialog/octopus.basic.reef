@@ -4,6 +4,7 @@ const ACC_WRITE  = 2
 const ACC_READWRITE   = 3
 --> sys/login?u=alice;g=13;r=Guest
 
+---- Unique access. User is null, Group is Guest Group
 access role Guest
     acc App = ACC_READ
 
@@ -13,41 +14,37 @@ access role Guest
         end if
 
     acc TaskList =
-        if self.Group <> null and self.Group = group then
-            ACC_READWRITE
+        if self.Group = group then
+            ACC_READ
         end if
 
     acc Task =
-        if self.Actor = user then
-            ACC_READWRITE
-        else if self.TaskList.Group = group then
+        if self.TaskList.Group = group then
             ACC_READ
-        end if
         end if
 
     acc Note =
-        if self.CreatedBy = user then
-            ACC_READWRITE
-        else if self.State = NS_PUBLISHED_NOTE then
+        if self.State = NS_PUBLISHED_NOTE then
             ACC_READ
         else
             self.AccGuest
         end if
-        end if
 
     acc Folder = self.AccGuest
+
+    acc MessageChannel = self.AccGuest
+
+context MessageChannel::AccGuest: integer
+post:
+        if self.Group = group then
+            result = ACC_READ
+        end if
 
 
 context Folder::AccGuest: integer
 post:
-    if self.FolderOwner = user then
-        result = ACC_READWRITE
-    else if self.Status = FS_PUBLIC_FOLDER then
+    if self.Group = group then
         result = ACC_READ
-    else if self.Group = group then
-        result = ACC_READ
-    end if
-    end if
     end if
 
 context Note::AccGuest: integer
@@ -55,41 +52,30 @@ post:
     result = self.InFolders.iterate(f; ac: integer | ac = ac | f.Folder.AccGuest)
 
 
-access role GroupOwner: Employee
+
+
+----------- GroupOwner ------------------------------------------------
+
+access role GroupOwner: Group Leader
     acc App = ACC_READ
 
-    acc Group =
-        if self.IsPublic or user.IsInGroup(self) then
-            ACC_READWRITE
-        else
-            ACC_DENIED
-        end if
+    acc Group = self.AccOwner
 
-    acc TaskList =
-        if self.Group.IsPublic or user.IsInGroup(self.Group) then
-            ACC_READWRITE
-        else
-            ACC_DENIED
-        end if
+    acc TaskList = self.AccOwner
 
-    acc Task =
-        if self.Actor = user or self.TaskList.Group.IsPublic or user.IsInGroup(self.TaskList.Group) then
-            ACC_READWRITE
-        else
-            ACC_DENIED
-        end if
+    acc Task = self.AccOwner
 
     acc User =
-        if self.Id = user.Id then
+        if self = user then
             ACC_READWRITE
-        else if user.Groups.exists(element.User = self) then
+        else if self.Groups.exists(element.GroupId = group.Id) then
             ACC_READ
         else
             ACC_DENIED
         end if
         end if
 
-    acc Folder =
+    acc Folder = self.AccOwner
         if self.GroupId = group.Id then
             ACC_READWRITE
         else
@@ -104,22 +90,66 @@ access role GroupOwner: Employee
         end if
 
 
-    nav Group, UserGroup, User, TaskList, Task, TaskStep
 
-
-context User::IsInGroup(g: Group): boolean
+context Group::AccOwner: integer
 post:
-    result = self.Groups.exists(element.Group = g)
-
-context Folder::CalculateAccessLevel: integer
-post:
-    result = ACC_DENIED
-    if self.IsPublic then
+    if group = self then
         result = ACC_READWRITE
-    else
-        if self.IsShared then
+    else if self.IsPublic then
+        result = ACC_READWRITE
+    else if self.Name = "Guests" then
+        result = ACC_READWRITE
+    end if
+    end if
+    end if
+
+context TaskList::AccOwner: integer
+post:
+    if self.User = user then
+        result = ACC_READWRITE
+    else if self.Group then
+        result = self.Group.AccOwner
+    end if
+    end if
+
+context Task::AccOwner: integer
+post:
+    if self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
+            result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+            result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
+            result = ACC_READ
+    end if
+    end if
+    end if
+
+context Task::InPersonalFolder(user: User): boolean
+post:
+    result = self.InFolders.exists(element.Folder.User = user)
+
+context Task::InGroupFolder(group: Group): boolean
+post:
+    result = self.InFolders.exists(element.Folder.Group = group)
+
+context Folder::AccOwner: integer
+post:
+    if self.GroupId = group.Id then
+            result = ACC_READWRITE
+    else if self.IsPublic then
+        result = ACC_READWRITE
+    else if self.IsShared then
             if self.InFolders.exists(element.GroupId = group.Id) then
                 result = ACC_READ
             end if
         end if
     end if
+    end if
+
+
+
+
+
+context User::IsInGroup(g: Group): boolean
+post:
+    result = self.Groups.exists(element.GroupId = g.Id)
