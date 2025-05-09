@@ -20,6 +20,8 @@ post:
                                 element.Members.removeAll)
     self.PublicGroups.removeAll
 
+context App::InitHomeGroups
+post:
     -- -------------------- Home group --------------------------
     let homeGroup: Group = new Group
     homeGroup.IsPublic = true
@@ -111,6 +113,87 @@ post:
     list.ReorderTasks()
 
 
+context App::InitGuestsGroup
+post:
+-- -------------------- Motorcycle's production --------------------------
+    let motorcycleCompany: Group = system.allInstances("Group").select(element.Name = "Guests").first
+
+    if motorcycleCompany = 0 then
+        motorcycleCompany = new Group
+        motorcycleCompany.Name = "Guests"
+    end if
+    motorcycleCompany.Lists.removeAll
+
+    motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
+
+    motorcycleCompany.CheckFolders()
+
+    motorcycleCompany.AddGeneralMessageChannels()
+
+    -- Add some data
+    let list: TaskList in
+    list = motorcycleCompany.Lists.newElement(element.Order = 0)
+
+    -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
+    let states: JsonObject = [
+        {
+            name: 'Preparing',
+            state: 0
+        },
+        {
+            name: 'In progress',
+            state: 100
+        },
+        {
+            name: 'Done',
+            state: STATE_FINISHED
+        }
+    ]
+
+    list.TaskStates = states.ToString()
+
+    list.Name = "Design"
+    list.IndexPrefix = 'DGN'
+        list.CreateTask('Target Audience Definition', 'Identify the specific demographics and needs of the intended buyers', STATE_FINISHED, '#urgent')
+
+            list.Tasks.last.Description = '<h1>Description with images</h1>
+            <p>Deer</p>
+            <img alt="Deer" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=deer.jpg"/>
+            <p>Flowers</p>
+            <img alt="Flowers" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=flowers.png"/>
+            <p>Tree</p>
+            <img alt="Tree" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=tree.webp"/>
+            '
+            list.Tasks.last.Images = 'deer.jpg;flowers.png;tree.webp'
+
+        list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '')
+        list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', 100, '#prototype')
+        list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', 0, '#prototype');
+        list.Tasks.last.AttachedFiles='lorem.txt';
+
+        list.CreateTask('Ergonomics Testing', 'Ensure the motorcycle provides a comfortable and functional ride for the target user.', 0, '#prototype')
+        list.CreateTask('Prototype Development', "Build a working prototype to test the design and functionality", 0, '#prototype')
+    list.ReorderTasks()
+
+    list = motorcycleCompany.Lists.newElement(element.Order = 10)
+    list.Name = "Engineering"
+    list.IndexPrefix = 'ENG'
+        list.CreateTask('Performance Testing', 'Test the prototype for speed, handling, durability, and efficiency.', 0)
+        list.CreateTask('Safety Testing', 'Ensure compliance with safety regulations and conduct crash tests where necessary.', 0)
+        list.CreateTask('Environmental Compliance', 'Meet emissions standards and other environmental regulations.', 0)
+        list.CreateTask('Refinement', 'Address issues identified during testing, including mechanical, aesthetic, and ergonomic concerns.', 0)
+    list.ReorderTasks()
+
+    list = motorcycleCompany.Lists.newElement(element.Order = 20)
+    list.Name = "Branding"
+    list.IndexPrefix = 'BRD'
+        list.CreateTask('Product Naming and Branding', 'Develop a name, logo, and identity for the new motorcycle.', 0)
+        list.CreateTask('Marketing Strategy', 'Plan campaigns, including online, print, and event-based marketing.', 0)
+        list.CreateTask('Customer Engagement', 'Organize focus groups or pre-launch surveys to gather feedback.', 0)
+        list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
+    list.ReorderTasks()
+
+
 
 
 context App::InitSample
@@ -118,6 +201,9 @@ post:
     self.ClearData()
 
     self.ResetDemoData()
+    self.InitGuestsGroup()
+
+    self.InitHomeGroups()
 
     -- Add sample users
     let alice: User = new User in
@@ -386,35 +472,34 @@ post:
 context App::AddSampleConversation(channel: MessageChannel, bob: User, alice: User): MessageChannel
 post:
     channel.Messages.removeAll
-    let msg: Message in 
-    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.08 and element.Date.Time = "09:02"
+    let msg: Message in
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.08 and element.Date.Time ="09:02"
             element.Text = "Hi Alice,\nI hope your morning is going well. I've just finished reading the initial draft of the client proposal. There's a lot of good content there, but I had a couple of thoughts I wanted to run by you before we move forward.")
-    
 
-    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.08 and element.Date.Time = "11:18" 
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.08 and element.Date.SetTime("11:18")
             element.Text = "Hi Bob,\nThanks for the feedback. I'm glad you had a look at it. I agree—it's starting to come together. Let me know which parts you'd like to discuss. I'm happy to make adjustments if something doesn't align with the client's expectations.")
-    
 
-    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.08 and element.Date.Time = "16:47" 
+
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.08 and element.Date.SetTime("16:47")
             element.Text = "Great. One thing I noticed was that the timeline section might be a bit too optimistic, especially given the recent delays on the vendor side. I think we should consider padding it slightly to manage expectations.")
-    
 
-    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.09 and element.Date.Time = "11:18"
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.09 and element.Date.SetTime("11:18")
             element.Text = "That's a good point. I was thinking the same, especially since we're still waiting for final confirmation from the design team.\nWe could shift the delivery estimate by a week and add a note explaining the reasoning. That way, it's transparent, but not alarming.")
-    
 
-    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.09 and element.Date.Time = "13:26" 
+
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.09 and element.Date.SetTime("13:26")
             element.Text = "I like that approach. It sounds reasonable and professional.\nAlso, did you get a chance to check in with Sam regarding the cost estimates? I think we're still missing the final numbers for the second phase of the project.")
-    
 
-    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.Time = "08:55" 
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.SetTime("08:55")
             element.Text = "Yes, I followed up with him this morning. He said he's finalizing those figures and will send them over by the end of the day. I'll keep an eye out and forward them to you as soon as they arrive.")
-    
 
-    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.11 and element.Date.Time = "12:11" 
+
+    msg = channel.Messages.newElement(element.Author = bob and element.Date=2025.04.11 and element.Date.SetTime("12:11")
             element.Text = "Perfect, thanks.\nLet's regroup tomorrow after we've got all the numbers. I'll prepare a summary doc in the meantime and send it to you for review.")
-    
 
-    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.Time = "14:39" 
+
+    msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.SetTime("14:39")
             element.Text = "Sounds like a plan. Thanks for staying on top of this, Bob.")
-    

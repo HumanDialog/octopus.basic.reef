@@ -1,0 +1,44 @@
+---- debug -----------------------------------------------
+
+sys/login a - logowanie na anonimowego użytkownika
+
+
+
+---- c++ -------------------------------------------------
+SULR Reef_access_tool::login_debug_user(string& user_login, int access_role_no, int group_id)
+{
+	if(access_debug_storage.mode == ACCM_CLOUD_PRODUCTION)
+		return SULR::FAILED;
+
+	access_debug_storage.group = nullptr;
+	access_debug_storage.group_id = group_id;
+	if(group_id)
+		access_debug_storage.group = mf.get_group(group_id);
+
+	qItem* user = mf.find_user_by_login(user_login);
+	if(!user)
+		return SULR::INVALID_USER_NAME_OR_PASSWORD;
+
+
+	access_debug_storage.user = user;
+	access_debug_storage.username = user_login;
+	access_debug_storage.user_id = user->id();
+	access_debug_storage.role_no = access_role_no;
+
+	//~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$
+
+	mf.set_current_user(access_debug_storage.user);
+	mf.set_current_group(access_debug_storage.group);
+	qthread->acc_user_id = access_debug_storage.user_id;
+	qthread->acc_group_no = access_debug_storage.role_no;
+	if (qthread->acc_group_no < 0)
+		qthread->supervisor_mode_semaphore = SAM_SUPERVISOR;
+	else
+		qthread->supervisor_mode_semaphore = SAM_NORMAL;
+	//~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$~~$
+	user_id = access_debug_storage.user_id;
+	role_no = access_debug_storage.role_no;
+	access_debug_storage.mode = ACCM_LOCAL_ENVIRNOMENT;
+	return SULR::OK;
+
+}
