@@ -59,11 +59,11 @@ post:
 access role GroupOwner: Group Leader
     acc App = ACC_READ
 
-    acc Group = self.OwnerAcc
+    acc Group = self.AccOwner
 
-    acc TaskList = self.Acc
+    acc TaskList = self.AccOwner
 
-    acc Task = self.Acc
+    acc Task = self.AccOwner
 
     acc User =
         if self = user then
@@ -75,7 +75,7 @@ access role GroupOwner: Group Leader
         end if
         end if
 
-    acc Folder =
+    acc Folder = self.AccOwner
         if self.GroupId = group.Id then
             ACC_READWRITE
         else
@@ -91,32 +91,30 @@ access role GroupOwner: Group Leader
 
 
 
-context Group::OwnerAcc: integer
+context Group::AccOwner: integer
 post:
     if group = self then
         result = ACC_READWRITE
     else if self.IsPublic then
         result = ACC_READWRITE
-    else if self.Name = "Guests"
+    else if self.Name = "Guests" then
         result = ACC_READWRITE
     end if
     end if
     end if
 
-context TaskList::Acc: integer
+context TaskList::AccOwner: integer
 post:
     if self.User = user then
         result = ACC_READWRITE
     else if self.Group then
-        result = self.Group.Acc
+        result = self.Group.AccOwner
     end if
     end if
 
-context Task::Acc: integer
+context Task::AccOwner: integer
 post:
-    if self.Actor = user
-        or self.TaskList.User = user
-        or self.TaskList.Group = group then
+    if self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
             result = ACC_READWRITE
     else if self.InPersonalFolder(user) then
             result = ACC_READWRITE
@@ -126,7 +124,27 @@ post:
     end if
     end if
 
+context Task::InPersonalFolder(user: User): boolean
+post:
+    result = self.InFolders.exists(element.Folder.User = user)
 
+context Task::InGroupFolder(group: Group): boolean
+post:
+    result = self.InFolders.exists(element.Folder.Group = group)
+
+context Folder::AccOwner: integer
+post:
+    if self.GroupId = group.Id then
+            result = ACC_READWRITE
+    else if self.IsPublic then
+        result = ACC_READWRITE
+    else if self.IsShared then
+            if self.InFolders.exists(element.GroupId = group.Id) then
+                result = ACC_READ
+            end if
+        end if
+    end if
+    end if
 
 
 
@@ -134,17 +152,4 @@ post:
 
 context User::IsInGroup(g: Group): boolean
 post:
-    result = self.Groups.exists(element.Group = g)
-
-context Folder::CalculateAccessLevel: integer
-post:
-    result = ACC_DENIED
-    if self.IsPublic then
-        result = ACC_READWRITE
-    else
-        if self.IsShared then
-            if self.InFolders.exists(element.GroupId = group.Id) then
-                result = ACC_READ
-            end if
-        end if
-    end if
+    result = self.Groups.exists(element.GroupId = g.Id)

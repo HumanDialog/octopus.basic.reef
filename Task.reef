@@ -27,6 +27,7 @@ class Task
     Effort:                 integer
     Status:                 integer
 
+
     Steps[0..n]:	        TaskStep
     Description:	        string
     Images:                 string      <readOnly>
