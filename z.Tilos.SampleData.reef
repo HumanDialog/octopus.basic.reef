@@ -1,0 +1,165 @@
+context App::InitTilosSample
+post:
+    let tilosCommunity: Group = new Group
+    tilosCommunity.Name = "Tilos Community"
+    tilosCommunity.Lists.removeAll
+
+    tilosCommunity.AllTags = '#bug:bg-stone-400 #question:bg-lime-600 #feature request:bg-stone-400 #improvement request:bg-cyan-600 #release:bg-violet-600'
+    
+    tilosCommunity.CreateMember("Alice",        "alice@example.com")
+    tilosCommunity.CreateMember("Bob",          "bob@example.com")
+    tilosCommunity.CreateMember("Emma Johnson", "emma@example.com")
+    tilosCommunity.CreateMember("Jack Smith",   "jack@example.com")
+    tilosCommunity.CreateMember("Olivia Brown", "olivia@example.com")
+    tilosCommunity.CreateMember("Liam Davis",   "liam@example.com")
+    tilosCommunity.CreateMember("Ava Wilson",   "ava@example.com")
+    tilosCommunity.CreateMember("Noah Taylor",  "noah@example.com")
+    tilosCommunity.CreateMember("Mia Anderson", "mia@example.com")
+    tilosCommunity.CreateMember("Ethan Thomas", "ethan@example.com")
+    tilosCommunity.CreateMember("Lily Moore",   "lily@example.com")
+    tilosCommunity.CreateMember("Mason Clark",  "mason@example.com")
+
+    tilosCommunity.CreateDiscussionsStructrure()
+    tilosCommunity.CreateLibraryStructure()
+    
+    -- Help -- static content on website only. similar to ObjectReef Documentation
+       
+    -- Dashboard    -- website requests based on Library
+        -- Selected relese notes
+        -- Getting started
+        -- Support notes (Annoucements ?)
+        -- Downloads
+        -- Videos
+        -- Latest Disscusion List
+    
+
+context Group::CreateDiscussionsStructrure(): Folder
+post:
+    let discussions: Folder = self.Folders.newElement(element.Title = "Dissusions" and element.Summary="Ongoing support questions")
+    discussions.Kind = FK_DISCUSSION
+
+    let link: FolderFolder
+
+    link = discussions.CreateSubFolder("Feature requests",                  "", 0 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("General",                           "", 1 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Installation and Licensing",        "", 2 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Get Started",                       "", 3 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Projects and Sub-Projects",         "", 4 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Import, Export, and Data Exchange", "", 5 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Axes, Profiles, and Grids",         "", 6 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Views",                             "", 7 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Activities",                        "", 8 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Scheduling (CPM)",                  "", 9 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Project Control",                   "", 10 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Gantt Charts",                      "", 11 * ORDER_STEP, FK_DISCUSSION)
+        link.Folder.MakeSampleDiscussion()
+    link = discussions.CreateSubFolder("Calendars",                         "", 12 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Graphics and Annotations",          "", 13 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Resources",                         "", 14 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Costs and Accounts",                "", 15 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Legends, Logos, and Charts",        "", 16 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Structures",                        "", 17 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Libraries",                         "", 18 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Mass Haulage",                      "", 19 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("BIM Data Exchange/Sync",            "", 20 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Printing and Presentation",         "", 21 * ORDER_STEP, FK_DISCUSSION)
+
+    result = discussions
+
+context Group::CreateLibraryStructure(): Folder
+post:
+    let library: Folder = self.Folders.newElement(element.Title = "Library" and element.Summary="Miscellaneous resources")
+    library.CreateSubFolder("Attachements",                         "", 1 * ORDER_STEP)
+    library.CreateSubFolder("Release notes",                        "", 2 * ORDER_STEP)
+    library.CreateSubFolder("Getting started and learning guides",  "", 3 * ORDER_STEP)
+    library.CreateSubFolder("Support and tech notes",               "", 4 * ORDER_STEP)
+    library.CreateSubFolder("Videos and graphics",                  "", 5 * ORDER_STEP)
+    library.CreateSubFolder("Sample projects and templates",        "", 6 * ORDER_STEP)
+    library.CreateSubFolder("Legal",                                "", 7 * ORDER_STEP)
+    result = library
+
+
+context Folder::MakeSampleDiscussion(): Note
+post:
+    let Liam: User  = app.Users.select(element.login="liam@example.com").first
+    let Ethan: User = app.Users.select(element.login="ethan@example.com").first
+    let Mason: User = app.Users.select(element.login="mason@example.com").first
+
+    let originalPost: Note = new Note
+    originalPost.Title = "Duration format in the Gantt chart"
+    originalPost.Kind = NK_POST
+    originalPost.CreationDate = 2023.11.20
+    originalPost.CreationDate.Time = "01:15"
+    originalPost.CreatedBy = Liam
+    originalPost.Content = '
+        <p>Dear Community,</p>
+        <p>What can I do in order to show the duration in the Gantt chart in calender days or even better in the days of the task calender? Most of the works I have are 24/7 with few holiday breaks.</p>
+        <p>I unfortunately do not find any suitabble option.</p>
+        <p>Enclosed you find what I currently get as result and what I found as option for the duration</p>
+            <img alt="" src="" data-path="Note/11/Images/blob?key=tilos_community_img1.png"/>
+        <p>It looks as it counts the number of 8-hour shifts within the period of the works. </p>
+            <img alt="" src="" data-path="Note/11/Images/blob?key=tilos_community_img2.png"/>
+        <p>Thank you very much,</p>
+        <p>Liam</p>'
+    originalPost.Summary = originalPost.Content.textFromHTML(128, true)
+
+    originalPost.Images = "tilos_community_img1.png;tilos_community_img2.png"
+    self.Notes.newElement(element.Note = originalPost)
+
+    let resp1: Note = new Note
+    resp1.Kind = NK_POST
+    resp1.CreationDate = 2023.11.21
+    resp1.CreationDate.Time = "09:03"
+    resp1.CreatedBy = Ethan
+    resp1.Content = '
+        <p>Hi Liam.</p>
+        <p>Did you define the respective calendar\u0027s "BASISZEITEINHEIT"?<p>
+        <p>You can choose a unit, define it\u0027s "working minutes" and decimals.</p>
+            <img alt="" src="" data-path="Note/12/Images/blob?key=tilos_community_img3.jpeg"/>
+            <img alt="" src="" data-path="Note/12/Images/blob?key=tilos_community_img4.jpeg"/>
+        <p>Kind regards</p>
+        <p>Ethan</p>'
+    resp1.Images = "tilos_community_img3.jpeg;tilos_community_img4.jpeg"
+    originalPost.Notes.newElement(element.Note=resp1 and element.Order = ORDER_STEP*1)
+
+    let resp2: Note = new Note
+    resp2.Kind = NK_POST
+    resp2.CreationDate = 2023.11.22
+    resp2.CreationDate.Time = "00:26"
+    resp2.CreatedBy = Liam
+    resp2.Content = '
+        <p>Thank you @Ethan,</p>
+        <p>My "Basiszeiteinheit" is AT and AT has 1.440 minutes.</p>
+            <img alt="" src="" data-path="Note/13/Images/blob?key=tilos_community_img5.png"/>
+            <img alt="" src="" data-path="Note/13/Images/blob?key=tilos_community_img6.png"/>
+        <p>Unfortunately somehow I get the unit AT (8h) as value for the Gantt Chart Column. In the task calender I have also 1.440 minutes.</p>
+            <img alt="" src="" data-path="Note/13/Images/blob?key=tilos_community_img7.png"/>
+        <p>Liam</p>'
+    resp2.Images = "tilos_community_img5.png;tilos_community_img6.png;tilos_community_img7.png"
+    originalPost.Notes.newElement(element.Note=resp2 and element.Order = ORDER_STEP*2)
+
+    let resp3: Note = new Note
+    resp3.Kind = NK_POST
+    resp3.CreationDate = 2023.12.19
+    resp3.CreationDate.Time = "08:14"
+    resp3.CreatedBy = Mason
+    resp3.Content = '
+        <p>In the Dialog above, go to the Darstellung tab.<br>
+        There you can set the time unit for this column in Gantt.</p>
+        <p>regards</p>
+        <p>Mason</p>'
+    originalPost.Notes.newElement(element.Note=resp3 and element.Order = ORDER_STEP*3)
+
+    originalPost.ModificationDate = resp3.CreationDate
+    originalPost.ModifiedBy = resp3.CreatedBy
+
+    
+context Group::CreateMember(name: string, login: string): User
+post:
+    let u: User = new User
+    u.login = login
+    u.Email = login
+    u.Name = name
+    
+    self.Members.newElement(element.User = u)
+
