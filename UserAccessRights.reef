@@ -59,12 +59,6 @@ post:
 access role GroupOwner: Group Leader
     acc App = ACC_READ
 
-    acc Group = self.AccOwner
-
-    acc TaskList = self.AccOwner
-
-    acc Task = self.AccOwner
-
     acc User =
         if self = user then
             ACC_READWRITE
@@ -75,19 +69,17 @@ access role GroupOwner: Group Leader
         end if
         end if
 
-    acc Folder = self.AccOwner
-        if self.GroupId = group.Id then
-            ACC_READWRITE
-        else
-            self.CalculateAccessLevel
-        end if
+    acc Group = self.AccOwner
 
-    acc FolderFolder =
-        if self.GroupId = group.Id then
-            ACC_READWRITE
-        else
-            ACC_READ
-        end if
+    acc TaskList = self.AccOwner
+
+    acc Task = self.AccOwner
+
+    acc Folder = self.AccOwner
+
+    acc Note = self.AccOwner
+
+
 
 
 
@@ -146,6 +138,11 @@ post:
     end if
     end if
 
+context Note::AccOwner: integer
+post:
+    if self.CreatedBy = user or self.ModifiedBy = user then
+        result = ACC_READWRITE
+    end if
 
 
 
