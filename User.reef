@@ -42,7 +42,7 @@ context User::GetBasketFolder: Folder
 post:
    
     if self.BasketFolder.isNull then
-        self.BasketFolder = self.AllFolders.newElement(e | e.Title = user.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER)
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = user.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
     end if
     
     result = self.BasketFolder 
@@ -110,3 +110,8 @@ post:
     end if
 
     result = myChannel.MessageChannel
+
+
+context User::AddWorkingPost(): Note
+post:
+    result = self.CreatedNotes.newElement(element.Kind = NK_POST)

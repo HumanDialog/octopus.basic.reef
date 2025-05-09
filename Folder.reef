@@ -6,7 +6,9 @@ const FS_GROUP_ROOT_FOLDER  = 102
 const FS_PINNED_ROOT_FOLDER = 103
 const FS_BASKET_ROOT_FOLDER = 104
 
-const FK_BASKET             = 101
+const FK_FOLDER             = 0
+const FK_BASKET             = 1
+const FK_DISCUSSION         = 2
 
 class Folder
     Title(128):         string
@@ -74,10 +76,47 @@ context Folder::IsShared: boolean
 post:
      result = (self.Status = FS_SHARED_FOLDER)        
 
+context Folder::IsRoot: boolean
+post:
+    select case self.Status
+        case FS_USER_ROOT_FOLDER
+            result = true
+        case FS_GROUP_ROOT_FOLDER
+            result = true
+        case FS_PINNED_ROOT_FOLDER
+            result = true
+        case FS_BASKET_ROOT_FOLDER
+            result = true
+        case else
+            result = false
+    end select
 
 context Folder::href: string
 post:
-    result = "/folder/" + self.Id    
+    select case self.Kind
+        case FK_FOLDER  
+            result = '/folder/' + self.Id 
+        case FK_BASKET  
+            result = '/folder/' + self.Id 
+        case FK_DISCUSSION    
+            result = '/forum/' + self.Id
+        case else
+            result = '/folder/' + self.Id
+    end select   
+
+
+context Folder::icon: string
+post:
+    select case self.Kind
+        case FK_FOLDER  
+            result = 'FaFolder' 
+        case FK_BASKET  
+            result = 'FaShoppingBasket' 
+        case FK_DISCUSSION    
+            result = 'FaComments'
+        case else
+            result = 'FaFolder'
+    end select
 
 context Folder::IsPinned: boolean
 post:
@@ -95,12 +134,24 @@ post:
 
 context Folder::CreateSubFolderEx(properties: JsonObject) : FolderFolder
 post:
-    let f: Folder = new Folder in
+    result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
+    
 
-    f.Title = properties.Title
-    f.Summary = properties.Summary
+context Folder::CreateSubFolder(title: string, optional summary: string = "", optional order: integer = 0, optional kind: integer = 0): FolderFolder
+post:
+    let subfolder: Folder = new Folder in
+    subfolder.Title = title
+    subfolder.Summary = summary
+    subfolder.Kind = kind
+    
+    let link: FolderFolder = self.Folders.newElement(ff| ff.Folder = subfolder)
+    
+    if order <> 0 then
+        link.Order = order
+    end if
 
-    result = self.Folders.newElement( e | e.Folder = f and e.Order = properties.Order)
+    result = link
+
 
 
 context Folder::CreateNoteEx(properties: JsonObject) : FolderNote
@@ -379,6 +430,36 @@ post:
 
     self.DettachAllContent()
 
+
+context Folder::AddPost(title: string, summary: string, content: string, tags: string): string
+post:
+    let note: Note = new Note
+    note.Kind = NK_POST
+    note.Title = title
+    note.Summary = summary
+    note.Content = content
+    note.Tags = tags
+    note.Summary = note.Content.textFromHTML(128, true)
+
+    let maxOrder: integer = self.Notes.max(element.Order)
+    self.Notes.newElement( e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
+    result = note.href()
+
+
+context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): string
+pre:
+    note.Kind = NK_POST
+post:
+    let maxOrder: integer = self.Notes.max(element.Order)
+    note.Title = title
+    note.Summary = summary
+    note.Content = content
+    note.Tags = tags
+    note.Summary = note.Content.textFromHTML(128, true)
+
+    self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
+    result = note.href()
+
 -- ==============================================================================
 
 
@@ -414,6 +495,10 @@ context FolderFolder::IsPinned: boolean
 post:
     result = self.Folder.IsPinned
 
+context FolderFolder::icon: string
+post:
+    result = self.Folder.icon
+
 -- ==============================================================================
 
 
@@ -441,6 +526,17 @@ context FolderNote::href: string
 post:
     result = self.Note.href
 
+context FolderNote::ModifiedBy: User
+post:
+    result = self.Note.ModifiedBy
+
+context FolderNote::ModificationDate: date
+post:
+    result = self.Note.ModificationDate
+
+context FolderNote::Tags: string
+post:
+    result = self.Note.Tags
 
 -- ==============================================================================
 

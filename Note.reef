@@ -1,3 +1,7 @@
+
+const NK_DOCUMENT          = 0
+const NK_POST              = 1
+
 const NS_PUBLISHED_NOTE = 10
 
 class Note
@@ -15,29 +19,49 @@ class Note
     Content:	            string
     Images:                 string      <readOnly>
     AttachedFiles:          string      <readOnly>
-    AttachedNotes[0..n]:    NoteNote
-    AttachedToNotes[0..n]:  NoteNote
     InFolders[0..n]:        FolderNote
     InTasks[0..n]:          TaskNote
     InMessages[0..n]:       MessageNote
+
+    Notes[0..n]:            NoteNote
+    InNotes[0..n]:          NoteNote
 end class
 
 
 class NoteNote
-
-    AttachedTo:             Note <backNav: AttachedNotes>
-    Note:                   Note <backNav: AttachedToNotes>
+    Title(128):             string  
+    Order:                  integer
+    Note(0..1):             Note      <backNav: InNotes[0..n]>
+    InNote(0..1):           Note      <backNav: Notes[0..n]>
+    InNoteId:               integer
+    NoteId:                 integer
 end class
+
 
 context Note::OnAfterCreate
 post:
     self.CreationDate.SetUTCDate()
     self.CreatedBy = user
 
+    self.ModificationDate = self.CreationDate
+    self.ModifiedBy = self.CreatedBy
+
+
+
+constraint Note::Notes
+    element.InNoteId = self.Id 
+
+
 
 context Note::href: string
 post:
-    result = '/note/' + self.Id
+    select case self.Kind
+        case NK_DOCUMENT
+            result = '/note/' + self.Id
+        case NK_POST
+            result = '/thread/' + self.Id
+    end select
+    
 
 
 context Note::DeletePermanently
@@ -75,6 +99,48 @@ post:
 context Note::SetContent(val: string)
 post:
     self.Content = val
+
+    if self.Kind = NK_POST then
+        self.Summary = self.Content.textFromHTML(128, true)
+    end if
+
+    self.UpdateMetaInfo()
+
+
+context Note::AddPost(content: string): NoteNote
+pre:
+    self.Kind = NK_POST
+post:
+    let n: Note = new Note
+    n.Title = "Re: " + self.Title
+    n.Content = content
+    n.Summary = content.textFromHTML(128, true)
+
+    n.Kind = NK_POST
+
+    let maxOrder: integer = self.Notes.max(element.Order)
+    result = self.Notes.newElement(element.Note=n and element.Order=maxOrder+ORDER_STEP)
+    
+    --let fn :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION).first
+    --if fn <> null then
+    --    maxOrder = fn.Folder.Notes.max(element.Order)
+    --    fn.Order = maxOrder + ORDER_STEP
+    --end if
+
+    self.UpdateMetaInfo()
+
+
+context Note::AttachPost(note: Note, content: string): NoteNote
+pre:
+    self.Kind = NK_POST
+post:
+    let maxOrder: integer = self.Notes.max(element.Order)
+    note.Title = "Re: " + self.Title
+    note.Content = content
+    note.Summary = content.textFromHTML(128, true)
+
+    result = self.Notes.newElement(element.Note=note and element.Order=maxOrder+ORDER_STEP)
+
     self.UpdateMetaInfo()
 
 
@@ -86,3 +152,32 @@ post:
         let maxOrder: integer = basket.Notes.max(element.Order)
         result = basket.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
     end if
+
+-- ----------------------------------------------------------------------------------------------------------------
+
+
+constraint NoteNote::Note
+    self.NoteId = element.Id    
+
+
+context NoteNote
+inv:
+    self.Title = self.Note.Title
+
+
+context NoteNote::SetTitle(value: string)
+post:
+    self.Note.Title = value
+
+
+context NoteNote::Summary: string
+post:
+    result = self.Note.Summary
+
+context NoteNote::SetSummary(value: string)
+post:
+    self.Note.Summary = value
+
+context NoteNote::href: string
+post:
+    result = self.Note.href

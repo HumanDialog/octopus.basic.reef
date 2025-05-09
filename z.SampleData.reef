@@ -386,11 +386,7 @@ post:
     set(1 .. no).forAll(i | self.CreateSubFolder(self.Title + " F" + i))
 
 
-context Folder::CreateSubFolder(Title: string)
-post:
-    let subfolder: Folder = new Folder in
-    subfolder.Title = Title
-    self.Folders.newElement(ff| ff.Folder = subfolder)
+
 
 context Folder::CreateNotes(no: integer)
 post:
