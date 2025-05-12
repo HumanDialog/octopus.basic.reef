@@ -80,9 +80,6 @@ access role GroupOwner: Group Leader
     acc Note = self.AccOwner
 
 
-
-
-
 context Group::AccOwner: integer
 post:
     if group = self then
@@ -140,10 +137,26 @@ post:
 
 context Note::AccOwner: integer
 post:
-    if self.CreatedBy = user or self.ModifiedBy = user then
+    if self.Status = NS_PUBLIC then
+        result = ACC_READWRITE
+    else if self.CreatedBy = user or self.ModifiedBy = user then
+        result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+        result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
         result = ACC_READWRITE
     end if
+    end if
+    end if
+    end if
 
+context Note::InPersonalFolder(user: User): boolean
+post:
+    result = self.InFolders.exists(element.Folder.User = user)
+
+context Note::InGroupFolder(group: Group): boolean
+post:
+    result = self.InFolders.exists(element.Folder.Group = group)
 
 
 

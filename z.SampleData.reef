@@ -24,7 +24,7 @@ context App::InitHomeGroups
 post:
     -- -------------------- Home group --------------------------
     let homeGroup: Group = new Group
-    homeGroup.IsPublic = true
+    homeGroup.IsPublic = false
     homeGroup.Name = 'My home group'
     homeGroup.Lists.removeAll
 

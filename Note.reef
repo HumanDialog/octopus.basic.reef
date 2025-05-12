@@ -4,6 +4,9 @@ const NK_POST              = 1
 
 const NS_PUBLISHED_NOTE = 10
 
+
+const NS_PUBLIC            = 100
+
 class Note
     Title(128):             string
     Summary(196):	        string
@@ -11,6 +14,7 @@ class Note
     Index(16):              string
     Kind:                   integer
     State:                  integer
+    Status:                 integer
     CreationDate:	        date
     ModificationDate:       date
     CreatedBy:              User
@@ -29,7 +33,7 @@ end class
 
 
 class NoteNote
-    Title(128):             string  
+    Title(128):             string
     Order:                  integer
     Note(0..1):             Note      <backNav: InNotes[0..n]>
     InNote(0..1):           Note      <backNav: Notes[0..n]>
@@ -49,7 +53,7 @@ post:
 
 
 constraint Note::Notes
-    element.InNoteId = self.Id 
+    element.InNoteId = self.Id
 
 
 
@@ -61,7 +65,7 @@ post:
         case NK_POST
             result = '/thread/' + self.Id
     end select
-    
+
 
 
 context Note::DeletePermanently
@@ -120,7 +124,7 @@ post:
 
     let maxOrder: integer = self.Notes.max(element.Order)
     result = self.Notes.newElement(element.Note=n and element.Order=maxOrder+ORDER_STEP)
-    
+
     --let fn :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION).first
     --if fn <> null then
     --    maxOrder = fn.Folder.Notes.max(element.Order)
@@ -157,7 +161,7 @@ post:
 
 
 constraint NoteNote::Note
-    self.NoteId = element.Id    
+    self.NoteId = element.Id
 
 
 context NoteNote
