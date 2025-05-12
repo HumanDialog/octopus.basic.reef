@@ -31,6 +31,8 @@ post:
         -- Downloads
         -- Videos
         -- Latest Disscusion List
+
+    tilosCommunity.AddBasicSampleStuff()
     
 
 context Group::CreateDiscussionsStructrure(): Folder
@@ -160,6 +162,83 @@ post:
     u.login = login
     u.Email = login
     u.Name = name
+
+    u.GetPinnedFolders()
+    u.GetBasketFolder()
     
     self.Members.newElement(element.User = u)
 
+
+context Group::AddBasicSampleStuff()
+post:
+    let alice: User = self.Members.select(element.User.Name = "Alice").first.User
+    let bob: User = self.Members.select(element.User.Name = "Bob").first.User
+
+    --self.CheckFolders()
+
+    self.AddGeneralMessageChannels()
+    let channel: MessageChannel = alice.AddDirectMesssageChannel(bob)
+    app.AddSampleConversation(channel, bob, alice)
+
+    -- Add some data
+    let list: TaskList in
+    list = self.Lists.newElement(element.Order = 0)
+
+    -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
+    let states: JsonObject = [
+        {
+            name: 'Preparing',
+            state: 0
+        },
+        {
+            name: 'In progress',
+            state: 100
+        },
+        {
+            name: 'Done',
+            state: STATE_FINISHED
+        }
+    ]
+
+    list.TaskStates = states.ToString()
+
+    list.Name = "Design"
+    list.IndexPrefix = 'DGN'
+        list.CreateTask('Target Audience Definition', 'Identify the specific demographics and needs of the intended buyers', STATE_FINISHED, '#urgent', alice)
+
+            list.Tasks.last.Description = '<h1>Description with images</h1>
+            <p>Deer</p>
+            <img alt="Deer" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=deer.jpg"/>
+            <p>Flowers</p>
+            <img alt="Flowers" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=flowers.png"/>
+            <p>Tree</p>
+            <img alt="Tree" src="" data-path="group/Lists/19/Tasks/71/Images/blob?key=tree.webp"/>
+            '
+            list.Tasks.last.Images = 'deer.jpg;flowers.png;tree.webp'
+
+        list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_FINISHED, '', alice)
+        list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', 100, '#prototype', alice)
+        list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', 0, '#prototype');
+        list.Tasks.last.AttachedFiles='lorem.txt';
+
+        list.CreateTask('Ergonomics Testing', 'Ensure the motorcycle provides a comfortable and functional ride for the target user.', 0, '#prototype')
+        list.CreateTask('Prototype Development', "Build a working prototype to test the design and functionality", 0, '#prototype')
+    list.ReorderTasks()
+
+    list = self.Lists.newElement(element.Order = 10)
+    list.Name = "Engineering"
+    list.IndexPrefix = 'ENG'
+        list.CreateTask('Performance Testing', 'Test the prototype for speed, handling, durability, and efficiency.', 0)
+        list.CreateTask('Safety Testing', 'Ensure compliance with safety regulations and conduct crash tests where necessary.', 0)
+        list.CreateTask('Environmental Compliance', 'Meet emissions standards and other environmental regulations.', 0)
+        list.CreateTask('Refinement', 'Address issues identified during testing, including mechanical, aesthetic, and ergonomic concerns.', 0)
+    list.ReorderTasks()
+
+    list = self.Lists.newElement(element.Order = 20)
+    list.Name = "Branding"
+    list.IndexPrefix = 'BRD'
+        list.CreateTask('Product Naming and Branding', 'Develop a name, logo, and identity for the new motorcycle.', 0)
+        list.CreateTask('Marketing Strategy', 'Plan campaigns, including online, print, and event-based marketing.', 0)
+        list.CreateTask('Customer Engagement', 'Organize focus groups or pre-launch surveys to gather feedback.', 0)
+        list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
+    list.ReorderTasks()
