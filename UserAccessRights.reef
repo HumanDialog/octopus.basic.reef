@@ -59,12 +59,6 @@ post:
 access role GroupOwner: Group Leader
     acc App = ACC_READ
 
-    acc Group = self.AccOwner
-
-    acc TaskList = self.AccOwner
-
-    acc Task = self.AccOwner
-
     acc User =
         if self = user then
             ACC_READWRITE
@@ -75,20 +69,15 @@ access role GroupOwner: Group Leader
         end if
         end if
 
+    acc Group = self.AccOwner
+
+    acc TaskList = self.AccOwner
+
+    acc Task = self.AccOwner
+
     acc Folder = self.AccOwner
-        if self.GroupId = group.Id then
-            ACC_READWRITE
-        else
-            self.CalculateAccessLevel
-        end if
 
-    acc FolderFolder =
-        if self.GroupId = group.Id then
-            ACC_READWRITE
-        else
-            ACC_READ
-        end if
-
+    acc Note = self.AccOwner
 
 
 context Group::AccOwner: integer
@@ -146,7 +135,28 @@ post:
     end if
     end if
 
+context Note::AccOwner: integer
+post:
+    if self.Status = NS_PUBLIC then
+        result = ACC_READWRITE
+    else if self.CreatedBy = user or self.ModifiedBy = user then
+        result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+        result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
+        result = ACC_READWRITE
+    end if
+    end if
+    end if
+    end if
 
+context Note::InPersonalFolder(user: User): boolean
+post:
+    result = self.InFolders.exists(element.Folder.User = user)
+
+context Note::InGroupFolder(group: Group): boolean
+post:
+    result = self.InFolders.exists(element.Folder.Group = group)
 
 
 
