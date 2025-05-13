@@ -25,6 +25,9 @@ class Folder
     Order:              integer
     GroupId:            integer
     UserId:             integer
+    FoldersCount:       integer
+    NotesCount:         integer
+    TasksCount:         integer
 end class
 
 
@@ -61,6 +64,12 @@ end class
 
 
 -- ==============================================================================
+
+context Folder
+inv:
+    self.FoldersCount = self.Folders.count
+    self.NotesCount = self.Notes.count
+    self.TasksCount = self.Tasks.count
 
 
 constraint Folder::Folders
@@ -554,6 +563,10 @@ post:
 context FolderNote::Tags: string
 post:
     result = self.Note.Tags
+
+context FolderNote::NotesCount: integer
+post:
+    result = self.Note.NotesCount
 
 -- ==============================================================================
 

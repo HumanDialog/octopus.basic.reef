@@ -29,6 +29,7 @@ class Note
 
     Notes[0..n]:            NoteNote
     InNotes[0..n]:          NoteNote
+    NotesCount:             integer
 end class
 
 
@@ -55,7 +56,9 @@ post:
 constraint Note::Notes
     element.InNoteId = self.Id
 
-
+context Note
+inv:    
+    self.NotesCount = self.Notes.count
 
 context Note::href: string
 post:
@@ -185,3 +188,7 @@ post:
 context NoteNote::href: string
 post:
     result = self.Note.href
+
+context NoteNote::NotesCount: integer
+post:
+    result = self.Note.NotesCount

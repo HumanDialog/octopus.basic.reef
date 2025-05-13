@@ -43,7 +43,7 @@ context User::GetBasketFolder: Folder
 post:
 
     if self.BasketFolder.isNull then
-        self.BasketFolder = self.AllFolders.newElement(e | e.Title = user.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
     end if
 
     result = self.BasketFolder
@@ -52,7 +52,7 @@ context User::GetPinnedFolders: Folder
 post:
 
     if self.PinnedFolders.isNull then
-        self.PinnedFolders = self.AllFolders.newElement(e | e.Title = user.Name + " Pinned Folders" and e.Status = FS_PINNED_ROOT_FOLDER)
+        self.PinnedFolders = self.AllFolders.newElement(e | e.Title = self.Name + " Pinned Folders" and e.Status = FS_PINNED_ROOT_FOLDER)
     end if
 
     result = self.PinnedFolders
