@@ -79,6 +79,10 @@ access role GroupOwner: Group Leader
 
     acc Note = self.AccOwner
 
+    acc MessageChannel = self.AccOwner
+
+    acc Message = self.AccOwner
+
 
 context Group::AccOwner: integer
 post:
@@ -103,7 +107,7 @@ post:
 
 context Task::AccOwner: integer
 post:
-    if self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
+    if self.CreatedBy = user or self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
             result = ACC_READWRITE
     else if self.InPersonalFolder(user) then
             result = ACC_READWRITE
@@ -123,15 +127,19 @@ post:
 
 context Folder::AccOwner: integer
 post:
-    if self.GroupId = group.Id then
+    if self.Owner = user then
+        result = ACC_READWRITE
+    else if self.GroupId = group.Id then
             result = ACC_READWRITE
     else if self.IsPublic then
         result = ACC_READWRITE
-    else if self.IsShared then
+    else
+        if self.IsShared then
             if self.InFolders.exists(element.GroupId = group.Id) then
                 result = ACC_READ
             end if
         end if
+    end if
     end if
     end if
 
@@ -158,7 +166,23 @@ context Note::InGroupFolder(group: Group): boolean
 post:
     result = self.InFolders.exists(element.Folder.Group = group)
 
+context MessageChannel::AccOwner
+post:
+    if self.Group = group then
+        result = ACC_READWRITE
+    else if self.Users.exists(element.Id = user.Id) then
+        result = ACC_READWRITE
+    end if
+    end if
 
+context Message::AccOwner
+post:
+    if self.Author = self then
+        result = ACC_READ --EKSPERYMENT
+    else if self.Channel.AccOwner >= ACC_READ then
+        result = ACC_READ
+    end if
+    end if
 
 context User::IsInGroup(g: Group): boolean
 post:

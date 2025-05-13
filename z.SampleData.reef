@@ -116,23 +116,23 @@ post:
 context App::InitGuestsGroup
 post:
 -- -------------------- Motorcycle's production --------------------------
-    let motorcycleCompany: Group = system.allInstances("Group").select(element.Name = "Guests").first
+    let guests: Group = system.allInstances("Group").select(element.Name = "Guests").first
 
-    if motorcycleCompany = 0 then
-        motorcycleCompany = new Group
-        motorcycleCompany.Name = "Guests"
+    if guests = 0 then
+        guests = new Group
+        guests.Name = "Guests"
     end if
-    motorcycleCompany.Lists.removeAll
+    guests.Lists.removeAll
 
-    motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
+    guests.AllTags = "#urgent #bug #feature #prototype"
 
-    motorcycleCompany.CheckFolders()
+    guests.CheckFolders()
 
-    motorcycleCompany.AddGeneralMessageChannels()
+    guests.AddGeneralMessageChannels()
 
     -- Add some data
     let list: TaskList in
-    list = motorcycleCompany.Lists.newElement(element.Order = 0)
+    list = guests.Lists.newElement(element.Order = 0)
 
     -- list.TaskStates = '[{"name":"Required","state":0},{"name":"Running out","state":100},{"name":"Delivering","state":1000}]'
     let states: JsonObject = [
@@ -175,7 +175,7 @@ post:
         list.CreateTask('Prototype Development', "Build a working prototype to test the design and functionality", 0, '#prototype')
     list.ReorderTasks()
 
-    list = motorcycleCompany.Lists.newElement(element.Order = 10)
+    list = guests.Lists.newElement(element.Order = 10)
     list.Name = "Engineering"
     list.IndexPrefix = 'ENG'
         list.CreateTask('Performance Testing', 'Test the prototype for speed, handling, durability, and efficiency.', 0)
@@ -184,7 +184,7 @@ post:
         list.CreateTask('Refinement', 'Address issues identified during testing, including mechanical, aesthetic, and ergonomic concerns.', 0)
     list.ReorderTasks()
 
-    list = motorcycleCompany.Lists.newElement(element.Order = 20)
+    list = guests.Lists.newElement(element.Order = 20)
     list.Name = "Branding"
     list.IndexPrefix = 'BRD'
         list.CreateTask('Product Naming and Branding', 'Develop a name, logo, and identity for the new motorcycle.', 0)
@@ -194,36 +194,56 @@ post:
     list.ReorderTasks()
 
 
-
-
-context App::InitSample
+context App::iu
 post:
-    self.ClearData()
+    self.InitUsers
 
-    self.ResetDemoData()
-    self.InitGuestsGroup()
-
-    self.InitHomeGroups()
-
+context App::InitUsers
+post:
     -- Add sample users
     let alice: User = new User in
     alice.login = "alice@example.com"
     alice.Name = "Alice"
 
-    alice.CheckFolders()
-
     let bob: User = new User in
     bob.login = "bob@example.com"
     bob.Name = "Bob"
 
+    let guests: Group = new Group
+
+    guests = new Group
+    guests.Name = "Guests"
+
+    let motorcycleCompany: Group = new Group
+    motorcycleCompany.Name = "Motorcycle's production"
+    motorcycleCompany.AddUser(alice)
+    motorcycleCompany.AddUser(bob)
+
+
+context App::is
+post:
+    self.InitSample
+
+context App::InitSample
+pre Before app/InitSample call app/InitUsers and login.:
+    user <> 0
+post:
+    --self.ClearData()
+
+    --self.ResetDemoData()
+    self.InitGuestsGroup()
+
+    self.InitHomeGroups()
+
+    -- Add sample users
+    let alice: User = system.allInstances("User").select(element.Name = 'Alice').first in
+    alice.CheckFolders()
+
+    let bob: User = system.allInstances("User").select(element.Name = 'Bob').first in
     bob.CheckFolders()
 
     -- -------------------- Motorcycle's production --------------------------
-    let motorcycleCompany: Group = new Group
-    motorcycleCompany.Name = "Motorcycle's production"
-    motorcycleCompany.Lists.removeAll
-    motorcycleCompany.AddUser(alice)
-    motorcycleCompany.AddUser(bob)
+    let motorcycleCompany: Group = system.allInstances("Group").select(element.Name = "Motorcycle's production").first in
 
     motorcycleCompany.AllTags = "#urgent #bug #feature #prototype"
 

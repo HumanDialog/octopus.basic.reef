@@ -15,7 +15,7 @@ class Folder
     Summary(196):       string
     Group:              Group       <backNav: AllFolders>
     User:               User        <backNav: Folders>
-    FolderOwner:        User        <backNav: AllFolders>
+    Owner:              User        <backNav: AllFolders>
     Kind:               integer
     Status:             integer
     Folders[0..n]:      FolderFolder
@@ -24,19 +24,19 @@ class Folder
     Tasks[0..n]:        FolderTask
     Order:              integer
     GroupId:            integer
-    UserId:             integer             
+    UserId:             integer
 end class
 
 
 class FolderFolder
-    Title(128):         string  
+    Title(128):         string
     Kind:               integer
     Order:              integer
-    Pos(8):             string   
+    Pos(8):             string
     Group:              Group       <backNav: FolderFolder>
     Folder(0..1):       Folder      <backNav: InFolders[0..n]>
     InFolder(0..1):     Folder      <backNav: Folders[0..n]>
-    GroupId:            integer     
+    GroupId:            integer
     InFolderId:         integer
     FolderId:           integer
 end class
@@ -44,7 +44,7 @@ end class
 class FolderNote
     Title(128):     string
     Order:          integer
-    Pos(8):         string   
+    Pos(8):         string
     Folder(0..1):   Folder  <backNav: Notes[0..n]>
     Note(0..1):     Note    <backNav: InFolders[0..n]>
 end class
@@ -53,18 +53,18 @@ end class
 class FolderTask
     Title(128):     string
     Order:          integer
-    Pos(8):         string   
+    Pos(8):         string
     Folder(0..1):   Folder <backNav: Tasks[0..n]>
     Task(0..1):     Task   <backNav: InFolders[0..n]>
-end class      
-  
+end class
+
 
 
 -- ==============================================================================
 
 
 constraint Folder::Folders
-    element.InFolderId = self.Id 
+    element.InFolderId = self.Id
 
 
 context Folder::IsPublic: boolean
@@ -74,7 +74,7 @@ post:
 
 context Folder::IsShared: boolean
 post:
-     result = (self.Status = FS_SHARED_FOLDER)        
+     result = (self.Status = FS_SHARED_FOLDER)
 
 context Folder::IsRoot: boolean
 post:
@@ -94,25 +94,25 @@ post:
 context Folder::href: string
 post:
     select case self.Kind
-        case FK_FOLDER  
-            result = '/folder/' + self.Id 
-        case FK_BASKET  
-            result = '/folder/' + self.Id 
-        case FK_DISCUSSION    
+        case FK_FOLDER
+            result = '/folder/' + self.Id
+        case FK_BASKET
+            result = '/folder/' + self.Id
+        case FK_DISCUSSION
             result = '/forum/' + self.Id
         case else
             result = '/folder/' + self.Id
-    end select   
+    end select
 
 
 context Folder::icon: string
 post:
     select case self.Kind
-        case FK_FOLDER  
-            result = 'FaFolder' 
-        case FK_BASKET  
-            result = 'FaShoppingBasket' 
-        case FK_DISCUSSION    
+        case FK_FOLDER
+            result = 'FaFolder'
+        case FK_BASKET
+            result = 'FaShoppingBasket'
+        case FK_DISCUSSION
             result = 'FaComments'
         case else
             result = 'FaFolder'
@@ -134,18 +134,31 @@ post:
 
 context Folder::CreateSubFolderEx(properties: JsonObject) : FolderFolder
 post:
-    result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
-    
+    --result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
+    let subfolder: Folder = user.AllFolders.newElement(subfolder |
+                subfolder.Title = properties.Title
+                subfolder.Summary = properties.Summary
+                subfolder.Kind = properties.Kind) in
+
+    let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subfolder)
+
+    if properties.Order <> 0 then
+        link.Order = properties.Order
+    end if
+
+    result = link
 
 context Folder::CreateSubFolder(title: string, optional summary: string = "", optional order: integer = 0, optional kind: integer = 0): FolderFolder
+pre Only logged in users may Create Subfolders:
+    user <> 0
 post:
-    let subfolder: Folder = new Folder in
-    subfolder.Title = title
-    subfolder.Summary = summary
-    subfolder.Kind = kind
-    
+    let subfolder: Folder = user.AllFolders.newElement(subfolder |
+                subfolder.Title = title
+                subfolder.Summary = summary
+                subfolder.Kind = kind) in
+
     let link: FolderFolder = self.Folders.newElement(ff| ff.Folder = subfolder)
-    
+
     if order <> 0 then
         link.Order = order
     end if
@@ -155,21 +168,25 @@ post:
 
 
 context Folder::CreateNoteEx(properties: JsonObject) : FolderNote
+pre Only logged in users may Create Notes:
+    user <> 0
 post:
-    let n: Note = new Note in
 
-    n.Title = properties.Title
-    n.Summary = properties.Summary
+    let n: Note = user.CreatedNotes.newElement(n |
+            n.Title = properties.Title and
+            n.Summary = properties.Summary) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
 
 
 context Folder::CreateTaskEx(properties: JsonObject) : FolderTask
+pre Only logged in users may Create Tasks:
+    user <> 0
 post:
-    let t: Task = new Task in
+    let t: Task = user.CreatedTasks.newElement(t |
+            t.Title = properties.Title
+            t.Summary = properties.Summary) in
 
-    t.Title = properties.Title
-    t.Summary = properties.Summary
 
     result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
 
@@ -198,7 +215,7 @@ post:
 context Folder::CopyToBasket(): FolderFolder
 post:
     let basket: Folder = user.BasketFolder
-    
+
     if not basket.Folders.exists(element.Folder.Id = self.Id) then
         let maxOrder: integer = basket.Folders.max(element.Order)
         result = basket.Folders.newElement(e | e.Folder = self and e.Order = maxOrder + ORDER_STEP)
@@ -242,7 +259,7 @@ post:
         if order = 0 then
             order = self.Notes.max(element.Order) + ORDER_STEP
         end if
-        
+
         self.Notes.newElement(e | e.Note=note and e.Order=order)
         result = true
     else
@@ -255,17 +272,17 @@ post:
         if order = 0 then
             order = self.Tasks.max(element.Order) + ORDER_STEP
         end if
-        
+
         self.Tasks.newElement(e | e.Task=task and e.Order=order)
         result = true
     else
         result = false
     end if
-    
+
 context Folder::AttachBasketContent(): Folder
 post:
     let basket: Folder = user.BasketFolder
-    
+
     let maxOrder: integer = self.Folders.max(element.Order)
     let order: integer = maxOrder + ORDER_STEP
     basket.Folders.forAll(
@@ -316,7 +333,7 @@ context Folder::CopyNoteToBasket(noteLink: FolderNote): FolderNote
 post:
     let note: Note = noteLink.Note
     let basket: Folder = user.BasketFolder
-    
+
     if not basket.Notes.exists(element.Note.Id = note.Id) then
         let maxOrder: integer = basket.Notes.max(element.Order)
         result = basket.Notes.newElement(e | e.Note = note and e.Order = maxOrder + ORDER_STEP)
@@ -346,7 +363,7 @@ context Folder::CopyTaskToBasket(taskLink: FolderTask): FolderTask
 post:
     let task: Task = taskLink.Task
     result = task.CopyToBasket()
-    
+
 
 context Folder::CutTaskToBasket(taskLink: FolderTask): FolderTask
 post:
@@ -374,11 +391,11 @@ post:
 
     self.Folders.forAll(
         result = [..., {
-            Type: 'Folder', 
+            Type: 'Folder',
             Id: element.FolderId,
             Title: element.Title
             }
-        ]    
+        ]
     )
 
     self.Notes.forAll(
@@ -405,11 +422,11 @@ post:
 
     self.Folders.forAll(
         result = [..., {
-            Type: 'Folder', 
+            Type: 'Folder',
             Id: element.FolderId,
             Title: element.Title
             }
-        ]    
+        ]
     )
 
     self.Notes.forAll(
@@ -483,13 +500,13 @@ post:
 
 
 constraint FolderFolder::Folder
-    self.FolderId = element.Id    
+    self.FolderId = element.Id
 
 
 context FolderFolder::href: string
 post:
     result = self.Folder.href
-    
+
 
 context FolderFolder::IsPinned: boolean
 post:
@@ -544,7 +561,7 @@ post:
 context FolderTask
 inv:
     self.Title = self.Task.Title
-    
+
 
 context FolderTask::SetTitle(value: string)
 post:
@@ -569,11 +586,4 @@ post:
 
 context FolderTask::State: string
 post:
-    result = self.Task.State 
-
-    
-
-            
-
-    
-        
+    result = self.Task.State
