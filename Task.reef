@@ -22,6 +22,7 @@ class Task
     Index(16):              string
     Kind:                   integer
     State:                  integer
+    CreatedBy:              User <backNav: CreatedTasks>
     Actor:                  User
     DueDate:		        date
     Effort:                 integer
@@ -42,6 +43,7 @@ class Task
 
     TaskListId:             integer
     ActorId:                integer
+    CreatedById:            integer
 end class
 
 

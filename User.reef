@@ -15,11 +15,12 @@ class User
     Folders(0..n):          Folder              <backNav: User>
     AllFolders(0..n):       Folder              <backNav: Owner>
     PinnedFolders:          Folder
-    BasketFolder:           Folder              
+    BasketFolder:           Folder
     MessageChannels[0..n]:  MessageChannelUser  <backNav: User>
     CreatedNotes(0..n):     Note                <backNav: CreatedBy>
     ModifiedNotes(0..n):    Note                <backNav: ModifiedBy>
     MyMessages(0..n):       Message
+    CreatedTasks(0..n):     Task                <backNav: CreatedBy>
 end class
 
 constraint User::PinnedFolders
@@ -30,33 +31,33 @@ constraint User::BasketFolder
 
 constraint User::MyTasks
     element.ActorId = self.Id and element.Status = STATUS_ACTIVE
-    
+
 constraint User::Folders
-    element.UserId = self.Id and element.Status = FS_USER_ROOT_FOLDER   
-    
+    element.UserId = self.Id and element.Status = FS_USER_ROOT_FOLDER
+
 constraint User::AllFolders
-    element.UserId = self.Id      
-    
+    element.UserId = self.Id
+
 constraint User::MessageChannels
-    element.UserId = self.Id    
-    
+    element.UserId = self.Id
+
 context User::GetBasketFolder: Folder
 post:
-   
+
     if self.BasketFolder.isNull then
         self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
     end if
-    
-    result = self.BasketFolder 
+
+    result = self.BasketFolder
 
 context User::GetPinnedFolders: Folder
 post:
-   
+
     if self.PinnedFolders.isNull then
         self.PinnedFolders = self.AllFolders.newElement(e | e.Title = self.Name + " Pinned Folders" and e.Status = FS_PINNED_ROOT_FOLDER)
     end if
-    
-    result = self.PinnedFolders       
+
+    result = self.PinnedFolders
 
 
 context User::FinishTasks()
@@ -70,7 +71,7 @@ post:
 --post:
 --    folder.User = null      -- removing from Folders collection
 --    result = folder.CopyToBasket()
-    
+
 
 
 context User::FindMessageChannelWith(toWhom: User): MessageChannelUser
