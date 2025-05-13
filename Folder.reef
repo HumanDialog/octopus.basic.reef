@@ -443,7 +443,7 @@ post:
 context Folder::AddPost(title: string, summary: string, content: string, tags: string): string
 post:
     let note: Note = new Note
-    note.Kind = NK_POST
+    note.Kind = NK_THREAD
     note.Title = title
     note.Summary = summary
     note.Content = content
@@ -456,8 +456,6 @@ post:
 
 
 context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): string
-pre:
-    note.Kind = NK_POST
 post:
     let maxOrder: integer = self.Notes.max(element.Order)
     note.Title = title
@@ -465,6 +463,7 @@ post:
     note.Content = content
     note.Tags = tags
     note.Summary = note.Content.textFromHTML(128, true)
+    note.Kind = NK_THREAD
 
     self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
     result = note.href()
