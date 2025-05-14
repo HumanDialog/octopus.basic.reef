@@ -16,7 +16,8 @@ class User
     AllFolders(0..n):       Folder              <backNav: Owner>
     PinnedFolders:          Folder
     BasketFolder:           Folder
-    MessageChannels[0..n]:  MessageChannelUser  <backNav: User>
+    MessageChannels[0..n]:  MessageChannelUser      <backNav: User>
+    AllMessageChannels[0..n]:  MessageChannelUser   <backNav: Owner>
     CreatedNotes(0..n):     Note                <backNav: CreatedBy>
     ModifiedNotes(0..n):    Note                <backNav: ModifiedBy>
     MyMessages(0..n):       Message
@@ -39,6 +40,9 @@ constraint User::AllFolders
     element.UserId = self.Id
 
 constraint User::MessageChannels
+    element.UserId = self.Id and element.Status = MCU_DIRECT
+
+constraint User::AllMessageChannels
     element.UserId = self.Id
 
 context User::GetBasketFolder: Folder

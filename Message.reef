@@ -1,5 +1,8 @@
 const CS_GROUP_ROOT_CHANNEL = 1
 
+const MCU_SUBSCRIPTION      = 1
+const MCU_DIRECT            = 2
+
 class MessageChannel
     Title(128):             string
     Summary(196):           string
@@ -40,9 +43,11 @@ end class
 
 class MessageChannelUser
     MessageChannel:     MessageChannel
-    User:               User
-    UserId:             integer
     Summary(196):       string
+    User:               User
+    Owner:              User
+    UserId:             integer
+    Status:             integer
     Order:              integer
     UnreadMessagesNo:   integer
     --LastReadTime:       date
