@@ -7,6 +7,8 @@ class User
 	groupid:                integer
     Name:                   string
     Email:                  string
+    Bio:                    string
+    Avatar:                 string
     MyTasks(0..n):          Task                <backNav: Actor(0..1)>
     MyLists(0..n):          TaskList            <backNav: User>
     Groups(0..n):           UserGroup           <backNav: User>
@@ -116,3 +118,7 @@ post:
 context User::AddWorkingPost(): Note
 post:
     result = self.CreatedNotes.newElement(element.Kind = NK_POST)
+
+context User::href: string
+post:
+    result = '/profile/' + self.Id

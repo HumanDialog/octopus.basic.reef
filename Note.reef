@@ -1,6 +1,8 @@
 
 const NK_DOCUMENT          = 0
-const NK_POST              = 1
+const NK_THREAD            = 1 
+const NK_POST              = 2
+
 
 const NS_PUBLISHED_NOTE = 10
 
@@ -65,8 +67,11 @@ post:
     select case self.Kind
         case NK_DOCUMENT
             result = '/note/' + self.Id
-        case NK_POST
+        case NK_THREAD
             result = '/thread/' + self.Id
+        case NK_POST
+            result = '/thread/' + self.InNotes.select(element.InNote.Kind=NK_THREAD).first.InNote.Id + '?res=' + self.Id
+
     end select
 
 
@@ -107,7 +112,7 @@ context Note::SetContent(val: string)
 post:
     self.Content = val
 
-    if self.Kind = NK_POST then
+    if self.Kind = NK_POST or self.Kind = NK_THREAD then
         self.Summary = self.Content.textFromHTML(128, true)
     end if
 
@@ -116,13 +121,12 @@ post:
 
 context Note::AddPost(content: string): NoteNote
 pre:
-    self.Kind = NK_POST
+    self.Kind = NK_THREAD
 post:
     let n: Note = new Note
     n.Title = "Re: " + self.Title
     n.Content = content
     n.Summary = content.textFromHTML(128, true)
-
     n.Kind = NK_POST
 
     let maxOrder: integer = self.Notes.max(element.Order)
@@ -139,12 +143,13 @@ post:
 
 context Note::AttachPost(note: Note, content: string): NoteNote
 pre:
-    self.Kind = NK_POST
+    self.Kind = NK_THREAD
 post:
     let maxOrder: integer = self.Notes.max(element.Order)
     note.Title = "Re: " + self.Title
     note.Content = content
     note.Summary = content.textFromHTML(128, true)
+    note.Kind = NK_POST
 
     result = self.Notes.newElement(element.Note=note and element.Order=maxOrder+ORDER_STEP)
 

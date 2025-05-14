@@ -87,7 +87,7 @@ post:
 
     let originalPost: Note = new Note
     originalPost.Title = "Duration format in the Gantt chart"
-    originalPost.Kind = NK_POST
+    originalPost.Kind = NK_THREAD
     originalPost.CreationDate = 2023.11.20
     originalPost.CreationDate.Time = "01:15"
     originalPost.CreatedBy = Liam
