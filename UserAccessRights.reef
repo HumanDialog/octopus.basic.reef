@@ -83,6 +83,11 @@ access role GroupOwner: Group Leader
 
     acc Message = self.AccOwner
 
+    acc MessageChannelUser =
+        if self.User = user then
+            ACC_READWRITE
+        end if
+
 
 context Group::AccOwner: integer
 post:
@@ -171,7 +176,7 @@ post:
     if self.Group = group then
         result = ACC_READWRITE
     else if self.Users.exists(element.Id = user.Id) then
-        result = ACC_READWRITE
+        result = ACC_READ
     end if
     end if
 

@@ -5,9 +5,7 @@ post:
     tilosCommunity.Lists.removeAll
 
     tilosCommunity.AllTags = '#bug:bg-stone-400 #question:bg-lime-600 #feature request:bg-stone-400 #improvement request:bg-cyan-600 #release:bg-violet-600'
-    
-    tilosCommunity.CreateMember("Alice",        "alice@example.com")
-    tilosCommunity.CreateMember("Bob",          "bob@example.com")
+
     tilosCommunity.CreateMember("Emma Johnson", "emma@example.com")
     tilosCommunity.CreateMember("Jack Smith",   "jack@example.com")
     tilosCommunity.CreateMember("Olivia Brown", "olivia@example.com")
@@ -21,9 +19,9 @@ post:
 
     tilosCommunity.CreateDiscussionsStructrure()
     tilosCommunity.CreateLibraryStructure()
-    
+
     -- Help -- static content on website only. similar to ObjectReef Documentation
-       
+
     -- Dashboard    -- website requests based on Library
         -- Selected relese notes
         -- Getting started
@@ -33,7 +31,7 @@ post:
         -- Latest Disscusion List
 
     tilosCommunity.AddBasicSampleStuff()
-    
+
 
 context Group::CreateDiscussionsStructrure(): Folder
 post:
@@ -155,7 +153,7 @@ post:
     originalPost.ModificationDate = resp3.CreationDate
     originalPost.ModifiedBy = resp3.CreatedBy
 
-    
+
 context Group::CreateMember(name: string, login: string): User
 post:
     let u: User = new User
@@ -165,14 +163,14 @@ post:
 
     u.GetPinnedFolders()
     u.GetBasketFolder()
-    
+
     self.Members.newElement(element.User = u)
 
 
 context Group::AddBasicSampleStuff()
 post:
-    let alice: User = self.Members.select(element.User.Name = "Alice").first.User
-    let bob: User = self.Members.select(element.User.Name = "Bob").first.User
+    let alice: User = self.Members.select(element.User.Name = "Emma").first.User
+    let bob: User = self.Members.select(element.User.Name = "Jack").first.User
 
     --self.CheckFolders()
 
