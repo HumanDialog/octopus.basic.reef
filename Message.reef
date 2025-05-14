@@ -45,7 +45,7 @@ class MessageChannelUser
     Summary(196):       string
     Order:              integer
     UnreadMessagesNo:   integer
-    LastReadTime:       date
+    --LastReadTime:       date
 end class
 
 
@@ -55,6 +55,14 @@ end class
 context MessageChannel::href: string
 post:
     result = '/chat/' + self.Id
+
+admin
+context MessageChannel::MarkRead
+post:
+    let mu: MessageChannelUser = self.Users.select(element.User = user).first
+    mu.UnreadMessagesNo = 0
+    --mu.LastReadTime =
+
 
 admin
 context MessageChannel::AddMessage(text: string, optional attachements: JsonObject): Message
@@ -106,7 +114,7 @@ context MessageChannel::Subscribe
 pre Only group channels can be subscribed:
     self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
 post:
-    if not self.Users.select(element = user).exists then
+    if not self.Users.select(element.User = user).exists then
         self.Users.newElement(element.User = user)
     end if
 
