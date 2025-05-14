@@ -460,30 +460,24 @@ post:
 context Folder::AddPost(title: string, summary: string, content: string, tags: string): string
 post:
     let note: Note = new Note
-    note.Kind = NK_THREAD
-    note.Title = title
-    note.Summary = summary
-    note.Content = content
-    note.Tags = tags
-    note.Summary = note.Content.textFromHTML(128, true)
-
-    let maxOrder: integer = self.Notes.max(element.Order)
-    self.Notes.newElement( e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
-    result = note.href()
+    result = self.AttachPost(note, title, summary, content, tags)
 
 
 context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): string
 post:
-    let maxOrder: integer = self.Notes.max(element.Order)
+    note.Kind = NK_THREAD
     note.Title = title
     note.Summary = summary
     note.Content = content
     note.Tags = tags
     note.Summary = note.Content.textFromHTML(128, true)
-    note.Kind = NK_THREAD
-
+    
+    let maxOrder: integer = self.Notes.max(element.Order)
     self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
     result = note.href()
+
+
+
 
 -- ==============================================================================
 
@@ -523,6 +517,31 @@ post:
 context FolderFolder::icon: string
 post:
     result = self.Folder.icon
+
+
+context FolderFolder::GetLastForumActivity(): JsonObject
+pre:
+    self.Folder.Kind = FK_DISCUSSION
+post:
+    let topThread: FolderNote in
+    let lastUserName: string
+   
+    topThread = self.Folder.Notes.orderedBy("Order").last
+    if topThread <> null then
+        
+        if topThread.ModifiedBy <> null then
+            lastUserName = topThread.ModifiedBy.Name
+        end if
+
+        result = {
+            title: topThread.Title,
+            lastActivity: topThread.ModificationDate,
+            lastUser: lastUserName
+        }
+
+    else
+        result = null
+    end if
 
 -- ==============================================================================
 
@@ -566,6 +585,7 @@ post:
 context FolderNote::NotesCount: integer
 post:
     result = self.Note.NotesCount
+
 
 -- ==============================================================================
 

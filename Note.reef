@@ -131,13 +131,8 @@ post:
 
     let maxOrder: integer = self.Notes.max(element.Order)
     result = self.Notes.newElement(element.Note=n and element.Order=maxOrder+ORDER_STEP)
-
-    --let fn :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION).first
-    --if fn <> null then
-    --    maxOrder = fn.Folder.Notes.max(element.Order)
-    --    fn.Order = maxOrder + ORDER_STEP
-    --end if
-
+    
+    self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
 
 
@@ -153,7 +148,20 @@ post:
 
     result = self.Notes.newElement(element.Note=note and element.Order=maxOrder+ORDER_STEP)
 
+    self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
+
+
+context Note::MoveOnForumFolderTop()
+pre:
+    self.Kind = NK_THREAD
+post:
+    let link :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION).first
+    let maxOrder:integer = link.Folder.Notes.max(element.Order)
+    if link.Order <> maxOrder then
+        link.Order = maxOrder + ORDER_STEP
+    end if
+
 
 
 context Note::CopyToBasket(): FolderNote

@@ -42,8 +42,8 @@ post:
 
     let link: FolderFolder
 
-    link = discussions.CreateSubFolder("Feature requests",                  "", 0 * ORDER_STEP, FK_DISCUSSION)
-    link = discussions.CreateSubFolder("General",                           "", 1 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Feature requests",                  "Would you like to see a new feature in Tilos? Write about it here", 0 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("General",                           "General discussions whose topic does not fit after the below ones", 1 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Installation and Licensing",        "", 2 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Get Started",                       "", 3 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Projects and Sub-Projects",         "", 4 * ORDER_STEP, FK_DISCUSSION)
@@ -53,7 +53,7 @@ post:
     link = discussions.CreateSubFolder("Activities",                        "", 8 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Scheduling (CPM)",                  "", 9 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Project Control",                   "", 10 * ORDER_STEP, FK_DISCUSSION)
-    link = discussions.CreateSubFolder("Gantt Charts",                      "", 11 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Gantt Charts",                      "Discussions around Gantt diagram functionality, errors and suggestions", 11 * ORDER_STEP, FK_DISCUSSION)
         link.Folder.MakeSampleDiscussion()
     link = discussions.CreateSubFolder("Calendars",                         "", 12 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Graphics and Annotations",          "", 13 * ORDER_STEP, FK_DISCUSSION)
