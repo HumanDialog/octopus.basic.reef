@@ -1,0 +1,117 @@
+----------- GroupMember ------------------------------------------------
+
+access role GroupMember: Group Member
+    acc App = ACC_READ
+
+    acc User = self.AccMember
+
+    acc Group = self.AccMember
+
+    acc TaskList = self.AccMember
+
+    acc Task = self.AccMember
+
+    acc Folder = self.AccMember
+
+    acc Note = self.AccMember
+
+    acc MessageChannel = self.AccMember
+
+    acc Message = self.AccMember
+
+
+context User::AccMember: integer
+post:
+    if self = user then
+        result = ACC_READWRITE
+    else if self.Groups.exists(element.GroupId = group.Id) then
+        result = ACC_READ
+    end if
+    end if
+
+context Group::AccMember: integer
+post:
+    if group = self then
+        result = ACC_READWRITE
+    else if self.IsPublic then
+        result = ACC_READ
+    else if self.Name = "Guests" then
+        result = ACC_READ
+    end if
+    end if
+    end if
+
+context TaskList::AccMember: integer
+post:
+    if self.User = user then
+        result = ACC_READWRITE
+    else if self.Group then
+        result = self.Group.acc
+    end if
+    end if
+
+context Task::AccMember: integer
+post:
+    if self.CreatedBy = user or self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
+            result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+            result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
+            result = ACC_READ
+    end if
+    end if
+    end if
+
+
+
+context Folder::AccMember: integer
+post:
+    if self.Owner = user then
+        result = ACC_READWRITE
+    else if self.Group = group then
+        result = ACC_READWRITE
+    else if self.IsPublic then
+        result = ACC_READWRITE
+    else
+        if self.IsShared then
+            if self.InFolders.exists(element.GroupId = group.Id) then
+                result = ACC_READ
+            end if
+        end if
+    end if
+    end if
+    end if
+
+context Note::AccMember: integer
+post:
+    if self.Status = NS_PUBLIC then
+        result = ACC_READWRITE
+    else if self.CreatedBy = user or self.ModifiedBy = user then
+        result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+        result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
+        result = ACC_READWRITE
+    end if
+    end if
+    end if
+    end if
+
+
+context MessageChannel::AccMember
+post:
+    if self.Group = group then
+        result = ACC_READ
+    else if self.Users.exists(element.Id = user.Id) then
+        result = ACC_READ
+    end if
+    end if
+
+context Message::AccMember
+post:
+    if self.Author = self then
+        result = ACC_READ
+    else if self.Channel.acc >= ACC_READ then
+        result = ACC_READ
+    end if
+    end if

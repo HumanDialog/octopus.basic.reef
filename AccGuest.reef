@@ -1,0 +1,64 @@
+
+
+---- Unique access. User is null, Group is Guest Group
+
+access role Guest
+    acc App = ACC_READ
+
+    -- acc User = ACCESS_DENIED
+
+    acc Group =
+        if self = group then
+            ACC_READ
+        end if
+
+    acc TaskList =
+        if self.Group = group then
+            ACC_READ
+        end if
+
+    acc Task =
+        if self.TaskList.Group = group then
+            ACC_READ
+        end if
+
+    acc Note =
+        if self.State = NS_PUBLISHED_NOTE then
+            ACC_READ
+        else
+            self.AccGuest
+        end if
+
+    acc Folder = self.AccGuest
+
+    acc MessageChannel = self.AccGuest
+
+    acc Message = self.AccGuest
+
+
+context Folder::AccGuest: integer
+post:
+    if self.Group = group then
+        result = ACC_READ
+    end if
+
+context Note::AccGuest: integer
+post:
+    result = self.InFolders.iterate(f; ac: integer | ac = ac | f.Folder.AccGuest)
+
+
+context MessageChannel::AccGuest: integer
+post:
+    --Can read public message channels for guests
+    if self.Group = group and self.Status = CS_GROUP_ROOT_CHANNEL then
+      result = ACC_READ
+    end if
+
+context Message::AccGuest
+post:
+    if self.Author = user then
+        result = ACC_READ --EKSPERYMENT
+    else if self.Channel.acc >= ACC_READ then
+        result = ACC_READ
+    end if
+    end if

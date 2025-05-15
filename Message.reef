@@ -72,7 +72,7 @@ post:
 admin
 context MessageChannel::AddMessage(text: string, optional attachements: JsonObject): Message
 pre No rights to post messages in this message channel:
-    self.accRights > ACC_DENIED
+    self.acc > ACC_DENIED
 post:
     result = self.Messages.newElement(element.Author=user and element.Date.SetUTCDate and element.Text=text)
 
@@ -117,7 +117,7 @@ post:
 admin
 context MessageChannel::Subscribe
 pre Only group channels can be subscribed:
-    self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
 post:
     if not self.Users.select(element.User = user).exists then
         self.Users.newElement(element.User = user)
@@ -139,7 +139,7 @@ post:
 
 context MessageChannel::Acc: integer
 post:
-    result = self.accRights
+    result = self.acc
 
 
 context MessageChannelUser::href: string
