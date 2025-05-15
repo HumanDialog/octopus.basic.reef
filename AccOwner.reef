@@ -14,6 +14,12 @@ access role GroupOwner: Group Leader
 
     acc Folder = self.AccOwner
 
+    acc FolderFolder = self.InFolder.Acc
+
+    acc FolderNote = self.Folder.Acc
+
+    acc FolderTask = self.Folder.Acc
+
     acc Note = self.AccOwner
 
     acc MessageChannel = self.AccOwner
