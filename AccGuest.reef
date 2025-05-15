@@ -31,6 +31,12 @@ access role Guest
 
     acc Folder = self.AccGuest
 
+    acc FolderFolder = self.InFolder.Acc
+
+    acc FolderNote = self.Folder.Acc
+
+    acc FolderTask = self.Folder.Acc
+
     acc MessageChannel = self.AccGuest
 
     acc Message = self.AccGuest
