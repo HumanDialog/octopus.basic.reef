@@ -13,6 +13,12 @@ access role GroupMember: Group Member
 
     acc Folder = self.AccMember
 
+    acc FolderFolder = self.InFolder.Acc
+
+    acc FolderNote = self.Folder.Acc
+
+    acc FolderTask = self.Folder.Acc
+
     acc Note = self.AccMember
 
     acc MessageChannel = self.AccMember
@@ -81,6 +87,10 @@ post:
     end if
     end if
     end if
+
+context Folder::Acc
+post:
+  result = self.acc
 
 context Note::AccMember: integer
 post:
