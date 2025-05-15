@@ -64,7 +64,7 @@ post:
 admin
 context MessageChannel::MarkRead
 post:
-    let mu: MessageChannelUser = self.Users.select(element.User = user).first
+    let mu: MessageChannelUser = self.Users.select(element.User = user or element.Owner = user).first
     mu.UnreadMessagesNo = 0
     --mu.LastReadTime =
 
@@ -112,34 +112,59 @@ post:
 --admin
 context MessageChannel::InformSubscribers()
 post:
-    self.Users.select(element.User <> user).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
+    if self.Status = CS_GROUP_ROOT_CHANNEL then
+        self.Users.select(element.Owner <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)   
+    else 
+        self.Users.select(element.User <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)   
+    end if
 
 admin
 context MessageChannel::Subscribe
 pre Only group channels can be subscribed:
     self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
 post:
-    if not self.Users.select(element.User = user).exists then
-        self.Users.newElement(element.User = user)
+    if not self.Users.select(element.Owner = user).exists then
+        self.Users.newElement(element.Owner = user and element.Status = MCU_SUBSCRIPTION)
     end if
+
+admin
+context MessageChannel::Unsubscribe
+pre Only group channels can be subscribed:
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
+post:
+    self.Users.select(element.Owner = user).first.delete
 
 context MessageChannel::GetTitle: string
 post:
-    if self.Users.count > 0 then
-        result = ""
-        self.Users.select(element.UserId <> user.Id).forAll(e |
-            if not result.isEmpty then
-                result = result + ", "
-            end if
-        result = result + e.User.Name
-        )
-    else
+    if self.Status = CS_GROUP_ROOT_CHANNEL then
         result = self.Title
+    else
+        if self.Users.count > 0 then
+            result = ""
+            self.Users.select(element.UserId <> user.Id).forAll(e |
+                if not result.isEmpty then
+                    result = result + ", "
+                end if
+            result = result + e.User.Name
+            )
+        else
+            result = self.Title
+        end if
     end if
 
 context MessageChannel::Acc: integer
 post:
     result = self.acc
+
+
+context MessageChannel::GetUnreadMessagesNo: integer
+post:
+    result = self.Users.select(element.Owner = user).first.UnreadMessagesNo
+
+
+context MessageChannel::IsSubscribed: boolean
+post:
+    result = self.Users.select(element.Owner = user).first <> null
 
 
 context MessageChannelUser::href: string
