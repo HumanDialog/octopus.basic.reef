@@ -118,23 +118,48 @@ post:
         self.Users.newElement(element.User = user)
     end if
 
+admin
+context MessageChannel::Unsubscribe
+pre Only group channels can be subscribed:
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
+post:
+    self.Users.select(element.User = user).first.delete
+
 context MessageChannel::GetTitle: string
 post:
-    if self.Users.count > 0 then
-        result = ""
-        self.Users.select(element.UserId <> user.Id).forAll(e |
-            if not result.isEmpty then
-                result = result + ", "
-            end if
-        result = result + e.User.Name
-        )
-    else
+    if self.Status = CS_GROUP_ROOT_CHANNEL then
         result = self.Title
+    else
+        if self.Users.count > 0 then
+            result = ""
+            self.Users.select(element.UserId <> user.Id).forAll(e |
+                if not result.isEmpty then
+                    result = result + ", "
+                end if
+            result = result + e.User.Name
+            )
+        else
+            result = self.Title
+        end if
     end if
 
 context MessageChannel::Acc: integer
 post:
     result = self.accRights
+
+
+context MessageChannel::GetUnreadMessagesNo: integer
+pre Only group channels can be subscribed:
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
+post:
+    result = self.Users.select(element.User = user).first.UnreadMessagesNo
+
+
+context MessageChannel::IsSubscribed: boolean
+pre Only group channels can be subscribed:
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
+post:
+    result = self.Users.select(element.User = user).first <> null
 
 
 context MessageChannelUser::href: string
