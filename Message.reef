@@ -113,9 +113,9 @@ post:
 context MessageChannel::InformSubscribers()
 post:
     if self.Status = CS_GROUP_ROOT_CHANNEL then
-        self.Users.select(element.Owner <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)   
-    else 
-        self.Users.select(element.User <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)   
+        self.Users.select(element.Owner <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
+    else
+        self.Users.select(element.User <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
     end if
 
 admin
@@ -130,7 +130,7 @@ post:
 admin
 context MessageChannel::Unsubscribe
 pre Only group channels can be subscribed:
-    self.Status = CS_GROUP_ROOT_CHANNEL and self.accRights > ACC_DENIED
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
 post:
     self.Users.select(element.Owner = user).first.delete
 
