@@ -2,8 +2,10 @@
 context App::MigrateStructure(FromVersion: string): string
 post:
     select case FromVersion
+        case "1.0.1"
+            result = self.MigrateFrom_101_to_136()
         case "1.3.3"
-            result = self.MigrateFrom133()
+            result = self.MigrateFrom_133_to_134()
         case "1.1.0"
             result = self.MigrateFrom110()
         case "1.0.0"
@@ -13,12 +15,23 @@ post:
     end select
 
 
-context App::MigrateFrom133(): string
+context App::MigrateFrom_101_to_136: string
 post:
-    result = "Migration from 1.3.3:\n"
+    result = "Migration from 1.0.1 to 1.3.6:\n"
+    result = result + self.Punch_TLK_constants()
+    result = result + self.Punch_TaskState_constants()
 
-    -- TLK_... constants changes
-    result = result + "\t* Punching TaskLists's Kinds and TaskStates\n"
+
+context App::MigrateFrom_133_to_134: string
+post:
+    result = "Migration from 1.3.3 to 1.3.4:\n"
+    result = result + self.Punch_TLK_constants()
+    result = result + self.Punch_TaskState_constants()
+
+
+
+context App::Punch_TLK_constants
+post:
     system.allInstances("TaskList").forAll(list |
         if list.Kind = 1 then
             list.Kind = TLK_LIST
@@ -27,14 +40,18 @@ post:
         else 
             list.Kind = TLK_KANBAN_CHECKLIST
         end if 
-        end if
-
-        list.MigrateTaskStatesFrom133to134()
+        end if        
     )
 
 
+context App::Punch_TaskState_constants
+post:
     -- STATE_ ... changes
     result = result + "\t* Punching Tasks's States\n"
+
+    system.allInstances("TaskList").forAll(list |
+        list.MigrateTaskStatesFrom133to134() )
+
     system.allInstances("Task").forAll( task | 
         if task.State = 1000 then
             task.State = STATE_FINISHED
@@ -43,6 +60,7 @@ post:
         end if
         end if
     )
+
 
 context TaskList::MigrateTaskStatesFrom133to134
 post:
