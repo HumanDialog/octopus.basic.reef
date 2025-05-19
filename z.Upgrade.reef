@@ -1,0 +1,10 @@
+admin
+context App::VerifyMissingData
+post:
+  let guests: Group = system.allInstances("Group").select(element.Name = "Guests").first
+  if guests = 0 then
+      guests = new Group
+      guests.Name = "Guests"
+  end if
+
+  system.allInstances("Group")

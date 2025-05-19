@@ -210,8 +210,6 @@ post:
     bob.Name = "Bob"
 
     let guests: Group = new Group
-
-    guests = new Group
     guests.Name = "Guests"
 
     let motorcycleCompany: Group = new Group
@@ -372,6 +370,21 @@ post:
 context Group::CheckFolder(Title: string)
 post:
     if not self.Folders.select(e | e.Title = Title).exists then
+        let f: Folder = self.Folders.newElement() in
+        f.Title = Title
+        f.CreateSubFolders(3)
+        f.CreateTasks(5)
+        f.CreateNotes(4)
+        f.ReorderElements()
+    end if
+
+context Group::NewFolder(t: string)
+post:
+    self.Folders.newElement(e | e.Title = t)
+
+context Group::CheckFolderEx(Title: string)
+post:
+    if not self.Folders.select(e | e.Title = Title).exists then
         let f: Folder = self.Folders.newElement(e | e.Title = Title) in
         f.CreateSubFolders(3)
         f.CreateTasks(5)
@@ -385,6 +398,12 @@ post:
     self.CheckFolder("Projects")
     self.CheckFolder("Ideas")
 
+context Group::CheckFoldersEx
+post:
+    self.CheckFolderEx("Notes")
+    self.CheckFolderEx("Projects")
+    self.CheckFolderEx("Ideas")
+
 
 context Group::DeleteAllFolders
 post:
@@ -394,12 +413,24 @@ post:
 context User::CheckFolder(Title: string)
 post:
     if not self.Folders.select(e | e.Title = Title).exists then
+        let f: Folder = self.Folders.newElement() in
+        f.Title = Title
+        f.CreateSubFolders(3)
+        f.CreateTasks(3)
+        f.CreateNotes(3)
+        f.ReorderElements()
+    end if
+
+context User::CheckFolderEx(Title: string)
+post:
+    if not self.Folders.select(e | e.Title = Title).exists then
         let f: Folder = self.Folders.newElement(e | e.Title = Title) in
         f.CreateSubFolders(3)
         f.CreateTasks(3)
         f.CreateNotes(3)
         f.ReorderElements()
     end if
+
 
 context Folder::CreateSubFolders(no: integer)
 post:
@@ -414,8 +445,8 @@ post:
 
 context Folder::CreateNote(Title: string)
 post:
-    let note: Note = new Note in
-    note.Title = Title
+    let note: Note = user.CreatedNotes.newElement(note | note.Title = Title) in
+
     self.Notes.newElement(nn | nn.Note = note)
 
 context Folder::CreateTasks(no: integer)
@@ -424,8 +455,7 @@ post:
 
 context Folder::CreateTask(Title: string)
 post:
-    let task: Task = new Task in
-    task.Title = Title
+    let task: Task = user.CreatedTasks.newElement(task | task.Title = Title) in
     self.Tasks.newElement(tt | tt.Task = task)
 
 
