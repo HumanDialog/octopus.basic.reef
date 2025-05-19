@@ -213,7 +213,7 @@ post:
     guests.Name = "Guests"
 
     let motorcycleCompany: Group = new Group
-    motorcycleCompany.Name = "Motorcycle's production"
+    motorcycleCompany.Name = "Alice & Bob"
     motorcycleCompany.AddUser(alice)
     motorcycleCompany.AddUser(bob)
 
