@@ -8,6 +8,7 @@ post:
   end if
 
   system.allInstances("Group").forAll(e | e.VerifyFolders)
+  system.allInstances("Group").forAll(e | e.VerifyTaskLists)
   system.allInstances("Group").forAll(e | e.VerifyMessageChannels)
 
   system.allInstances("User").forAll(e | e.VerifyFolders)
@@ -18,6 +19,19 @@ context User::VerifyFolders()
 post:
       self.GetPinnedFolders
       self.GetBasketFolder
+
+context Group::VerifyTaskLists()
+post:
+   if self.Lists.first = 0 then
+      self.CreateList("Things to to")
+   end if
+   self.Lists.forAll(element.Verify)
+
+context TaskList::Verify
+post:
+  if self.TaskStates = "" then
+     self.TaskStates = self.Group.GetChecklistDefaultColumns().ToString()
+  end if
 
 context Group::VerifyMessageChannels()
 post:

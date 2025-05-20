@@ -40,10 +40,7 @@ post:
 context Group::OnAfterCreate
 post:
     self.ListIndexPrefix = 'OCT'
-    let firstList: TaskList in
-
-    firstList = self.Lists.newElement
-    firstList.Name = "Things to do"
+    self.CreateList("Things to do")
 
 
 constraint Group::Lists

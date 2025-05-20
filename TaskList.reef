@@ -14,7 +14,7 @@ const TLS_GROUP_ARCHVIVED_LIST  = 1000
 class TaskList
     Name(128):              string
     Summary(196):           string
-    Tasks(0..n):            Task     
+    Tasks(0..n):            Task
     AllTasks(0..n):         Task    <backNav: TaskList>
     Order:                  integer
     TaskStates:             string
@@ -27,55 +27,55 @@ class TaskList
     InGroup:                Group
     GroupId:                integer
 end class
- 
+
 
 constraint TaskList::Tasks
     element.TaskListId = self.Id and element.Status = STATUS_ACTIVE
- 
+
 
 
 constraint TaskList::AllTasks
-    element.TaskListId = self.Id 
+    element.TaskListId = self.Id
 
 
 constraint TaskList::Group
     self.GroupId = element.Id
-    
 
-context TaskList::SwitchToList    
+
+context TaskList::SwitchToList
 post:
     if self.Kind = TLK_KANBAN_CHECKLIST then
         self.Kind = TLK_LIST
     end if
-    
 
-context TaskList::SwitchToKanban    
+
+context TaskList::SwitchToKanban
 post:
     if self.Kind = TLK_LIST then
         self.Kind = TLK_KANBAN_CHECKLIST
     end if
-    
-context TaskList::SwitchToCalendar    
+
+context TaskList::SwitchToCalendar
 post:
-    self.Kind = TLK_CALENDAR    
-    
+    self.Kind = TLK_CALENDAR
+
 context TaskList::href: string
 post:
     select case self.Kind
-    case TLK_KANBAN_CHECKLIST --0:  
-        result = '/listboard/' + self.Id 
-    case TLK_KANBAN_PROCESS --0:  
-        result = '/listboard/' + self.Id 
-    case TLK_LIST    
+    case TLK_KANBAN_CHECKLIST --0:
+        result = '/listboard/' + self.Id
+    case TLK_KANBAN_PROCESS --0:
+        result = '/listboard/' + self.Id
+    case TLK_LIST
         result = '/tasklist/' + self.Id
     case TLK_CALENDAR
-        result = '/listboard/' + self.Id      
+        result = '/listboard/' + self.Id
     case TLK_DAY
         result = '/tasklist/' + self.Id
     case else
         result = '/tasklist/' + self.Id
-    end select    
-                
+    end select
+
 
 
 context TaskList::FinishAll()
@@ -89,12 +89,19 @@ post:
     self.Archived = true
     self.Status = TLS_GROUP_ARCHVIVED_LIST
 
+context TaskList::CreateTaskC(t: string): Task
+post:
+    let task: Task = new Task
+    task.Title = t
+    self.Tasks.insert(task)
+
+
 
 context TaskList::CreateTaskEx(properties: JsonObject): Task
 post:
     let task: Task = new Task
     self.Tasks.insert(task)
-    
+
     task.Title = properties.Title
     task.Summary = properties.Summary
     task.Description = properties.Description
@@ -103,14 +110,16 @@ post:
     task.Tags = properties.Tags
     task.Status = STATUS_ACTIVE
 
+
+
     if self.IndexPrefix.Len <> 0 then
         task.Index = self.IndexPrefix + '-' + (self.Tasks.count + 1)
-    else 
+    else
         self.Group.TaskIndexCounter = self.Group.TaskIndexCounter + 1
         task.Index = self.Group.ListIndexPrefix + '-' + self.Group.TaskIndexCounter
     end if
 
-    
+
     result = task
 
 
@@ -184,7 +193,7 @@ post:
 
         self.TaskStates = result.ToString()
     end if
-    
+
 
 
 context TaskList::AddColumn(pos: integer, optional state: integer = 0, optional name: string = ""): JsonObject
@@ -204,17 +213,17 @@ post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
 
-    let columnsNo: integer = prevStates.count 
+    let columnsNo: integer = prevStates.count
 
     let maxToDoState: integer = 0
     let todoStates: JsonObject = []
     let colState: integer
 
-    set(0 .. columnsNo-1).forAll(i | 
+    set(0 .. columnsNo-1).forAll(i |
         colState = prevStates[i].state
-        
+
         if colState < STATE_FINISHED then
-            todoStates = [..., prevStates[i]]    
+            todoStates = [..., prevStates[i]]
             if colState > maxToDoState then
                 maxToDoState = colState
             end if
@@ -234,14 +243,14 @@ post:
         name: name,
         state: state
     }
-    
+
     let states: JsonObject = []
-    
+
     if pos > 0 then
         set(0 .. pos - 1).forAll(i |
             states = [..., prevStates[i]]
         )
-    end if    
+    end if
 
     states = [..., newColumn]
 
@@ -249,7 +258,7 @@ post:
         set(pos .. columnsNo-1).forAll(j |
             states = [..., prevStates[j]]
         )
-    end if    
+    end if
 
     self.TaskStates = states.ToString
     result = states
@@ -262,15 +271,15 @@ post:
     let prevStates: JsonObject = new JsonObject
     prevStates.Parse(self.TaskStates)
 
-    let columnsNo: integer = prevStates.count 
+    let columnsNo: integer = prevStates.count
 
     let canAddColumn: boolean = true
     let colState: integer
-    set(0 .. columnsNo-1).forAll(i | 
+    set(0 .. columnsNo-1).forAll(i |
         colState = prevStates[i].state
         if colState = state then
             canAddColumn = false
-        end if 
+        end if
     )
 
     if canAddColumn then
@@ -278,14 +287,14 @@ post:
             name: name,
             state: state
         }
-        
+
         let states: JsonObject = []
-        
+
         if pos > 0 then
             set(0 .. pos - 1).forAll(i |
                 states = [..., prevStates[i]]
             )
-        end if    
+        end if
 
         states = [..., newColumn]
 
@@ -293,9 +302,9 @@ post:
             set(pos .. columnsNo-1).forAll(j |
                 states = [..., prevStates[j]]
             )
-        end if 
+        end if
         self.TaskStates = states.ToString
-        result = states  
+        result = states
     else
         result = null
     end if
@@ -343,7 +352,7 @@ post:
             set(pos+1 .. newPos).forAll(i |
                 states = [..., prevStates[i]]
             )
-            
+
             states = [..., prevStates[pos]]
 
             set(newPos+1 .. statesNo-1).forAll(i |
@@ -402,7 +411,7 @@ post:
     let columnsNo: integer = prevStates.count
     let states: JsonObject = []
 
-    set(0 .. pos-1).forAll(i | 
+    set(0 .. pos-1).forAll(i |
         states = [..., prevStates[i]]
     )
 
@@ -430,7 +439,7 @@ post:
     let columnsNo: integer = prevStates.count
     let states: JsonObject = []
 
-    set(0 .. pos-1).forAll(i | 
+    set(0 .. pos-1).forAll(i |
         states = [..., prevStates[i]]
     )
 
@@ -454,7 +463,7 @@ pre:
     self.TaskStates.Len <> 0
 post:
     result = self.CreateTaskEx(properties)
-    
+
     let states: JsonObject = new JsonObject
     states.Parse(self.TaskStates)
 
@@ -481,9 +490,9 @@ post:
     self.Kind = template.Kind
 
     let newTaskStates: string = template.TaskStates.ToString()
-    
+
     if self.TaskStates <> newTaskStates then
-        self.Tasks.forAll(element.ReduceStateToBase()) 
+        self.Tasks.forAll(element.ReduceStateToBase())
     end if
 
     self.TaskStates = newTaskStates
@@ -493,7 +502,7 @@ post:
 context TaskList::AttachBasketContent(): TaskList
 post:
     let basket: Folder = user.BasketFolder
-   
+
     let maxOrder: integer = self.Tasks.max(element.ListOrder)
     let order: integer = maxOrder + ORDER_STEP
     basket.Tasks.forAll(

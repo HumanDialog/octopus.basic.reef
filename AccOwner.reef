@@ -58,6 +58,7 @@ post:
     end if
     end if
 
+admin
 context Task::AccOwner: integer
 post:
     if self.CreatedBy = user or self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
