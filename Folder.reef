@@ -5,6 +5,7 @@ const FS_USER_ROOT_FOLDER   = 101
 const FS_GROUP_ROOT_FOLDER  = 102
 const FS_PINNED_ROOT_FOLDER = 103
 const FS_BASKET_ROOT_FOLDER = 104
+const FS_LATEST_ELEMENTS    = 1001
 
 const FK_FOLDER             = 0
 const FK_BASKET             = 1
@@ -467,13 +468,14 @@ context Folder::AttachPost(note: Note, title: string, summary: string, content: 
 post:
     note.Kind = NK_THREAD
     note.Title = title
-    note.Summary = summary
+    --note.Summary = summary
     note.Content = content
     note.Tags = tags
     note.Summary = note.Content.textFromHTML(128, true)
     
     let maxOrder: integer = self.Notes.max(element.Order)
     self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
+    note.UpdateLatestGroupActivity()
     result = note.href()
 
 
