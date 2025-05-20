@@ -134,6 +134,7 @@ post:
     
     self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
+    self.UpdateLatestGroupActivity()
 
 
 context Note::AttachPost(note: Note, content: string): NoteNote
@@ -150,18 +151,37 @@ post:
 
     self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
+    self.UpdateLatestGroupActivity()
 
 
 context Note::MoveOnForumFolderTop()
 pre:
     self.Kind = NK_THREAD
 post:
-    let link :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION).first
+    let link :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION and element.Folder.Status <> FS_LATEST_ELEMENTS).first
     let maxOrder:integer = link.Folder.Notes.max(element.Order)
     if link.Order <> maxOrder then
         link.Order = maxOrder + ORDER_STEP
     end if
 
+context Note::UpdateLatestGroupActivity()
+pre:
+    self.Kind = NK_THREAD
+post:
+    let latestsFolder: Folder = group.GetLatestDiscussionsFolder
+    let maxOrder: integer = latestsFolder.Notes.max(element.Order)
+    let latestLink: FolderNote = latestsFolder.Notes.select(element.Note = self).first
+    
+    if latestLink = null then
+        latestLink = latestsFolder.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
+        if latestsFolder.Notes.count > 10 then
+            latestsFolder.Notes.orderedBy("Order").first.delete
+        end if
+    else
+        if latestLink.Order <> maxOrder then
+            latestLink.Order = maxOrder + ORDER_STEP
+        end if
+    end if
 
 
 context Note::CopyToBasket(): FolderNote

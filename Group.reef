@@ -237,3 +237,11 @@ post:
             }]
         end if
     )
+
+
+context Group::GetLatestDiscussionsFolder(): Folder
+post:
+    result = self.AllFolders.select(element.Status = FS_LATEST_ELEMENTS and element.Kind = FK_DISCUSSION).first
+    if result = null then
+        result = self.AllFolders.newElement(element.Status = FS_LATEST_ELEMENTS and element.Kind = FK_DISCUSSION)
+    end if
