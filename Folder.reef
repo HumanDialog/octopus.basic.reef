@@ -5,6 +5,8 @@ const FS_USER_ROOT_FOLDER   = 101
 const FS_GROUP_ROOT_FOLDER  = 102
 const FS_PINNED_ROOT_FOLDER = 103
 const FS_BASKET_ROOT_FOLDER = 104
+const FS_USER_FOLDER        = 111
+const FS_GROUP_FOLDER       = 112
 const FS_LATEST_ELEMENTS    = 1001
 
 const FK_FOLDER             = 0
@@ -162,10 +164,25 @@ context Folder::CreateSubFolder(title: string, optional summary: string = "", op
 pre Only logged in users may Create Subfolders:
     user <> 0
 post:
-    let subfolder: Folder = user.AllFolders.newElement(subfolder |
-                subfolder.Title = title
-                subfolder.Summary = summary
-                subfolder.Kind = kind) in
+    let subfolder: Folder in
+
+    select case self.Status
+    case FS_USER_ROOT_FOLDER
+        subfolder = user.AllFolders.newElement(f | f.Status = FS_USER_FOLDER)
+    case FS_USER_FOLDER
+        subfolder = user.AllFolders.newElement(element.Status = FS_USER_FOLDER)
+    case FS_GROUP_ROOT_FOLDER
+        subfolder = group.AllFolders.newElement(element.Status = FS_GROUP_FOLDER)
+    case FS_GROUP_FOLDER
+        subfolder = group.AllFolders.newElement(element.Status = FS_GROUP_FOLDER)
+    case else
+        subfolder = user.AllFolders.newElement(element.Status = FS_USER_FOLDER)
+    end select
+
+
+    subfolder.Title = title
+    subfolder.Summary = summary
+    subfolder.Kind = kind
 
     let link: FolderFolder = self.Folders.newElement(ff| ff.Folder = subfolder)
 
@@ -472,7 +489,7 @@ post:
     note.Content = content
     note.Tags = tags
     note.Summary = note.Content.textFromHTML(128, true)
-    
+
     let maxOrder: integer = self.Notes.max(element.Order)
     self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
     note.UpdateLatestGroupActivity()
@@ -527,10 +544,10 @@ pre:
 post:
     let topThread: FolderNote in
     let lastUserName: string
-   
+
     topThread = self.Folder.Notes.orderedBy("Order").last
     if topThread <> null then
-        
+
         if topThread.ModifiedBy <> null then
             lastUserName = topThread.ModifiedBy.Name
         end if

@@ -1,6 +1,6 @@
 
 const NK_DOCUMENT          = 0
-const NK_THREAD            = 1 
+const NK_THREAD            = 1
 const NK_POST              = 2
 
 
@@ -59,7 +59,7 @@ constraint Note::Notes
     element.InNoteId = self.Id
 
 context Note
-inv:    
+inv:
     self.NotesCount = self.Notes.count
 
 context Note::href: string
@@ -123,7 +123,8 @@ context Note::AddPost(content: string): NoteNote
 pre:
     self.Kind = NK_THREAD
 post:
-    let n: Note = new Note
+    let n: Note = user.CreatedNotes.newElement() in
+    --let n: Note = new Note
     n.Title = "Re: " + self.Title
     n.Content = content
     n.Summary = content.textFromHTML(128, true)
@@ -131,7 +132,7 @@ post:
 
     let maxOrder: integer = self.Notes.max(element.Order)
     result = self.Notes.newElement(element.Note=n and element.Order=maxOrder+ORDER_STEP)
-    
+
     self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
     self.UpdateLatestGroupActivity()
@@ -171,7 +172,7 @@ post:
     let latestsFolder: Folder = group.GetLatestDiscussionsFolder
     let maxOrder: integer = latestsFolder.Notes.max(element.Order)
     let latestLink: FolderNote = latestsFolder.Notes.select(element.Note = self).first
-    
+
     if latestLink = null then
         latestLink = latestsFolder.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
         if latestsFolder.Notes.count > 10 then
