@@ -77,46 +77,43 @@ post:
 --    result = folder.CopyToBasket()
 
 
-
-context User::FindMessageChannelWith(toWhom: User): MessageChannelUser
+admin
+context User::FindDirectMessageChannel(toWhom: User): MessageChannel
 post:
-    result = self.MessageChannels.select( e | e.MessageChannel.Users.count = 2 and e.MessageChannel.Users.exists(element.UserId = self.Id) and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)).first
+    result = self.MessageChannels.select( e |
+                e.MessageChannel.Users.count = 2
+                and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)).first.MessageChannel
+
+
+context User::NewPrivateMessageChannel(title: string): MessageChannel
+post:
+    let order: integer = self.MessageChannels.max(element.Order)
+    let umc: MessageChannelUser = self.MessageChannels.newElement(element.Order = order + ORDER_STEP)
+    umc.MessageChannel = new MessageChannel
+    umc.MessageChannel.Title = title
+
+
+admin
+context User::AttachToChannel(channel: MessageChannel)
+post:
+    let order: integer = self.MessageChannels.max(element.Order)
+    let umc: MessageChannelUser = self.MessageChannels.newElement(element.MessageChannel = channel
+                and element.Order = order + ORDER_STEP)
 
 
 context User::AddDirectMesssageChannel(toWhom: User): MessageChannel
 pre:
     toWhom <> null
 post:
-    let myChannel: MessageChannelUser = self.FindMessageChannelWith(toWhom)
-    let itsChannel: MessageChannelUser = toWhom.FindMessageChannelWith(self)
+    let channel: MessageChannel = self.FindDirectMessageChannel(toWhom)
 
-    let order: integer
-
-    if myChannel = null then
-        order = self.MessageChannels.max(element.Order)
-        myChannel = self.MessageChannels.newElement(element.Order = order + ORDER_STEP)
+    if channel = 0 then
+        channel = self.NewPrivateMessageChannel(self.Name + " and " + toWhom.Name)
+        toWhom.AttachToChannel(channel)
     end if
 
-    if itsChannel = null then
-        order = toWhom.MessageChannels.max(element.Order)
-        itsChannel = toWhom.MessageChannels.newElement(element.Order = order + ORDER_STEP)
-    end if
 
-    if myChannel.MessageChannel = null then
-        if itsChannel.MessageChannel = null then
-            myChannel.MessageChannel = new MessageChannel
-            itsChannel.MessageChannel = myChannel.MessageChannel
-            myChannel.MessageChannel.Title = self.Name + " and " + toWhom.Name
-        else
-            myChannel.MessageChannel = itsChannel.MessageChannel
-        end if
-    else
-        if itsChannel.MessageChannel = null then
-            itsChannel.MessageChannel = myChannel.MessageChannel
-        end if
-    end if
-
-    result = myChannel.MessageChannel
+    result = channel
 
 
 context User::AddWorkingPost(): Note

@@ -111,7 +111,7 @@ context MessageChannel::AccOwner: integer
 post:
     if self.Group = group then
         result = ACC_READWRITE
-    else if self.Users.exists(element.Id = user.Id) then
+    else if self.Users.exists(element.UserId = user.Id) then
         result = ACC_READWRITE
     end if
     end if

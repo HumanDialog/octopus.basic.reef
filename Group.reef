@@ -221,7 +221,7 @@ post:
     let canAdd: boolean = false
     self.Members.select(element.User <> user).forAll(ug |
         if excludeExisting then
-            if user.FindMessageChannelWith(ug.User) <> null then
+            if user.FindDirectMessageChannel(ug.User) <> null then
                 canAdd = false
             else
                 canAdd = true
