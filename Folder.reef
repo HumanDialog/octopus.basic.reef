@@ -477,10 +477,10 @@ post:
 
 context Folder::AddPost(title: string, summary: string, content: string, tags: string): string
 post:
-    let note: Note = new Note
+    let note: Note = user.CreatedNotes.newElement
     result = self.AttachPost(note, title, summary, content, tags)
 
-
+admin
 context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): string
 post:
     note.Kind = NK_THREAD
