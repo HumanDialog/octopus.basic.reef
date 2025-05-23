@@ -91,7 +91,7 @@ post:
     let umc: MessageChannelUser = self.MessageChannels.newElement(element.Order = order + ORDER_STEP)
     umc.MessageChannel = new MessageChannel
     umc.MessageChannel.Title = title
-
+    result = umc.MessageChannel
 
 admin
 context User::AttachToChannel(channel: MessageChannel)

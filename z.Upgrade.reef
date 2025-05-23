@@ -1,5 +1,8 @@
-admin
-context App::VerifyMissingData
+context App::vmd
+post:
+  self.VerifyMissingData
+
+admin context App::VerifyMissingData
 post:
   let guests: Group = system.allInstances("Group").select(element.Name = "Guests").first
   if guests = 0 then

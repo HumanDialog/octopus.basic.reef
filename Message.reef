@@ -68,9 +68,14 @@ post:
     mu.UnreadMessagesNo = 0
     --mu.LastReadTime =
 
+context MessageChannel::AddMessage(text: string, optional attachements: JsonObject): Message
+pre Cannot add messages in this channel:
+    (self.Status = CS_GROUP_ROOT_CHANNEL and self.Group = group) or self.Users.exists(element.UserId = user.Id)
+post:
+    result = self.AddMessageA(text, attachements)
 
 admin
-context MessageChannel::AddMessage(text: string, optional attachements: JsonObject): Message
+context MessageChannel::AddMessageA(text: string, optional attachements: JsonObject): Message
 pre No rights to post messages in this message channel:
     self.acc > ACC_DENIED
 post:
@@ -174,7 +179,6 @@ post:
 
 context MessageChannelUser::Title: string
 post:
-    result = ""
     self.MessageChannel.Users.select(element.UserId <> self.UserId).forAll(e |
         if not result.isEmpty then
             result = result + ", "
