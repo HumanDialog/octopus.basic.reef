@@ -1,3 +1,16 @@
+context App::CreateTilosCommunityGroup : Group
+post:
+    let tilosCommunity: Group = new Group
+    tilosCommunity.Name = "Tilos Community"
+    tilosCommunity.AllTags = '#bug #question #feature request #improvement request #release'
+
+    tilosCommunity.CreateDiscussionsStructrure()
+    tilosCommunity.CreateLibraryStructure()
+
+    tilosCommunity.VerifyMessageChannels()
+    tilosCommunity.VerifyTaskLists()
+
+
 context App::InitTilosSample
 post:
     let tilosCommunity: Group = new Group
@@ -17,8 +30,14 @@ post:
     tilosCommunity.CreateMember("Lily Moore",   "lily@example.com")
     tilosCommunity.CreateMember("Mason Clark",  "mason@example.com")
 
-    tilosCommunity.CreateDiscussionsStructrure()
-    tilosCommunity.CreateLibraryStructure()
+    let discussions: Folder
+    let library: Folder
+
+    discussions = tilosCommunity.CreateDiscussionsStructrure()
+    library = tilosCommunity.CreateLibraryStructure()
+
+    let ganttDiscussions :FolderFolder = discussions.Folders.select(element.Title = "Gantt Charts").first
+    ganttDiscussions.Folder.MakeSampleDiscussion()
 
     -- Help -- static content on website only. similar to ObjectReef Documentation
 
@@ -52,7 +71,6 @@ post:
     link = discussions.CreateSubFolder("Scheduling (CPM)",                  "", 9 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Project Control",                   "", 10 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Gantt Charts",                      "Discussions around Gantt diagram functionality, errors and suggestions", 11 * ORDER_STEP, FK_DISCUSSION)
-        link.Folder.MakeSampleDiscussion()
     link = discussions.CreateSubFolder("Calendars",                         "", 12 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Graphics and Annotations",          "", 13 * ORDER_STEP, FK_DISCUSSION)
     link = discussions.CreateSubFolder("Resources",                         "", 14 * ORDER_STEP, FK_DISCUSSION)

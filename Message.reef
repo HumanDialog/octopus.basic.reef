@@ -61,8 +61,13 @@ context MessageChannel::href: string
 post:
     result = '/chat/' + self.Id
 
-admin
+
 context MessageChannel::MarkRead
+post:
+    self.MarkReadA
+
+admin
+context MessageChannel::MarkReadA
 post:
     let mu: MessageChannelUser = self.Users.select(element.User = user or element.Owner = user).first
     mu.UnreadMessagesNo = 0
