@@ -123,8 +123,12 @@ post:
         self.Users.select(element.User <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
     end if
 
-admin
 context MessageChannel::Subscribe
+post:
+    self.SubscribeA
+
+admin
+context MessageChannel::SubscribeA
 pre Only group channels can be subscribed:
     self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
 post:
@@ -134,6 +138,11 @@ post:
 
 admin
 context MessageChannel::Unsubscribe
+post:
+    self.UnsubscribeA
+
+admin
+context MessageChannel::UnsubscribeA
 pre Only group channels can be subscribed:
     self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
 post:
