@@ -141,7 +141,7 @@ post:
         self.Users.newElement(element.Owner = user and element.Status = MCU_SUBSCRIPTION)
     end if
 
-admin
+
 context MessageChannel::Unsubscribe
 post:
     self.UnsubscribeA
