@@ -11,7 +11,7 @@ post:
     tilosCommunity.VerifyTaskLists()
 
 
-context App::InitTilosSample
+context App::InitTilosGroupAndMembers: Group
 post:
     let tilosCommunity: Group = new Group
     tilosCommunity.Name = "Tilos Community"
@@ -29,6 +29,22 @@ post:
     tilosCommunity.CreateMember("Ethan Thomas", "ethan@example.com")
     tilosCommunity.CreateMember("Lily Moore",   "lily@example.com")
     tilosCommunity.CreateMember("Mason Clark",  "mason@example.com")
+    result = tilosCommunity
+
+
+context Group::InitTilosGroupDataStructure
+post:
+    let discussions: Folder = self.CreateDiscussionsStructrure()
+    let library: Folder = self.CreateLibraryStructure()
+
+    let ganttDiscussions :FolderFolder = discussions.Folders.select(element.Title = "Gantt Charts").first
+    ganttDiscussions.Folder.MakeSampleDiscussion()
+    self.AddBasicSampleStuff()
+
+
+context App::InitTilosSample
+post:
+    let tilosCommunity: Group = self.InitTilosGroupAndMembers()
 
     let discussions: Folder
     let library: Folder
