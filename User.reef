@@ -80,10 +80,25 @@ post:
 admin
 context User::FindDirectMessageChannel(toWhom: User): MessageChannel
 post:
-    result = self.MessageChannels.select( e |
-                e.MessageChannel.Users.count = 2
-                and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)).first.MessageChannel
+    result = self.MessageChannels.select( e | e.MessageChannel.Users.count = 2 and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)).first.MessageChannel
 
+context User::cmc1(uid: integer): boolean
+post:
+    if self.MessageChannels.exists( e |
+                e.MessageChannel.Users.count = 2
+                and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)) then
+        result = true
+    else
+        result = false
+    end if
+
+context User::cmc(uid: integer): boolean
+post:
+    if self.MessageChannels.exists( e | e.MessageChannel.Users.exists(element.UserId = uid)) then
+        result = true
+    else
+        result = false
+    end if
 
 context User::NewPrivateMessageChannel(title: string): MessageChannel
 post:
