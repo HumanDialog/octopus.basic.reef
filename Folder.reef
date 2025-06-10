@@ -121,13 +121,13 @@ context Folder::icon: string
 post:
     select case self.Kind
         case FK_FOLDER
-            result = 'FaFolder'
+            result = 'Folder'
         case FK_BASKET
-            result = 'FaShoppingBasket'
+            result = 'Clipboard'
         case FK_DISCUSSION
-            result = 'FaComments'
+            result = 'Discussion'
         case else
-            result = 'FaFolder'
+            result = 'Folder'
     end select
 
 context Folder::IsPinned: boolean
