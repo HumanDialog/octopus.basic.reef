@@ -49,7 +49,7 @@ context User::GetBasketFolder: Folder
 post:
 
     if self.BasketFolder.isNull then
-        self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Basket" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Clipboard" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
     end if
 
     result = self.BasketFolder
