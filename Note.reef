@@ -90,48 +90,68 @@ post:
     self.ModificationDate.SetUTCDate()
     self.ModifiedBy = user
 
-context Note::SetTitle(val: string)
+context Note::Title_Set(val: string)
 post:
     self.Title = val
     self.UpdateMetaInfo()
 
-context Note::GetTitle: string
+-- to remove
+context Note::SetTitle(val: string)
+post:
+    self.Title_Set(val)
+
+context Note::Title_Get(): string
 post:
     result = self.Title
 
-context Note::SetSummary(val: string)
+context Note::Summary_Set(val: string)
 post:
     self.Summary = val
     self.UpdateMetaInfo()
 
-context Note::GetSummary: string
+-- to remove
+context Note::SetSummary(val: string)
+post:
+    self.Summary_Set(val)
+
+context Note::Summary_Get(): string
 post:
     result = self.Summary
 
-context Note::SetTags(val: string)
+context Note::Tags_Set(val: string)
 post:
     self.Tags = val
     self.UpdateMetaInfo()
 
-context Note::GetTags: string
+-- to remove
+context Note::SetTags(val: string)
+post:
+    self.Tags_Set(val)
+
+context Note::Tags_Get(): string
 post:
     result = self.Tags
 
-context Note::SetIndex(val: string)
+context Note::Index_Set(val: string)
 post:
     self.Index = val
     self.UpdateMetaInfo()
 
-context Note::GetIndex: string
+-- to remove
+context Note::SetIndex(val: string)
+post:
+    self.Index_Set(val)
+
+context Note::Index_Get: string
 post:
     result = self.Index
 
 
-context Note::GetContent: string
+context Note::Content_Get: string
 post:
     result = self.Content
 
-context Note::SetContent(val: string)
+context Note::Content_Set(val: string)
 post:
     self.Content = val
 
@@ -140,6 +160,11 @@ post:
     end if
 
     self.UpdateMetaInfo()
+
+-- to remove
+context Note::SetContent(val: string)
+post:
+    self.Content_Set(val)
 
 
 context Note::AddPost(content: string): NoteNote
