@@ -10,10 +10,13 @@ const NS_PUBLISHED_NOTE = 10
 const NS_PUBLIC            = 100
 
 class Note
+protected: 
     Title(128):             string
     Summary(196):	        string
     Tags(64):               string
     Index(16):              string
+    Content:	            string
+public:
     Kind:                   integer
     State:                  integer
     Status:                 integer
@@ -22,7 +25,6 @@ class Note
     CreatedBy:              User
     ModifiedBy:             User
 
-    Content:	            string
     Images:                 string      <readOnly>
     AttachedFiles:          string      <readOnly>
     InFolders[0..n]:        FolderNote
@@ -93,20 +95,41 @@ post:
     self.Title = val
     self.UpdateMetaInfo()
 
+context Note::GetTitle: string
+post:
+    result = self.Title
+
 context Note::SetSummary(val: string)
 post:
     self.Summary = val
     self.UpdateMetaInfo()
+
+context Note::GetSummary: string
+post:
+    result = self.Summary
 
 context Note::SetTags(val: string)
 post:
     self.Tags = val
     self.UpdateMetaInfo()
 
+context Note::GetTags: string
+post:
+    result = self.Tags
+
 context Note::SetIndex(val: string)
 post:
     self.Index = val
     self.UpdateMetaInfo()
+
+context Note::GetIndex: string
+post:
+    result = self.Index
+
+
+context Note::GetContent: string
+post:
+    result = self.Content
 
 context Note::SetContent(val: string)
 post:
