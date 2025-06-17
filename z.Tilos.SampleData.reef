@@ -199,8 +199,6 @@ context Folder::MakeOnePost(num: integer): Note
 post:
     let Mason: User = app.Users.select(element.login="mason@example.com").first
 
-    let originalPost: Note = new Note
-    originalPost.CreatedBy = Mason
     let content: string = '
         <p>Dear Community,</p>
         <p>What can I do in order to show the duration in the Gantt chart in calender days or even better in the days of the task calender? Most of the works I have are 24/7 with few holiday breaks.</p>
@@ -209,9 +207,20 @@ post:
         <p>It looks as it counts the number of 8-hour shifts within the period of the works. </p>
         <p>Thank you very much,</p>
         <p>Liam</p>'
-    
+
+    let originalPost: Note = new Note
+    --originalPost.Title = "Duration format in the Gantt chart"
+    --originalPost.Kind = NK_THREAD
+    --originalPost.CreationDate = 2023.11.20
+    --originalPost.CreationDate.Time = "01:15"
+    originalPost.CreatedBy = Mason
+    --originalPost.Content = content
+    --originalPost.Summary = originalPost.Content.textFromHTML(128, true)
+    --self.Notes.newElement(element.Note = originalPost)
 
     self.AttachPost(originalPost, "Sample post no. " + num, "", content, "")
+
+    
 
 
 context Group::CreateMember(name: string, login: string): User
