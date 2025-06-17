@@ -39,6 +39,9 @@ post:
 
     let ganttDiscussions :FolderFolder = discussions.Folders.select(element.Title = "Gantt Charts").first
     ganttDiscussions.Folder.MakeSampleDiscussion()
+
+    
+
     self.AddBasicSampleStuff()
 
 
@@ -147,7 +150,7 @@ post:
     resp1.CreatedBy = Ethan
     resp1.Content = '
         <p>Hi Liam.</p>
-        <p>Did you define the respective calendar\u0027s "BASISZEITEINHEIT"?<p>
+        <p>Did you define the respective calendar\u0027s "BASISZEITEINHEIT"?</p>
         <p>You can choose a unit, define it\u0027s "working minutes" and decimals.</p>
             <img alt="" src="" data-path="Note/12/Images/blob?key=tilos_community_img3.jpeg"/>
             <img alt="" src="" data-path="Note/12/Images/blob?key=tilos_community_img4.jpeg"/>
@@ -178,7 +181,7 @@ post:
     resp3.CreationDate.Time = "08:14"
     resp3.CreatedBy = Mason
     resp3.Content = '
-        <p>In the Dialog above, go to the Darstellung tab.<br>
+        <p>In the Dialog above, go to the Darstellung tab.<br/>
         There you can set the time unit for this column in Gantt.</p>
         <p>regards</p>
         <p>Mason</p>'
@@ -186,6 +189,29 @@ post:
 
     originalPost.ModificationDate = resp3.CreationDate
     originalPost.ModifiedBy = resp3.CreatedBy
+
+
+context Folder::MakeLotOfDissussions()
+post:
+    set(1 .. 137).forAll(i | self.MakeOnePost(i))
+
+context Folder::MakeOnePost(num: integer): Note
+post:
+    let Mason: User = app.Users.select(element.login="mason@example.com").first
+
+    let originalPost: Note = new Note
+    originalPost.CreatedBy = Mason
+    let content: string = '
+        <p>Dear Community,</p>
+        <p>What can I do in order to show the duration in the Gantt chart in calender days or even better in the days of the task calender? Most of the works I have are 24/7 with few holiday breaks.</p>
+        <p>I unfortunately do not find any suitabble option.</p>
+        <p>Enclosed you find what I currently get as result and what I found as option for the duration</p>
+        <p>It looks as it counts the number of 8-hour shifts within the period of the works. </p>
+        <p>Thank you very much,</p>
+        <p>Liam</p>'
+    
+
+    self.AttachPost(originalPost, "Sample post no. " + num, "", content, "")
 
 
 context Group::CreateMember(name: string, login: string): User

@@ -71,7 +71,13 @@ end class
 context Folder
 inv:
     self.FoldersCount = self.Folders.count
+
+context Folder
+inv:
     self.NotesCount = self.Notes.count
+    
+context Folder
+inv:    
     self.TasksCount = self.Tasks.count
 
 
