@@ -1,0 +1,211 @@
+const CS_GROUP_ROOT_CHANNEL = 1
+
+const MCU_SUBSCRIPTION      = 1
+const MCU_DIRECT            = 2
+
+class MessageChannel
+    Title(128):             string
+    Summary(196):           string
+    Status:                 integer
+    Group(0..1):            Group <backNav: MessageChannels(0..n)>
+    GroupId:                integer
+    Users[0..n]:            MessageChannelUser <backNav: MessageChannel>
+    Messages(0..n):         Message
+    MessagesNo:             integer
+    Order:                  integer
+end class
+
+class Message
+    Text(196):	            string
+    Tags(64):               string
+    Index(8):               string
+    Kind:                   integer
+    State:                  integer
+    Author:                 User            <backNav: MyMessages(0..n)>
+    Date:    	            date
+    Images:                 string          <readOnly>
+    Notes[0..n]:            MessageNote     <backNav: Message>
+    Tasks[0..n]:            MessageTask     <backNav: Message>
+    Channel(0..1):          MessageChannel  <backNav: Messages>
+end class
+
+class MessageNote
+    Title(128):     string
+    Message(0..1):  Message     <backNav: Notes>
+    Note(0..1):     Note        <backNav: InMessages>
+end class
+
+class MessageTask
+    Title(128):     string
+    Message(0..1):  Message     <backNav: Tasks>
+    Task(0..1):     Task        <backNav: InMessages>
+end class
+
+class MessageChannelUser
+    MessageChannel:     MessageChannel
+    Summary(196):       string
+    User:               User
+    Owner:              User
+    UserId:             integer
+    Status:             integer
+    Order:              integer
+    UnreadMessagesNo:   integer
+    --LastReadTime:       date
+end class
+
+
+-----------------------------------------------------------------------------------------------------
+
+
+context MessageChannel::href: string
+post:
+    result = '/chat/' + self.Id
+
+
+context MessageChannel::MarkRead
+post:
+    self.MarkReadA
+
+admin
+context MessageChannel::MarkReadA
+post:
+    let mu: MessageChannelUser = self.Users.select(element.User = user or element.Owner = user).first
+    mu.UnreadMessagesNo = 0
+    --mu.LastReadTime =
+
+context MessageChannel::AddMessage(text: string, optional attachements: JsonObject): Message
+pre Cannot add messages in this channel:
+    (self.Status = CS_GROUP_ROOT_CHANNEL and self.Group = group) or self.Users.exists(element.UserId = user.Id)
+post:
+    result = self.AddMessageA(text, attachements)
+
+admin
+context MessageChannel::AddMessageA(text: string, optional attachements: JsonObject): Message
+pre No rights to post messages in this message channel:
+    self.acc > ACC_DENIED
+post:
+    result = self.Messages.newElement(element.Author=user and element.Date.SetUTCDate and element.Text=text)
+
+    let attachementsNo: integer = attachements.count
+    let note: Note
+    let task: Task
+
+    let itemId: integer
+    let itemType: string
+
+    set(0 .. attachementsNo-1).forAll(i |
+        itemType = attachements[i].Type
+        itemId = attachements[i].Id
+
+        if itemType = "Note" then
+
+            note = system.GetItem(itemId, "Note")
+            if note <> null then
+                result.Notes.newElement(element.Note=note and element.Title=note.Title)
+            end if
+
+        else if itemType = "Task" then
+
+            task = system.GetItem(itemId, "Task")
+            if task <> null then
+                result.Tasks.newElement(element.Task=task and element.Title=task.Title)
+            end if
+
+        else if itemType = "Folder" then
+            -- Folders cannot be attached to message
+        end if
+        end if
+        end if
+    )
+    self.InformSubscribers()
+
+--admin
+context MessageChannel::InformSubscribers()
+post:
+    if self.Status = CS_GROUP_ROOT_CHANNEL then
+        self.Users.select(element.Owner <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
+    else
+        self.Users.select(element.User <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
+    end if
+
+context MessageChannel::Subscribe
+post:
+    self.SubscribeA
+
+admin
+context MessageChannel::SubscribeA
+pre Only group channels can be subscribed:
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
+post:
+    if not self.Users.select(element.Owner = user).exists then
+        self.Users.newElement(element.Owner = user and element.Status = MCU_SUBSCRIPTION)
+    end if
+
+
+context MessageChannel::Unsubscribe
+post:
+    self.UnsubscribeA
+
+admin
+context MessageChannel::UnsubscribeA
+pre Only group channels can be subscribed:
+    self.Status = CS_GROUP_ROOT_CHANNEL and self.acc > ACC_DENIED
+post:
+    self.Users.select(element.Owner = user).first.delete
+
+context MessageChannel::GetTitle: string
+post:
+    if self.Status = CS_GROUP_ROOT_CHANNEL then
+        result = self.Title
+    else
+        if self.Users.count > 0 then
+            result = ""
+            self.Users.select(element.UserId <> user.Id).forAll(e |
+                if not result.isEmpty then
+                    result = result + ", "
+                end if
+            result = result + e.User.Name
+            )
+        else
+            result = self.Title
+        end if
+    end if
+
+context MessageChannel::Acc: integer
+post:
+    result = self.acc
+
+
+context MessageChannel::GetUnreadMessagesNo: integer
+post:
+    result = self.Users.select(element.Owner = user).first.UnreadMessagesNo
+
+
+context MessageChannel::IsSubscribed: boolean
+post:
+    result = self.Users.select(element.Owner = user).first <> null
+
+
+context MessageChannelUser::href: string
+post:
+    result = self.MessageChannel.href()
+
+
+context MessageChannelUser::Title: string
+post:
+    self.MessageChannel.Users.select(element.UserId <> self.UserId).forAll(e |
+        if not result.isEmpty then
+            result = result + ", "
+        end if
+        result = result + e.User.Name
+    )
+
+context MessageTask::href: string
+post:
+    result = self.Task.href
+
+context MessageNote::href: string
+post:
+    result = self.Note.href
+
+-----------------------------------------------------------------------------------------------------

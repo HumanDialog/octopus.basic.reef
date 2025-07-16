@@ -1,39 +1,247 @@
 class Group
 --public:
-    Members[0..n]:	        UserGroup       <backNav: Group>
-    IsPublic:               boolean
+    Members[0..n]:	            UserGroup       <backNav: Group>
+    IsPublic:                   boolean
 
 --public:
-    Name:                   string
+    Name:                       string
 
-    Lists(0..n):            TaskList
-    ArchivedLists(0..n):    TaskList        
+    Lists(0..n):                TaskList        <backNav: InGroup>
+    AllLists(0..n):             TaskList        <backNav: Group>
+    Folders(0..n):              Folder          <backNav: InGroup>
+    AllFolders(0..n):           Folder          <backNav: Group>
+    MessageChannels(0..n):      MessageChannel  <backNav: InGroup>
+    AllMessageChannels(0..n):   MessageChannel  <backNav: Group>
+    AllTags:                    string
+    ListIndexPrefix:            string
+    ActiveProjects(0..n):       Project
+    AllProjects(0..n):          Project
 
-    AllTags:                string
-    ListIndexPrefix:        string
-    TaskIndexCounter:       integer
+    RelatedGroups(0..n):        GroupGroup   <backNav: FromGroup>
+    RelatedToGroups(0..n):      GroupGroup   <backNav: Group>
+    FolderFolder[0..n]:         FolderFolder <backNav: Group>
+    TaskIndexCounter:           integer
 end class
 
+class GroupGroup
+    Group:                  Group
+    FromGroup:              Group
+end class
 
 class UserGroup
     Group:                  Group           <backNav: Members[0..n]>
     User:                   User            <backNav: Groups(0..n)>
 end class
 
+context Group::Info: string
+post:
+    result = "" + self.Id + ": " + self.Name
 
 context Group::OnAfterCreate
 post:
     self.ListIndexPrefix = 'OCT'
-    let firstList: TaskList in
-    
-    firstList = self.Lists.newElement
-    firstList.Name = "Things to do"
-    
+    self.CreateList("Things to do")
+
 
 constraint Group::Lists
-    element.GroupId = self.Id and element.Archived = false
+    element.GroupId = self.Id and element.Status = TLS_GROUP_ACTIVE_LIST
 
 
-constraint Group::ArchivedLists
-    element.GroupId = self.Id and element.Archived = true
+constraint Group::AllLists
+    element.GroupId = self.Id
 
+
+constraint Group::Folders
+    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_FOLDER
+
+
+constraint Group::AllFolders
+    element.GroupId = self.Id
+
+constraint Group::MessageChannels
+    element.GroupId = self.Id and element.Status = CS_GROUP_ROOT_CHANNEL
+
+
+constraint Group::AllMessageChannels
+    element.GroupId = self.Id
+
+
+context Group::GetPredefinedTaskStates(): JsonObject
+post:
+    result = [
+         {
+            name: "Unspecified",
+            state: STATE_UNSPECIFIED
+        },
+        {
+            name: "In preparation",
+            state: STATE_IN_PREPARATION
+        },
+        {
+            name: "Planned",
+            state: STATE_PLANNED
+        },
+        {
+            name: "Ready",
+            state: STATE_READY
+        },
+        {
+            name: "Executing",
+            state: STATE_EXECUTING
+        },
+        {
+            name: "Finished",
+            state: STATE_FINISHED
+        },
+        {
+            name: "Closed",
+            state: STATE_CLOSED
+        },
+        {
+            name: "Archived",
+            state: STATE_ARCHIVED
+        }
+    ]
+
+
+context Group::GetChecklistDefaultColumns(): JsonObject
+post:
+    let checkColumns :JsonObject = [
+        {
+            name: 'To do',
+            state: STATE_UNSPECIFIED
+        },
+        {
+            name: 'Finished',
+            state: STATE_FINISHED
+        }
+    ]
+    result = checkColumns
+
+context Group::CreateList(name: string, optional order: integer = 0): TaskList
+post:
+    let list: TaskList = new TaskList
+    self.Lists.insert(list)
+
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.TaskStates = self.GetChecklistDefaultColumns().ToString()
+    list.Name = name
+    list.Order = order
+
+    result = list
+
+context Group::GetTaskListTypes: JsonObject
+post:
+    -- simple predefined:
+    let checkList: JsonObject = {
+        Name: 'List',
+        Summary: 'Simple task list',
+        Kind: TLK_LIST,
+        TaskStates: []
+    }
+
+    let simplaBoard: JsonObject = {
+        Name: 'Board',
+        Summary: 'Simple kanban board',
+        Kind: TLK_KANBAN_CHECKLIST,
+        TaskStates: self.GetChecklistDefaultColumns()
+    }
+
+    -- process predefined lists:
+    let sprintList: JsonObject = {
+        Name: 'Sprint',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: [
+            {
+                name: "Preparing",
+                state: STATE_IN_PREPARATION
+            },
+            {
+                name: "Ready",
+                state: STATE_PLANNED
+            },
+            {
+                name: "Under work",
+                state: STATE_EXECUTING
+            },
+            {
+                name: "To check",
+                state: 5000
+            },
+            {
+                name: "Finished",
+                state: STATE_FINISHED
+            }
+        ]
+    }
+
+
+    let ideasList: JsonObject = {
+        Name: 'Ideas',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: [
+            {
+                name: "Notes",
+                state: STATE_IN_PREPARATION
+            },
+            {
+                name: "Spec",
+                state: STATE_EXECUTING
+            },
+            {
+                name: "Knowledge",
+                state: STATE_FINISHED
+            }
+        ]
+    }
+
+    result = [
+        checkList,
+        simplaBoard,
+        sprintList,
+        ideasList
+    ]
+
+
+
+    ------------ Messages -------------
+
+context Group::AddGeneralMessageChannel(title: string, optional order: integer): MessageChannel
+post:
+    if order = 0 then
+        order = self.MessageChannels.max(element.Order) + ORDER_STEP
+    end if
+
+    result = self.MessageChannels.newElement(element.Title = title and element.Order = order)
+
+context Group::GetPossibleDirectChannelUsers(optional excludeExisting: boolean = false): JsonObject
+post:
+    result = []
+
+    let canAdd: boolean = false
+    self.Members.select(element.User <> user).forAll(ug |
+        if excludeExisting then
+            if user.FindDirectMessageChannel(ug.User) <> null then
+                canAdd = false
+            else
+                canAdd = true
+            end if
+        else
+            canAdd = true
+        end if
+
+        if canAdd then
+            result = [..., {
+                ref: './User/' + ug.UserId,
+                Name: ug.User.Name
+            }]
+        end if
+    )
+
+
+context Group::GetLatestDiscussionsFolder(): Folder
+post:
+    result = self.AllFolders.select(element.Status = FS_LATEST_ELEMENTS and element.Kind = FK_DISCUSSION).first
+    if result = null then
+        result = self.AllFolders.newElement(element.Status = FS_LATEST_ELEMENTS and element.Kind = FK_DISCUSSION)
+    end if

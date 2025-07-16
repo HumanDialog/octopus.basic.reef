@@ -1,79 +1,12 @@
 const ACC_DENIED = 0
 const ACC_READ   = 1
 const ACC_WRITE  = 2
-const ACC_FULL   = 3
-
-access role Anonymous: guest
-    acc App = ACC_READ
-    --acc App[DEMO] = ACC_READ
-
-    --acc Group[MAN] = 
-    --    if self.IsPublic then
-    --        ACC_READ
-    --    else
-    --        ACC_DENIED
-    --    end if
-
-    acc Group = 
-        if self.IsPublic then
-            ACC_FULL
-        else
-            ACC_DENIED
-        end if
-
-    acc TaskList = 
-        if self.Group.IsPublic then
-            ACC_FULL
-        else
-            ACC_DENIED
-        end if
-
-    acc Task = 
-        if self.TaskList.Group.IsPublic then
-            ACC_FULL
-        else
-            ACC_DENIED
-        end if
-
-    acc User = ACC_DENIED
-    nav Group, UserGroup, TaskList, Task, TaskStep
-
-access role Employee:  default
-    --acc App[DEMO] = ACC_READ
-    acc App = ACC_READ
-    
-    acc Group =
-        if self.IsPublic or user.Groups.exists(element.Group = group) then
-            ACC_FULL
-        else
-            ACC_DENIED
-        end if
-
-    acc TaskList =
-        if self.Group = group or self.Group.IsPublic then
-            ACC_FULL
-        else
-            ACC_DENIED
-        end if
-
-    acc Task = 
-        if self.Actor = user or self.TaskList.Group = group or self.TaskList.Group.IsPublic then
-            ACC_FULL
-        else
-            ACC_DENIED
-        end if
-
-    acc User = 
-        if self.Id = user.Id then
-            ACC_FULL
-        else if self.Groups.exists(element.Group = group) then
-            ACC_READ
-        else
-            ACC_DENIED
-        end if
-        end if
-
-    nav Group, UserGroup, User, TaskList, Task, TaskStep
+const ACC_READWRITE   = 3
+--> sys/login?u=alice;g=13;r=Guest
 
 
-    
+
+
+context User::IsInGroup(g: Group): boolean
+post:
+    result = self.Groups.exists(element.GroupId = g.Id)

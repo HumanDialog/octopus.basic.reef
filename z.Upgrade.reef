@@ -1,0 +1,74 @@
+context App::vmd
+post:
+  self.VerifyMissingData
+
+admin context App::VerifyMissingData
+post:
+  let guests: Group = system.allInstances("Group").select(element.Name = "Guests").first
+  if guests = 0 then
+      guests = new Group
+      guests.Name = "Guests"
+  end if
+
+  system.allInstances("Group").forAll(e | e.VerifyFolders)
+  system.allInstances("Group").forAll(e | e.VerifyTaskLists)
+  system.allInstances("Group").forAll(e | e.VerifyMessageChannels)
+
+  system.allInstances("User").forAll(e | e.VerifyFolders)
+
+  --group.AddGeneralMessageChannels
+
+context User::VerifyFolders()
+post:
+      self.GetPinnedFolders
+      self.GetBasketFolder
+
+context Group::VerifyTaskLists()
+post:
+   if self.Lists.first = 0 then
+      self.CreateList("Things to to")
+   end if
+   self.Lists.forAll(element.Verify)
+
+context TaskList::Verify
+post:
+  if self.TaskStates = "" then
+     self.TaskStates = self.Group.GetChecklistDefaultColumns().ToString()
+  end if
+
+context Group::VerifyMessageChannels()
+post:
+  if  self.MessageChannels.first = 0 then
+      self.AddGeneralMessageChannel("Announcements")
+      self.AddGeneralMessageChannel("Bugs")
+      self.AddGeneralMessageChannel("Feedback")
+      self.AddGeneralMessageChannel("General")
+      self.AddGeneralMessageChannel("Random")
+  end if
+
+
+context Group::VerifyFolders()
+post:
+  if self.Folders.first = 0 then
+    self.NewFolder("Notes")
+    self.NewFolder("Projects")
+  end if
+  if self.Folders.select(element.Kind = FK_DISCUSSION).first = 0 then
+    self.CreateSimpleDiscussionsStructure
+  end if
+
+context Group::CreateSimpleDiscussionsStructure(): Folder
+post:
+    let discussions: Folder = self.Folders.newElement(element.Title = "Dissusions" and element.Summary="Ongoing support questions")
+    discussions.Kind = FK_DISCUSSION
+
+    let link: FolderFolder
+
+    link = discussions.CreateSubFolder("Feature requests",                  "Would you like to see a new feature in Tilos? Write about it here", 0 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("General",                           "General discussions whose topic does not fit after the below ones", 1 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Installation and Licensing",        "", 2 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Get Started",                       "", 3 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Structures",                        "", 17 * ORDER_STEP, FK_DISCUSSION)
+    link = discussions.CreateSubFolder("Libraries",                         "", 18 * ORDER_STEP, FK_DISCUSSION)
+
+    result = discussions

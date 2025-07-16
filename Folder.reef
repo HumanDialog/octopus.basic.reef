@@ -1,0 +1,646 @@
+
+const FS_SHARED_FOLDER      = 9
+const FS_PUBLIC_FOLDER      = 10
+const FS_USER_ROOT_FOLDER   = 101
+const FS_GROUP_ROOT_FOLDER  = 102
+const FS_PINNED_ROOT_FOLDER = 103
+const FS_BASKET_ROOT_FOLDER = 104
+const FS_USER_FOLDER        = 111
+const FS_GROUP_FOLDER       = 112
+const FS_LATEST_ELEMENTS    = 1001
+
+const FK_FOLDER             = 0
+const FK_BASKET             = 1
+const FK_DISCUSSION         = 2
+
+class Folder
+    Title(128):         string
+    Summary(196):       string
+    Group:              Group       <backNav: AllFolders>
+    User:               User        <backNav: Folders>
+    Owner:              User        <backNav: AllFolders>
+    Kind:               integer
+    Status:             integer
+    Folders[0..n]:      FolderFolder
+    InFolders[0..n]:    FolderFolder
+    Notes[0..n]:        FolderNote
+    Tasks[0..n]:        FolderTask
+    Order:              integer
+    GroupId:            integer
+    UserId:             integer
+    FoldersCount:       integer
+    NotesCount:         integer
+    TasksCount:         integer
+end class
+
+
+class FolderFolder
+    Title(128):         string
+    Kind:               integer
+    Order:              integer
+    Pos(8):             string
+    Group:              Group       <backNav: FolderFolder>
+    Folder(0..1):       Folder      <backNav: InFolders[0..n]>
+    InFolder(0..1):     Folder      <backNav: Folders[0..n]>
+    GroupId:            integer
+    InFolderId:         integer
+    FolderId:           integer
+end class
+
+class FolderNote
+    Title(128):     string
+    Order:          integer
+    Pos(8):         string
+    Folder(0..1):   Folder  <backNav: Notes[0..n]>
+    Note(0..1):     Note    <backNav: InFolders[0..n]>
+end class
+
+
+class FolderTask
+    Title(128):     string
+    Order:          integer
+    Pos(8):         string
+    Folder(0..1):   Folder <backNav: Tasks[0..n]>
+    Task(0..1):     Task   <backNav: InFolders[0..n]>
+end class
+
+
+
+-- ==============================================================================
+
+context Folder
+inv:
+    self.FoldersCount = self.Folders.count
+
+context Folder
+inv:
+    self.NotesCount = self.Notes.count
+    
+context Folder
+inv:    
+    self.TasksCount = self.Tasks.count
+
+
+constraint Folder::Folders
+    element.InFolderId = self.Id
+
+
+context Folder::IsPublic: boolean
+post:
+     result = (self.Status = FS_PUBLIC_FOLDER)
+
+
+context Folder::IsShared: boolean
+post:
+     result = (self.Status = FS_SHARED_FOLDER)
+
+context Folder::IsRoot: boolean
+post:
+    select case self.Status
+        case FS_USER_ROOT_FOLDER
+            result = true
+        case FS_GROUP_ROOT_FOLDER
+            result = true
+        case FS_PINNED_ROOT_FOLDER
+            result = true
+        case FS_BASKET_ROOT_FOLDER
+            result = true
+        case else
+            result = false
+    end select
+
+context Folder::href: string
+post:
+    select case self.Kind
+        case FK_FOLDER
+            result = '/folder/' + self.Id
+        case FK_BASKET
+            result = '/folder/' + self.Id
+        case FK_DISCUSSION
+            result = '/forum/' + self.Id
+        case else
+            result = '/folder/' + self.Id
+    end select
+
+
+context Folder::icon: string
+post:
+    select case self.Kind
+        case FK_FOLDER
+            result = 'Folder'
+        case FK_BASKET
+            result = 'Clipboard'
+        case FK_DISCUSSION
+            result = 'Discussion'
+        case else
+            result = 'Folder'
+    end select
+
+context Folder::IsPinned: boolean
+post:
+    result = user.PinnedFolders.Folders.exists(element.Folder.Id = self.Id)
+
+
+context Folder::IsBasket: boolean
+post:
+    if user.BasketFolder.Id = self.Id then
+        result = true
+    else
+        result = false
+    end if
+
+
+context Folder::CreateSubFolderEx(properties: JsonObject) : FolderFolder
+post:
+    --result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
+    let subfolder: Folder = user.AllFolders.newElement(subfolder |
+                subfolder.Title = properties.Title
+                subfolder.Summary = properties.Summary
+                subfolder.Kind = properties.Kind) in
+
+    let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subfolder)
+
+    if properties.Order <> 0 then
+        link.Order = properties.Order
+    end if
+
+    result = link
+
+context Folder::CreateSubFolder(title: string, optional summary: string = "", optional order: integer = 0, optional kind: integer = 0): FolderFolder
+pre Only logged in users may Create Subfolders:
+    user <> 0
+post:
+    let subfolder: Folder in
+
+    select case self.Status
+    case FS_USER_ROOT_FOLDER
+        subfolder = user.AllFolders.newElement(f | f.Status = FS_USER_FOLDER)
+    case FS_USER_FOLDER
+        subfolder = user.AllFolders.newElement(element.Status = FS_USER_FOLDER)
+    case FS_GROUP_ROOT_FOLDER
+        subfolder = group.AllFolders.newElement(element.Status = FS_GROUP_FOLDER)
+    case FS_GROUP_FOLDER
+        subfolder = group.AllFolders.newElement(element.Status = FS_GROUP_FOLDER)
+    case else
+        subfolder = user.AllFolders.newElement(element.Status = FS_USER_FOLDER)
+    end select
+
+
+    subfolder.Title = title
+    subfolder.Summary = summary
+    subfolder.Kind = kind
+
+    let link: FolderFolder = self.Folders.newElement(ff| ff.Folder = subfolder)
+
+    if order <> 0 then
+        link.Order = order
+    end if
+
+    result = link
+
+
+
+context Folder::CreateNoteEx(properties: JsonObject) : FolderNote
+pre Only logged in users may Create Notes:
+    user <> 0
+post:
+
+    let n: Note = user.CreatedNotes.newElement(n |
+            n.Title = properties.Title and
+            n.Summary = properties.Summary) in
+
+    result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
+
+
+context Folder::CreateTaskEx(properties: JsonObject) : FolderTask
+pre Only logged in users may Create Tasks:
+    user <> 0
+post:
+    let t: Task = user.CreatedTasks.newElement(t |
+            t.Title = properties.Title
+            t.Summary = properties.Summary) in
+
+
+    result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
+
+context Folder::DeletePermanently
+post:
+    -- what to do with content?
+    --self.Folders
+    --self.Notes
+    --self.Tasks
+
+    self.InFolders.removeAll    -- links leading to me
+    self.delete
+
+context Folder::DettachSubFolder(folderLink: FolderFolder)
+pre:
+    folderLink.InFolder.Id = self.Id
+post:
+    folderLink.delete
+
+context Folder::DeletePermanentlyFolder(folderLink: FolderFolder)
+post:
+    let folder: Folder = folderLink.Folder
+    folder.DeletePermanently()
+
+
+context Folder::CopyToBasket(): FolderFolder
+post:
+    let basket: Folder = user.BasketFolder
+
+    if not basket.Folders.exists(element.Folder.Id = self.Id) then
+        let maxOrder: integer = basket.Folders.max(element.Order)
+        result = basket.Folders.newElement(e | e.Folder = self and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+
+context Folder::CopySubFolderToBasket(folderLink: FolderFolder): FolderFolder
+post:
+    let folder: Folder = folderLink.Folder
+    result = folder.CopyToBasket()
+
+
+context Folder::CutSubFolderToBasket(folderLink: FolderFolder): FolderFolder
+post:
+    result = self.CopySubFolderToBasket(folderLink)
+    self.DettachSubFolder(folderLink)
+
+context Folder::DettachAllContent
+post:
+    self.Folders.removeAll
+    self.Notes.removeAll
+    self.Tasks.removeAll
+
+
+context Folder::AttachFolder(folder: Folder, optional order: integer = 0) : boolean
+post:
+    if not self.Folders.exists(element.Folder.Id = folder.Id) then
+        if order = 0 then
+            order = self.Folders.max(element.Order) + ORDER_STEP
+        end if
+
+        self.Folders.newElement(e | e.Folder=folder and e.Order=order)
+        result = true
+    else
+        result = false
+    end if
+
+context Folder::AttachNote(note: Note, optional order: integer = 0) : boolean
+post:
+    if not self.Notes.exists(element.Note.Id = note.Id) then
+        if order = 0 then
+            order = self.Notes.max(element.Order) + ORDER_STEP
+        end if
+
+        self.Notes.newElement(e | e.Note=note and e.Order=order)
+        result = true
+    else
+        result = false
+    end if
+
+context Folder::AttachTask(task: Task, optional order: integer = 0) : boolean
+post:
+    if not self.Tasks.exists(element.Task.Id = task.Id) then
+        if order = 0 then
+            order = self.Tasks.max(element.Order) + ORDER_STEP
+        end if
+
+        self.Tasks.newElement(e | e.Task=task and e.Order=order)
+        result = true
+    else
+        result = false
+    end if
+
+context Folder::AttachBasketContent(): Folder
+post:
+    let basket: Folder = user.BasketFolder
+
+    let maxOrder: integer = self.Folders.max(element.Order)
+    let order: integer = maxOrder + ORDER_STEP
+    basket.Folders.forAll(
+            if self.AttachFolder(element.Folder, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    maxOrder = self.Notes.max(element.Order)
+    order = maxOrder + ORDER_STEP
+    basket.Notes.forAll(
+            if self.AttachNote(element.Note, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    maxOrder = self.Tasks.max(element.Order)
+    order = maxOrder + ORDER_STEP
+    basket.Tasks.forAll(
+            if self.AttachTask(element.Task, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
+    result = self
+
+
+
+context Folder::AttachAndClearBasketContent(): Folder
+post:
+    self.AttachBasketContent()
+    user.BasketFolder.DettachAllContent()
+    result = self
+
+context Folder::DettachNote(noteLink: FolderNote)
+pre:
+    noteLink.Folder.Id = self.Id
+post:
+    noteLink.delete
+
+context Folder::DeletePermanentlyNote(noteLink: FolderNote)
+post:
+    let note: Note = noteLink.Note
+    note.DeletePermanently()
+
+
+context Folder::CopyNoteToBasket(noteLink: FolderNote): FolderNote
+post:
+    let note: Note = noteLink.Note
+    let basket: Folder = user.BasketFolder
+
+    if not basket.Notes.exists(element.Note.Id = note.Id) then
+        let maxOrder: integer = basket.Notes.max(element.Order)
+        result = basket.Notes.newElement(e | e.Note = note and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+
+context Folder::CutNoteToBasket(noteLink: FolderNote): FolderNote
+post:
+    result = self.CopyNoteToBasket(noteLink)
+    self.DettachNote(noteLink)
+
+
+context Folder::DettachTask(taskLink: FolderTask)
+pre:
+    taskLink.Folder.Id = self.Id
+post:
+    taskLink.delete    -- Will the task be automatically deleted if this was the only reference to it?
+
+
+context Folder::DeletePermanentlyTask(taskLink: FolderTask)
+post:
+    let task: Task = taskLink.Task
+    task.DeletePermanently()
+
+
+context Folder::CopyTaskToBasket(taskLink: FolderTask): FolderTask
+post:
+    let task: Task = taskLink.Task
+    result = task.CopyToBasket()
+
+
+context Folder::CutTaskToBasket(taskLink: FolderTask): FolderTask
+post:
+    result = self.CopyTaskToBasket(taskLink)
+    self.DettachTask(taskLink)
+
+
+context Folder::TogglePinned : FolderFolder
+post:
+    let pinnedLink :FolderFolder = user.PinnedFolders.Folders.select(element.Folder.Id = self.Id).first
+    if pinnedLink <> null then
+        pinnedLink.delete
+        result = null
+    else
+        let maxOrder :integer = user.PinnedFolders.Folders.max(element.Order)
+        result = user.PinnedFolders.Folders.newElement(e | e.Folder = self and e.Order = maxOrder+ORDER_STEP)
+    end if
+
+
+context Folder::GetBasketContents: JsonObject
+pre:
+    self = user.BasketFolder
+post:
+    result = []
+
+    self.Folders.forAll(
+        result = [..., {
+            Type: 'Folder',
+            Id: element.FolderId,
+            Title: element.Title
+            }
+        ]
+    )
+
+    self.Notes.forAll(
+        result = [..., {
+            Type: 'Note',
+            Id: element.NoteId,
+            Title: element.Title
+        }]
+    )
+
+    self.Tasks.forAll(
+        result = [..., {
+            Type: 'Task',
+            Id: element.TaskId,
+            Title: element.Title
+        }]
+    )
+
+context Folder::GetBasketContentsAndClear : JsonObject
+pre:
+    self = user.BasketFolder
+post:
+    result = []
+
+    self.Folders.forAll(
+        result = [..., {
+            Type: 'Folder',
+            Id: element.FolderId,
+            Title: element.Title
+            }
+        ]
+    )
+
+    self.Notes.forAll(
+        result = [..., {
+            Type: 'Note',
+            Id: element.NoteId,
+            Title: element.Title
+        }]
+    )
+
+    self.Tasks.forAll(
+        result = [..., {
+            Type: 'Task',
+            Id: element.TaskId,
+            Title: element.Title
+        }]
+    )
+
+    self.DettachAllContent()
+
+
+context Folder::AddPost(title: string, summary: string, content: string, tags: string): string
+post:
+    let note: Note = user.CreatedNotes.newElement
+    result = self.AttachPost(note, title, summary, content, tags)
+
+admin
+context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): string
+post:
+    note.Kind = NK_THREAD
+    note.Title = title
+    --note.Summary = summary
+    note.Content = content
+    note.Tags = tags
+    note.Summary = note.Content.textFromHTML(128, true)
+
+    let maxOrder: integer = self.Notes.max(element.Order)
+    self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
+    note.UpdateLatestGroupActivity()
+    result = note.href()
+
+
+
+
+-- ==============================================================================
+
+
+context FolderFolder
+inv:
+    self.Title = self.Folder.Title
+
+
+context FolderFolder::SetTitle(value: string)
+post:
+    self.Folder.Title = value
+
+
+context FolderFolder::Summary: string
+post:
+    result = self.Folder.Summary
+
+context FolderFolder::SetSummary(value: string)
+post:
+    self.Folder.Summary = value
+
+
+constraint FolderFolder::Folder
+    self.FolderId = element.Id
+
+
+context FolderFolder::href: string
+post:
+    result = self.Folder.href
+
+
+context FolderFolder::IsPinned: boolean
+post:
+    result = self.Folder.IsPinned
+
+context FolderFolder::icon: string
+post:
+    result = self.Folder.icon
+
+
+context FolderFolder::GetLastForumActivity(): JsonObject
+pre:
+    self.Folder.Kind = FK_DISCUSSION
+post:
+    let topThread: FolderNote in
+    let lastUserName: string
+
+    topThread = self.Folder.Notes.orderedBy("Order").last
+    if topThread <> null then
+
+        if topThread.ModifiedBy <> null then
+            lastUserName = topThread.ModifiedBy.Name
+        end if
+
+        result = {
+            title: topThread.Title,
+            lastActivity: topThread.ModificationDate,
+            lastUser: lastUserName
+        }
+
+    else
+        result = null
+    end if
+
+-- ==============================================================================
+
+
+context FolderNote
+inv:
+    self.Title = self.Note.Title
+
+
+context FolderNote::SetTitle(value: string)
+post:
+    self.Note.Title = value
+
+
+context FolderNote::Summary: string
+post:
+    result = self.Note.Summary
+
+
+context FolderNote::SetSummary(value: string)
+post:
+    self.Note.Summary = value
+
+
+context FolderNote::href: string
+post:
+    result = self.Note.href
+
+context FolderNote::ModifiedBy: User
+post:
+    result = self.Note.ModifiedBy
+
+context FolderNote::ModificationDate: date
+post:
+    result = self.Note.ModificationDate
+
+context FolderNote::Tags: string
+post:
+    result = self.Note.Tags
+
+context FolderNote::NotesCount: integer
+post:
+    result = self.Note.NotesCount
+
+
+-- ==============================================================================
+
+
+context FolderTask
+inv:
+    self.Title = self.Task.Title
+
+
+context FolderTask::SetTitle(value: string)
+post:
+    self.Task.Title = value
+
+
+context FolderTask::Summary: string
+post:
+    result = self.Task.Summary
+
+
+context FolderTask::SetSummary(value: string)
+post:
+    self.Task.Summary = value
+
+
+context FolderTask::href: string
+post:
+    result = self.Task.href
+
+
+
+context FolderTask::State: string
+post:
+    result = self.Task.State

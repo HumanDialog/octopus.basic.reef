@@ -1,0 +1,276 @@
+
+const NK_DOCUMENT          = 0
+const NK_THREAD            = 1
+const NK_POST              = 2
+
+
+const NS_PUBLISHED_NOTE = 10
+
+
+const NS_PUBLIC            = 100
+
+class Note
+protected: 
+    Title(128):             string
+    Summary(196):	        string
+    Tags(64):               string
+    Index(16):              string
+    Content:	            string
+public:
+    Kind:                   integer
+    State:                  integer
+    Status:                 integer
+    CreationDate:	        date
+    ModificationDate:       date
+    CreatedBy:              User
+    ModifiedBy:             User
+
+    Images:                 string      <readOnly>
+    AttachedFiles:          string      <readOnly>
+    InFolders[0..n]:        FolderNote
+    InTasks[0..n]:          TaskNote
+    InMessages[0..n]:       MessageNote
+
+    Notes[0..n]:            NoteNote
+    InNotes[0..n]:          NoteNote
+    NotesCount:             integer
+end class
+
+
+class NoteNote
+    Title(128):             string
+    Order:                  integer
+    Note(0..1):             Note      <backNav: InNotes[0..n]>
+    InNote(0..1):           Note      <backNav: Notes[0..n]>
+    InNoteId:               integer
+    NoteId:                 integer
+end class
+
+
+context Note::OnAfterCreate
+post:
+    self.CreationDate.SetUTCDate()
+    self.CreatedBy = user
+
+    self.ModificationDate = self.CreationDate
+    self.ModifiedBy = self.CreatedBy
+
+
+
+constraint Note::Notes
+    element.InNoteId = self.Id
+
+context Note
+inv:
+    self.NotesCount = self.Notes.count
+
+context Note::href: string
+post:
+    select case self.Kind
+        case NK_DOCUMENT
+            result = '/note/' + self.Id
+        case NK_THREAD
+            result = '/thread/' + self.Id
+        case NK_POST
+            result = '/thread/' + self.InNotes.select(element.InNote.Kind=NK_THREAD).first.InNote.Id + '?res=' + self.Id
+
+    end select
+
+
+
+context Note::DeletePermanently
+post:
+    self.InFolders.removeAll
+    self.InTasks.removeAll
+    self.InMessages.removeAll
+    self.delete
+
+context Note::UpdateMetaInfo
+post:
+    self.ModificationDate.SetUTCDate()
+    self.ModifiedBy = user
+
+context Note::Title_Set(val: string)
+post:
+    self.Title = val
+    self.UpdateMetaInfo()
+
+-- to remove
+context Note::SetTitle(val: string)
+post:
+    self.Title_Set(val)
+
+context Note::Title_Get(): string
+post:
+    result = self.Title
+
+context Note::Summary_Set(val: string)
+post:
+    self.Summary = val
+    self.UpdateMetaInfo()
+
+-- to remove
+context Note::SetSummary(val: string)
+post:
+    self.Summary_Set(val)
+
+context Note::Summary_Get(): string
+post:
+    result = self.Summary
+
+context Note::Tags_Set(val: string)
+post:
+    self.Tags = val
+    self.UpdateMetaInfo()
+
+-- to remove
+context Note::SetTags(val: string)
+post:
+    self.Tags_Set(val)
+
+context Note::Tags_Get(): string
+post:
+    result = self.Tags
+
+context Note::Index_Set(val: string)
+post:
+    self.Index = val
+    self.UpdateMetaInfo()
+
+-- to remove
+context Note::SetIndex(val: string)
+post:
+    self.Index_Set(val)
+
+context Note::Index_Get: string
+post:
+    result = self.Index
+
+
+context Note::Content_Get: string
+post:
+    result = self.Content
+
+context Note::Content_Set(val: string)
+post:
+    self.Content = val
+
+    if self.Kind = NK_POST or self.Kind = NK_THREAD then
+        self.Summary = self.Content.textFromHTML(128, true)
+    end if
+
+    self.UpdateMetaInfo()
+
+-- to remove
+context Note::SetContent(val: string)
+post:
+    self.Content_Set(val)
+
+
+context Note::AddPost(content: string): NoteNote
+pre:
+    self.Kind = NK_THREAD
+post:
+    let n: Note = user.CreatedNotes.newElement() in
+    --let n: Note = new Note
+    n.Title = "Re: " + self.Title
+    n.Content = content
+    n.Summary = content.textFromHTML(128, true)
+    n.Kind = NK_POST
+
+    let maxOrder: integer = self.Notes.max(element.Order)
+    result = self.Notes.newElement(element.Note=n and element.Order=maxOrder+ORDER_STEP)
+
+    self.MoveOnForumFolderTop()
+    self.UpdateMetaInfo()
+    self.UpdateLatestGroupActivity()
+
+
+context Note::AttachPost(note: Note, content: string): NoteNote
+pre:
+    self.Kind = NK_THREAD
+post:
+    let maxOrder: integer = self.Notes.max(element.Order)
+    note.Title = "Re: " + self.Title
+    note.Content = content
+    note.Summary = content.textFromHTML(128, true)
+    note.Kind = NK_POST
+
+    result = self.Notes.newElement(element.Note=note and element.Order=maxOrder+ORDER_STEP)
+
+    self.MoveOnForumFolderTop()
+    self.UpdateMetaInfo()
+    self.UpdateLatestGroupActivity()
+
+
+context Note::MoveOnForumFolderTop()
+pre:
+    self.Kind = NK_THREAD
+post:
+    let link :FolderNote = self.InFolders.select(element.Folder.Kind = FK_DISCUSSION and element.Folder.Status <> FS_LATEST_ELEMENTS).first
+    let maxOrder:integer = link.Folder.Notes.max(element.Order)
+    if link.Order <> maxOrder then
+        link.Order = maxOrder + ORDER_STEP
+    end if
+
+context Note::UpdateLatestGroupActivity()
+pre:
+    self.Kind = NK_THREAD
+post:
+    let latestsFolder: Folder = group.GetLatestDiscussionsFolder
+    let maxOrder: integer = latestsFolder.Notes.max(element.Order)
+    let latestLink: FolderNote = latestsFolder.Notes.select(element.Note = self).first
+
+    if latestLink = null then
+        latestLink = latestsFolder.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
+        if latestsFolder.Notes.count > 10 then
+            latestsFolder.Notes.orderedBy("Order").first.delete
+        end if
+    else
+        if latestLink.Order <> maxOrder then
+            latestLink.Order = maxOrder + ORDER_STEP
+        end if
+    end if
+
+
+context Note::CopyToBasket(): FolderNote
+post:
+    let basket: Folder = user.BasketFolder
+
+    if not basket.Notes.exists(element.Note.Id = self.Id) then
+        let maxOrder: integer = basket.Notes.max(element.Order)
+        result = basket.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
+    end if
+
+-- ----------------------------------------------------------------------------------------------------------------
+
+
+constraint NoteNote::Note
+    self.NoteId = element.Id
+
+
+context NoteNote
+inv:
+    self.Title = self.Note.Title
+
+
+context NoteNote::SetTitle(value: string)
+post:
+    self.Note.Title = value
+
+
+context NoteNote::Summary: string
+post:
+    result = self.Note.Summary
+
+context NoteNote::SetSummary(value: string)
+post:
+    self.Note.Summary = value
+
+context NoteNote::href: string
+post:
+    result = self.Note.href
+
+context NoteNote::NotesCount: integer
+post:
+    result = self.Note.NotesCount

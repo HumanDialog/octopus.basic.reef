@@ -3,21 +3,138 @@ const LAST_USER_TASK_ORDER  = &h7FFFFFFF
 --const LAST_USER_TASK_ORDER_STEP = 16    --2^4
 
 class User
-    login:              string
-	groupid:            integer
-    Name:               string
-    Email:              string
-    MyTasks(0..n):      Task            <backNav: Actor(0..1)>
-    Groups(0..n):       UserGroup       <backNav: User>
+    login:                  string
+	groupid:                integer
+    Name:                   string
+    Email:                  string
+    Bio:                    string
+    Avatar:                 string
+    MyTasks(0..n):          Task                <backNav: Actor(0..1)>
+    MyLists(0..n):          TaskList            <backNav: User>
+    Groups(0..n):           UserGroup           <backNav: User>
+    Folders(0..n):          Folder              <backNav: User>
+    AllFolders(0..n):       Folder              <backNav: Owner>
+    PinnedFolders:          Folder
+    BasketFolder:           Folder
+    MessageChannels[0..n]:  MessageChannelUser      <backNav: User>
+    AllMessageChannels[0..n]:  MessageChannelUser   <backNav: Owner>
+    CreatedNotes(0..n):     Note                <backNav: CreatedBy>
+    ModifiedNotes(0..n):    Note                <backNav: ModifiedBy>
+    MyMessages(0..n):       Message
+    CreatedTasks(0..n):     Task                <backNav: CreatedBy>
 end class
 
+constraint User::PinnedFolders
+    element.UserId = self.Id and element.Status = FS_PINNED_ROOT_FOLDER
 
+constraint User::BasketFolder
+    element.UserId = self.Id and element.Status = FS_BASKET_ROOT_FOLDER
 
 constraint User::MyTasks
     element.ActorId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint User::Folders
+    element.UserId = self.Id and element.Status = FS_USER_ROOT_FOLDER
+
+constraint User::AllFolders
+    element.UserId = self.Id
+
+constraint User::MessageChannels
+    element.UserId = self.Id and element.Status = MCU_DIRECT
+
+constraint User::AllMessageChannels
+    element.UserId = self.Id
+
+context User::GetBasketFolder: Folder
+post:
+
+    if self.BasketFolder.isNull then
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Clipboard" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
+    end if
+
+    result = self.BasketFolder
+
+context User::GetPinnedFolders: Folder
+post:
+
+    if self.PinnedFolders.isNull then
+        self.PinnedFolders = self.AllFolders.newElement(e | e.Title = self.Name + " Pinned Folders" and e.Status = FS_PINNED_ROOT_FOLDER)
+    end if
+
+    result = self.PinnedFolders
 
 
 context User::FinishTasks()
 post:
     self.MyTasks.select(element.State <> STATE_FINISHED).forAll(element.Finish())
 
+
+--context User::MoveFolderToBasket(folder: Folder): FolderFolder
+--pre:
+--    self.Folders.exists(element.Id = folder.Id)
+--post:
+--    folder.User = null      -- removing from Folders collection
+--    result = folder.CopyToBasket()
+
+
+admin
+context User::FindDirectMessageChannel(toWhom: User): MessageChannel
+post:
+    result = self.MessageChannels.select( e | e.MessageChannel.Users.count = 2 and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)).first.MessageChannel
+
+context User::cmc1(uid: integer): boolean
+post:
+    if self.MessageChannels.exists( e |
+                e.MessageChannel.Users.count = 2
+                and e.MessageChannel.Users.exists(element.UserId = toWhom.Id)) then
+        result = true
+    else
+        result = false
+    end if
+
+context User::cmc(uid: integer): boolean
+post:
+    if self.MessageChannels.exists( e | e.MessageChannel.Users.exists(element.UserId = uid)) then
+        result = true
+    else
+        result = false
+    end if
+
+context User::NewPrivateMessageChannel(title: string): MessageChannel
+post:
+    let order: integer = self.MessageChannels.max(element.Order)
+    let umc: MessageChannelUser = self.MessageChannels.newElement(element.Order = order + ORDER_STEP)
+    umc.MessageChannel = new MessageChannel
+    umc.MessageChannel.Title = title
+    result = umc.MessageChannel
+
+admin
+context User::AttachToChannel(channel: MessageChannel)
+post:
+    let order: integer = self.MessageChannels.max(element.Order)
+    let umc: MessageChannelUser = self.MessageChannels.newElement(element.MessageChannel = channel
+                and element.Order = order + ORDER_STEP)
+
+
+context User::AddDirectMesssageChannel(toWhom: User): MessageChannel
+pre:
+    toWhom <> null
+post:
+    let channel: MessageChannel = self.FindDirectMessageChannel(toWhom)
+
+    if channel = 0 then
+        channel = self.NewPrivateMessageChannel(self.Name + " and " + toWhom.Name)
+        toWhom.AttachToChannel(channel)
+    end if
+
+
+    result = channel
+
+
+context User::AddWorkingPost(): Note
+post:
+    result = self.CreatedNotes.newElement(element.Kind = NK_POST)
+
+context User::href: string
+post:
+    result = '/profile/' + self.Id

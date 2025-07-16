@@ -1,0 +1,37 @@
+class Procedure
+    Name:               string
+    Summary:            string
+    ProcessClass(32):   string   
+    StaticProcess:      Process
+end class          
+
+class Process
+    Title:              string
+    Procedure<0..1>:    Procedure <backNav: Processes>
+    StartDate:          date
+    EndDate:            date
+    Tasks<0..n>:        Task <backNav: Process>
+end class    
+
+context Process::Start
+post:
+
+context Process::StartStatic
+post:
+
+
+context Procedure::StartProcess: Process
+post:
+    if self.StaticProcess.isNull then
+        result = system.NewItem(self.ProcessClass)
+        result.Start
+    else
+        result = self.StaticProcess
+        result.StartStatic
+    end if
+
+-----------------------------------------------    
+--Free to use:    
+--https://app.genmymodel.com/api/repository/diagrams/bpmn    
+
+--https://app.genmymodel.com/api/repository/online-example/bpmn-pizza-store-example

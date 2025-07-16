@@ -1,0 +1,25 @@
+const PS_ACTIVE     = 1
+const PS_ARCHIVED   = 100
+
+class Project
+    Title(128):                 string
+    Summary(196):               string
+    State:                      integer
+    Status:                     integer
+    StartDate:                  date
+    EndDate:                    date
+    Group:                      Group       <backNav: AllProjects>
+    GroupId:                    integer
+    Folders:                    Folder
+    Lists(0..n):                TaskList
+    RootActivity:               Activity 
+    PresentStage:               Activity
+    PlannedStage:               Activity
+    AllActivities(0..n):        Activity    <backNav: Project>
+end class    
+
+constraint Group::AllProjects
+    element.GroupId = self.Id
+    
+constraint Group::ActiveProjects
+    element.GroupId = self.Id and element.Status = PS_ACTIVE    
