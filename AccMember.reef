@@ -74,16 +74,21 @@ context Folder::AccMember: integer
 post:
     if self.Owner = user then
         result = ACC_READWRITE
-    else if self.Group = group then
+    else if self.IsGroupFolder and self.Group = group then
         result = ACC_READWRITE
     else if self.IsPublic then
         result = ACC_READWRITE
     else
-        if self.IsShared then
+        if self.IsSharedGroupFolder then
             if self.InFolders.exists(element.GroupId = group.Id) then
-                result = ACC_READ
+                result = ACC_READWRITE
+            end if
+        else if self.IsSharedUserFolder then
+            if self.InFolders.exists(element.GroupId = group.Id) then
+                result = ACC_READWRITE
             end if
         end if
+    end if
     end if
     end if
     end if

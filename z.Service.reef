@@ -1,3 +1,11 @@
 context App::DeleteAllDirectChannels
 post:
   system.allInstances("MessageChannel").select(element.Status = 0).removeAll
+
+
+context App::VerifyFoldersAccess
+post:
+  app.Users.forAll(u | u.AllFolders.forAll(f | f.RecalculateStatusRec))
+  app.Groups.forAll(g | g.AllFolders.forAll(f | f.RecalculateStatusRec))
+  app.Users.forAll(u | u.AllFolders.forAll(f | f.RecalculateStatusRec))
+  app.Groups.forAll(g | g.AllFolders.forAll(f | f.RecalculateStatusRec))

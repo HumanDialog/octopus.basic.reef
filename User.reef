@@ -16,6 +16,7 @@ class User
     AllFolders(0..n):       Folder              <backNav: Owner>
     PinnedFolders:          Folder
     BasketFolder:           Folder
+    SharedFolders:          Folder
     MessageChannels[0..n]:  MessageChannelUser      <backNav: User>
     AllMessageChannels[0..n]:  MessageChannelUser   <backNav: Owner>
     CreatedNotes(0..n):     Note                <backNav: CreatedBy>
@@ -26,6 +27,9 @@ end class
 
 constraint User::PinnedFolders
     element.UserId = self.Id and element.Status = FS_PINNED_ROOT_FOLDER
+
+constraint User::SharedFolders
+    element.UserId = self.Id and element.Status = FS_USER_ROOT_SHARED_FOLDER
 
 constraint User::BasketFolder
     element.UserId = self.Id and element.Status = FS_BASKET_ROOT_FOLDER

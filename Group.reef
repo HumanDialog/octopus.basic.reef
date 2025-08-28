@@ -10,6 +10,7 @@ class Group
     AllLists(0..n):             TaskList        <backNav: Group>
     Folders(0..n):              Folder          <backNav: InGroup>
     AllFolders(0..n):           Folder          <backNav: Group>
+    SharedFolders:              Folder
     MessageChannels(0..n):      MessageChannel  <backNav: InGroup>
     AllMessageChannels(0..n):   MessageChannel  <backNav: Group>
     AllTags:                    string
@@ -54,6 +55,8 @@ constraint Group::AllLists
 constraint Group::Folders
     element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_FOLDER
 
+constraint Group::SharedFolders
+    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_SHARED_FOLDER
 
 constraint Group::AllFolders
     element.GroupId = self.Id

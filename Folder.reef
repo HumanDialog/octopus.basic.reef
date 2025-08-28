@@ -1,17 +1,31 @@
 
-const FS_SHARED_FOLDER      = 9
-const FS_PUBLIC_FOLDER      = 10
-const FS_USER_ROOT_FOLDER   = 101
-const FS_GROUP_ROOT_FOLDER  = 102
-const FS_PINNED_ROOT_FOLDER = 103
-const FS_BASKET_ROOT_FOLDER = 104
-const FS_USER_FOLDER        = 111
-const FS_GROUP_FOLDER       = 112
+
+const FS_PUBLIC_FOLDER              = 10
+const FS_USER_ROOT_FOLDER           = 101
+const FS_GROUP_ROOT_FOLDER          = 102
+const FS_PINNED_ROOT_FOLDER         = 103
+const FS_BASKET_ROOT_FOLDER         = 104
+const FS_USER_FOLDER                = 111
+const FS_GROUP_FOLDER               = 112
+const FS_USER_ROOT_SHARED_FOLDER    = 131
+const FS_GROUP_ROOT_SHARED_FOLDER   = 132
+const FS_USER_SHARED_FOLDER         = 141
+const FS_GROUP_SHARED_FOLDER        = 142
 const FS_LATEST_ELEMENTS    = 1001
+
+const FSX_IN_CALCULATION    = 100000
 
 const FK_FOLDER             = 0
 const FK_BASKET             = 1
 const FK_DISCUSSION         = 2
+
+const FIN_PUBLIC_FOLDER     =  10000
+const FIN_GROUP_FOLDER     =    9000
+
+const FIN_PUBLIC     =  10000
+const FIN_GROUP      =   9000
+const FIN_USER       =   5000
+
 
 class Folder
     Title(128):         string
@@ -40,9 +54,11 @@ class FolderFolder
     Order:              integer
     Pos(8):             string
     Group:              Group       <backNav: FolderFolder>
+    User:               User        <backNav: FolderFolder>
     Folder(0..1):       Folder      <backNav: InFolders[0..n]>
     InFolder(0..1):     Folder      <backNav: Folders[0..n]>
     GroupId:            integer
+    UserId:             integer
     InFolderId:         integer
     FolderId:           integer
 end class
@@ -64,10 +80,21 @@ class FolderTask
     Task(0..1):     Task   <backNav: InFolders[0..n]>
 end class
 
+constraint Folder::Folders
+    element.InFolderId = self.Id
+
+constraint FolderFolder::Folder
+    self.FolderId = element.Id
+
+context FolderFolder
+inv:
+    self.User = self.InFolder.User
+inv:
+    self.Group = self.InFolder.Group
 
 
--- ==============================================================================
 
+---------------------------------------------------------------------------------
 context Folder
 inv:
     self.FoldersCount = self.Folders.count
@@ -75,40 +102,12 @@ inv:
 context Folder
 inv:
     self.NotesCount = self.Notes.count
-    
+
 context Folder
-inv:    
+inv:
     self.TasksCount = self.Tasks.count
 
-
-constraint Folder::Folders
-    element.InFolderId = self.Id
-
-
-context Folder::IsPublic: boolean
-post:
-     result = (self.Status = FS_PUBLIC_FOLDER)
-
-
-context Folder::IsShared: boolean
-post:
-     result = (self.Status = FS_SHARED_FOLDER)
-
-context Folder::IsRoot: boolean
-post:
-    select case self.Status
-        case FS_USER_ROOT_FOLDER
-            result = true
-        case FS_GROUP_ROOT_FOLDER
-            result = true
-        case FS_PINNED_ROOT_FOLDER
-            result = true
-        case FS_BASKET_ROOT_FOLDER
-            result = true
-        case else
-            result = false
-    end select
-
+---------------------------------------------------------------------------------
 context Folder::href: string
 post:
     select case self.Kind
@@ -136,6 +135,118 @@ post:
             result = 'Folder'
     end select
 
+
+--STATUS-------------------------------------------------------------------------------
+
+
+
+context Folder::GetAccLevel: integer
+post:
+    let status: integer = self.Status in
+    if status >  FSX_IN_CALCULATION then
+        status = status - FSX_IN_CALCULATION
+    end if
+    select case status
+    case FS_USER_ROOT_FOLDER
+        result = FIN_USER
+    case FS_USER_FOLDER
+        result = FIN_USER
+    case FS_GROUP_ROOT_FOLDER
+        result = FIN_GROUP
+    case FS_GROUP_FOLDER
+        result = FIN_GROUP
+    case FS_PUBLIC_FOLDER
+        result = FIN_PUBLIC
+    end select
+
+
+
+
+context Folder::CalculateStatus: integer
+post:
+    let level: integer in
+
+    if self.IsRoot then
+        result = self.Status
+    else
+        let maxAccLevel: integer = self.InFolders.iterate(e; acclevel: integer |
+            level = e.InFolder.GetAccLevel
+            if level > acclevel then acclevel = level end if)
+
+        select case maxAccLevel
+        case FIN_PUBLIC
+            result = FS_PUBLIC_FOLDER
+        case FIN_GROUP
+            result = FS_GROUP_FOLDER
+        case FIN_USER
+            result = FS_USER_FOLDER
+        end select
+    end if
+
+context Folder::RecalculateStatus
+post:
+    self.Status = self.CalculateStatus
+    if self.Group = 0 and self.Status = FS_GROUP_FOLDER then
+        self.Group = group
+    end if
+
+
+context Folder::RecalculateStatusRec
+post:
+    if self.Status < FSX_IN_CALCULATION then
+        self.Status = self.CalculateStatus + FSX_IN_CALCULATION
+        self.Folders.forAll(element.Folder.RecalculateStatusRec)
+    end if
+
+context Folder::CommitStatus
+post:
+    if self.Status > FSX_IN_CALCULATION then
+        self.Status = self.Status - FSX_IN_CALCULATION
+        self.Folders.forAll(element.Folder.CommitStatus)
+    end if
+
+context Folder::IsGroupFolder: boolean
+post:
+    result = (self.Status = FS_GROUP_FOLDER or self.Status = FS_GROUP_ROOT_FOLDER)
+
+context Folder::IsPersonal: boolean
+post:
+    result = (self.Status = FS_USER_FOLDER)
+
+context Folder::IsPublic: boolean
+post:
+     result = (self.Status = FS_PUBLIC_FOLDER)
+
+
+context Folder::IsSharedGroupFolder: boolean
+post:
+     result = (self.Status = FS_GROUP_SHARED_FOLDER)
+
+context Folder::IsSharedUserFolder: boolean
+post:
+     result = (self.Status = FS_USER_SHARED_FOLDER)
+
+context Folder::IsRoot: boolean
+post:
+    select case self.Status
+        case FS_USER_ROOT_FOLDER
+            result = true
+        case FS_USER_ROOT_SHARED_FOLDER
+            result = true
+        case FS_GROUP_ROOT_FOLDER
+            result = true
+        case FS_GROUP_SHARED_FOLDER
+            result = true
+        case FS_PINNED_ROOT_FOLDER
+            result = true
+        case FS_BASKET_ROOT_FOLDER
+            result = true
+        case else
+            result = false
+    end select
+
+------------------------------------------------------------------------------------
+
 context Folder::IsPinned: boolean
 post:
     result = user.PinnedFolders.Folders.exists(element.Folder.Id = self.Id)
@@ -150,53 +261,26 @@ post:
     end if
 
 
+
+
 context Folder::CreateSubFolderEx(properties: JsonObject) : FolderFolder
 post:
-    --result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
-    let subfolder: Folder = user.AllFolders.newElement(subfolder |
-                subfolder.Title = properties.Title
-                subfolder.Summary = properties.Summary
-                subfolder.Kind = properties.Kind) in
+    result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
 
-    let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subfolder)
-
-    if properties.Order <> 0 then
-        link.Order = properties.Order
-    end if
-
-    result = link
 
 context Folder::CreateSubFolder(title: string, optional summary: string = "", optional order: integer = 0, optional kind: integer = 0): FolderFolder
-pre Only logged in users may Create Subfolders:
+pre Only logged in users may Create subFolders:
     user <> 0
 post:
-    let subfolder: Folder in
+    let subFolder: Folder = user.AllFolders.newElement(subFolder |
+                subFolder.Title = title
+                subFolder.Summary = summary
+                subFolder.Kind = kind
+                subFolder.Group = group) in
 
-    select case self.Status
-    case FS_USER_ROOT_FOLDER
-        subfolder = user.AllFolders.newElement(f | f.Status = FS_USER_FOLDER)
-    case FS_USER_FOLDER
-        subfolder = user.AllFolders.newElement(element.Status = FS_USER_FOLDER)
-    case FS_GROUP_ROOT_FOLDER
-        subfolder = group.AllFolders.newElement(element.Status = FS_GROUP_FOLDER)
-    case FS_GROUP_FOLDER
-        subfolder = group.AllFolders.newElement(element.Status = FS_GROUP_FOLDER)
-    case else
-        subfolder = user.AllFolders.newElement(element.Status = FS_USER_FOLDER)
-    end select
+    result = self.AttachFolderInt(subFolder, order)
 
 
-    subfolder.Title = title
-    subfolder.Summary = summary
-    subfolder.Kind = kind
-
-    let link: FolderFolder = self.Folders.newElement(ff| ff.Folder = subfolder)
-
-    if order <> 0 then
-        link.Order = order
-    end if
-
-    result = link
 
 
 
@@ -233,7 +317,7 @@ post:
     self.InFolders.removeAll    -- links leading to me
     self.delete
 
-context Folder::DettachSubFolder(folderLink: FolderFolder)
+context Folder::DettachsubFolder(folderLink: FolderFolder)
 pre:
     folderLink.InFolder.Id = self.Id
 post:
@@ -255,16 +339,16 @@ post:
     end if
 
 
-context Folder::CopySubFolderToBasket(folderLink: FolderFolder): FolderFolder
+context Folder::CopysubFolderToBasket(folderLink: FolderFolder): FolderFolder
 post:
     let folder: Folder = folderLink.Folder
     result = folder.CopyToBasket()
 
 
-context Folder::CutSubFolderToBasket(folderLink: FolderFolder): FolderFolder
+context Folder::CutsubFolderToBasket(folderLink: FolderFolder): FolderFolder
 post:
-    result = self.CopySubFolderToBasket(folderLink)
-    self.DettachSubFolder(folderLink)
+    result = self.CopysubFolderToBasket(folderLink)
+    self.DettachsubFolder(folderLink)
 
 context Folder::DettachAllContent
 post:
@@ -279,12 +363,17 @@ post:
         if order = 0 then
             order = self.Folders.max(element.Order) + ORDER_STEP
         end if
-
-        self.Folders.newElement(e | e.Folder=folder and e.Order=order)
+        self.AttachFolderInt(folder, order)
         result = true
     else
         result = false
     end if
+
+context Folder::AttachFolderInt(subFolder: Folder, order: integer): FolderFolder
+post:
+    let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder)
+    subFolder.RecalculateStatus
+
 
 context Folder::AttachNote(note: Note, optional order: integer = 0) : boolean
 post:
@@ -526,8 +615,6 @@ post:
     self.Folder.Summary = value
 
 
-constraint FolderFolder::Folder
-    self.FolderId = element.Id
 
 
 context FolderFolder::href: string

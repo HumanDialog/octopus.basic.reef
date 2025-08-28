@@ -10,7 +10,7 @@ const NS_PUBLISHED_NOTE = 10
 const NS_PUBLIC            = 100
 
 class Note
-protected: 
+protected:
     Title(128):             string
     Summary(196):	        string
     Tags(64):               string
@@ -90,21 +90,22 @@ post:
     self.ModificationDate.SetUTCDate()
     self.ModifiedBy = user
 
-context Note::Title_Set(val: string)
+context Note::Title_SetX(val: string)
 post:
     self.Title = val
-    self.UpdateMetaInfo()
+
 
 -- to remove
 context Note::SetTitle(val: string)
 post:
-    self.Title_Set(val)
+    self.Title = val
+    self.UpdateMetaInfo()
 
-context Note::Title_Get(): string
+context Note::GetTitle(): string
 post:
     result = self.Title
 
-context Note::Summary_Set(val: string)
+context Note::Summary_SetX(val: string)
 post:
     self.Summary = val
     self.UpdateMetaInfo()
@@ -112,9 +113,9 @@ post:
 -- to remove
 context Note::SetSummary(val: string)
 post:
-    self.Summary_Set(val)
+    self.Summary = val
 
-context Note::Summary_Get(): string
+context Note::GetSummary(): string
 post:
     result = self.Summary
 
