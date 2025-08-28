@@ -1,3 +1,8 @@
+context App::Kick(label: string)
+post:
+    Kick(label)
+
+
 context App::CreateTilosCommunityGroup : Group
 post:
     let tilosCommunity: Group = new Group

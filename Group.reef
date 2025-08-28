@@ -44,6 +44,29 @@ post:
     self.CreateList("Things to do")
 
 
+-- framework callbak invoked when Group is created. 
+-- variables 'user' and 'group' are  set. supervisor access rights.
+context Group::InitGroup()
+post:
+    -- tasklists
+    self.VerifyTaskLists()
+
+    -- folders
+    user.VerifyFolders()
+
+    if self.Folders.first = 0 then
+        self.NewFolder("Notes")
+        self.NewFolder("Projects")
+    end if
+
+    -- messages
+    if  self.MessageChannels.first = 0 then
+      self.AddGeneralMessageChannel("Announcements")
+      self.AddGeneralMessageChannel("General")
+      self.AddGeneralMessageChannel("Random")
+  end if
+
+
 constraint Group::Lists
     element.GroupId = self.Id and element.Status = TLS_GROUP_ACTIVE_LIST
 
@@ -123,9 +146,7 @@ post:
 
 context Group::CreateList(name: string, optional order: integer = 0): TaskList
 post:
-    let list: TaskList = new TaskList
-    self.Lists.insert(list)
-
+    let list: TaskList = self.Lists.newElement
     list.Kind = TLK_KANBAN_CHECKLIST
     list.TaskStates = self.GetChecklistDefaultColumns().ToString()
     list.Name = name
