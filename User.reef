@@ -67,6 +67,13 @@ post:
 
     result = self.PinnedFolders
 
+context User::GetSharedFolders: Folder
+post:
+    if self.SharedFolders.isNull then
+        self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+    end if
+    result = self.SharedFolders
+
 
 context User::FinishTasks()
 post:

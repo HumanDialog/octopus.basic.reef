@@ -1,6 +1,7 @@
 
 
-const FS_PUBLIC_FOLDER              = 10
+const FS_PUBLIC_ROOT_FOLDER         = 15
+const FS_PUBLIC_FOLDER              = 16
 const FS_USER_ROOT_FOLDER           = 101
 const FS_GROUP_ROOT_FOLDER          = 102
 const FS_PINNED_ROOT_FOLDER         = 103
@@ -80,17 +81,25 @@ class FolderTask
     Task(0..1):     Task   <backNav: InFolders[0..n]>
 end class
 
+
 constraint Folder::Folders
     element.InFolderId = self.Id
 
 constraint FolderFolder::Folder
     self.FolderId = element.Id
 
-context FolderFolder
-inv:
-    self.User = self.InFolder.User
-inv:
-    self.Group = self.InFolder.Group
+constraint FolderFolder::Group
+    self.GroupId = element.Id
+
+constraint FolderFolder::User
+    self.UserId = element.Id
+
+
+--context FolderFolder
+--inv:
+--    self.User = self.InFolder.User
+--inv:
+--    self.Group = self.InFolder.Group
 
 
 
@@ -190,19 +199,33 @@ post:
         self.Group = group
     end if
 
+context App::st(i: integer): string
+post:
+    select case i
+    case 1,2,3,4
+        result = "Malo"
+    case 5,6
+        result = "Sporo"
+    case else
+        result = "Dużo"
+    end select
 
 context Folder::RecalculateStatusRec
 post:
-    if self.Status < FSX_IN_CALCULATION then
+    select case self.Status
+    case FS_USER_ROOT_FOLDER, FS_GROUP_ROOT_FOLDER, FS_PINNED_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER, FS_PUBLIC_ROOT_FOLDER
+        --self.Status = self.Status + FSX_IN_CALCULATION 'Forbidden - breaks constraints
+        self.Folders.forAll(element.Folder.RecalculateStatusRec)
+    case FS_PUBLIC_FOLDER,FS_USER_FOLDER, FS_USER_SHARED_FOLDER, FS_GROUP_SHARED_FOLDER
         self.Status = self.CalculateStatus + FSX_IN_CALCULATION
         self.Folders.forAll(element.Folder.RecalculateStatusRec)
-    end if
+    end select
 
-context Folder::CommitStatus
+context Folder::CommitStatusRec
 post:
     if self.Status > FSX_IN_CALCULATION then
         self.Status = self.Status - FSX_IN_CALCULATION
-        self.Folders.forAll(element.Folder.CommitStatus)
+        self.Folders.forAll(element.Folder.CommitStatusRec)
     end if
 
 context Folder::IsGroupFolder: boolean

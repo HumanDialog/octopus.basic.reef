@@ -18,10 +18,7 @@ post:
 
   --group.AddGeneralMessageChannels
 
-context User::VerifyFolders()
-post:
-      self.GetPinnedFolders
-      self.GetBasketFolder
+
 
 context Group::VerifyTaskLists()
 post:
@@ -47,15 +44,6 @@ post:
   end if
 
 
-context Group::VerifyFolders()
-post:
-  if self.Folders.first = 0 then
-    self.NewFolder("Notes")
-    self.NewFolder("Projects")
-  end if
-  if self.Folders.select(element.Kind = FK_DISCUSSION).first = 0 then
-    self.CreateSimpleDiscussionsStructure
-  end if
 
 context Group::CreateSimpleDiscussionsStructure(): Folder
 post:

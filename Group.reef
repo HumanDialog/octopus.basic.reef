@@ -44,7 +44,7 @@ post:
     self.CreateList("Things to do")
 
 
--- framework callbak invoked when Group is created. 
+-- framework callbak invoked when Group is created.
 -- variables 'user' and 'group' are  set. supervisor access rights.
 context Group::InitGroup()
 post:
