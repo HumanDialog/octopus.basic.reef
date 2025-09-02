@@ -96,35 +96,35 @@ context Group::GetPredefinedTaskStates(): JsonObject
 post:
     result = [
          {
-            name: "Unspecified",
+            name: "__;en: Unspecified; es: Sin especificar; pl: Nieokreślone",
             state: STATE_UNSPECIFIED
         },
         {
-            name: "In preparation",
+            name: "__; en: In preparation: es: En preparación; pl: W przygotowaniu",
             state: STATE_IN_PREPARATION
         },
         {
-            name: "Planned",
+            name: "__; en: Planned; es: Planificado; pl: Planowane",
             state: STATE_PLANNED
         },
         {
-            name: "Ready",
+            name: "__; en: Ready; es: Listo; pl: Gotowe",
             state: STATE_READY
         },
         {
-            name: "Executing",
+            name: "__; en: Executing; es: En ejecución; pl: W trakcie",
             state: STATE_EXECUTING
         },
         {
-            name: "Finished",
+            name: "__; en: Finished; es: Finalizado; pl: Zakończone",
             state: STATE_FINISHED
         },
         {
-            name: "Closed",
+            name: "__; en: Closed; es: Cerrado; pl: Zamknięte",
             state: STATE_CLOSED
         },
         {
-            name: "Archived",
+            name: "__; en: Archived; es: Archivado; pl: Archiwizowane",
             state: STATE_ARCHIVED
         }
     ]
@@ -134,11 +134,11 @@ context Group::GetChecklistDefaultColumns(): JsonObject
 post:
     let checkColumns :JsonObject = [
         {
-            name: 'To do',
+            name: '__; en: To do; es: Por hacer; pl: Do zrobienia',
             state: STATE_UNSPECIFIED
         },
         {
-            name: 'Finished',
+            name: '__; en: Finished; es: Terminado; pl: Zakończone',
             state: STATE_FINISHED
         }
     ]
@@ -158,15 +158,15 @@ context Group::GetTaskListTypes: JsonObject
 post:
     -- simple predefined:
     let checkList: JsonObject = {
-        Name: 'List',
-        Summary: 'Simple task list',
+        Name: '__; en: List; es: Lista; pl: Lista',
+        Summary: '__; en: Simple task list; es: Lista de tareas simple; pl: Prosta lista zadań',
         Kind: TLK_LIST,
         TaskStates: []
     }
 
     let simplaBoard: JsonObject = {
-        Name: 'Board',
-        Summary: 'Simple kanban board',
+        Name: '__; en: Board; es: Tablero; pl: Tablica',
+        Summary: '__; en: Simple kanban board; es: Tablero kanban simple; pl: Prosta tablica kanban',
         Kind: TLK_KANBAN_CHECKLIST,
         TaskStates: self.GetChecklistDefaultColumns()
     }
@@ -177,23 +177,23 @@ post:
         Kind: TLK_KANBAN_PROCESS,
         TaskStates: [
             {
-                name: "Preparing",
+                name: "__; en: Preparing; es: Preparación; pl: W przygotowaniu",
                 state: STATE_IN_PREPARATION
             },
             {
-                name: "Ready",
+                name: "__; en: Ready; es: Listo; pl: Gotowe",
                 state: STATE_PLANNED
             },
             {
-                name: "Under work",
+                name: "__; en: Under work; es: En proceso; pl: W trakcie",
                 state: STATE_EXECUTING
             },
             {
-                name: "To check",
+                name: "__; en: To check; es: Para comprobar; pl: Do sprawdzenia",
                 state: 5000
             },
             {
-                name: "Finished",
+                name: "__; en: Finished; es: Terminado; pl: Zakończone",
                 state: STATE_FINISHED
             }
         ]
@@ -201,19 +201,19 @@ post:
 
 
     let ideasList: JsonObject = {
-        Name: 'Ideas',
+        Name: '__; en: Ideas; es: Ideas; pl: Pomysły',
         Kind: TLK_KANBAN_PROCESS,
         TaskStates: [
             {
-                name: "Notes",
+                name: "__; en: Notes; es: Notas; pl: Notatki",
                 state: STATE_IN_PREPARATION
             },
             {
-                name: "Spec",
+                name: "__; en: Specifying; es: Especificar; pl: Specyfikowanie",
                 state: STATE_EXECUTING
             },
             {
-                name: "Knowledge",
+                name: "__; en: Knowledge; es: Conocimiento; pl: Wiedza",
                 state: STATE_FINISHED
             }
         ]
