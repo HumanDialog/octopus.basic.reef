@@ -340,11 +340,13 @@ post:
     self.InFolders.removeAll    -- links leading to me
     self.delete
 
-context Folder::DettachsubFolder(folderLink: FolderFolder)
+context Folder::DettachSubFolder(folderLink: FolderFolder)
 pre:
     folderLink.InFolder.Id = self.Id
 post:
+    let folder: Folder = folderLink.Folder
     folderLink.delete
+    folder.RecalculateStatus
 
 context Folder::DeletePermanentlyFolder(folderLink: FolderFolder)
 post:
