@@ -1,6 +1,6 @@
 context App::Kick(label: string)
 post:
-    Kick(label)
+    --Kick(label)
 
 
 context App::CreateTilosCommunityGroup : Group
@@ -45,7 +45,7 @@ post:
     let ganttDiscussions :FolderFolder = discussions.Folders.select(element.Title = "Gantt Charts").first
     ganttDiscussions.Folder.MakeSampleDiscussion()
 
-    
+
 
     self.AddBasicSampleStuff()
 
@@ -225,7 +225,7 @@ post:
 
     self.AttachPost(originalPost, "Sample post no. " + num, "", content, "")
 
-    
+
 
 
 context Group::CreateMember(name: string, login: string): User

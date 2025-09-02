@@ -3,9 +3,42 @@ post:
   system.allInstances("MessageChannel").select(element.Status = 0).removeAll
 
 
-context App::VerifyFoldersAccess
+context App::VerifyFolders
 post:
-  app.Users.forAll(u | u.AllFolders.forAll(f | f.RecalculateStatusRec))
-  app.Groups.forAll(g | g.AllFolders.forAll(f | f.RecalculateStatusRec))
-  app.Users.forAll(u | u.AllFolders.forAll(f | f.RecalculateStatusRec))
-  app.Groups.forAll(g | g.AllFolders.forAll(f | f.RecalculateStatusRec))
+  self.PublicFolders.forAll(f | f.RecalculateStatusRec)
+  self.PublicFolders.forAll(f | f.CommitStatusRec)
+
+  self.Groups.forAll(g | g.VerifyFolders)
+  self.Users.forAll(u | u.VerifyFolders)
+
+context Group::VerifyFolders
+post:
+  if self.SharedFolders.isNull then
+    self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+  end if
+  self.SharedFolders.RecalculateStatusRec
+  self.SharedFolders.CommitStatusRec
+
+  if self.Folders.first = 0 then
+    self.NewFolder("Notes")
+    self.NewFolder("Projects")
+  end if
+
+  if self.Folders.select(element.Kind = FK_DISCUSSION).first = 0 then
+    self.CreateSimpleDiscussionsStructure
+  end if
+
+  self.AllFolders.forAll(f | f.RecalculateStatusRec)
+  self.AllFolders.forAll(f | f.CommitStatusRec)
+
+
+context User::VerifyFolders
+post:
+  self.GetSharedFolders.RecalculateStatusRec
+  self.GetSharedFolders.CommitStatusRec
+  self.GetPinnedFolders.RecalculateStatusRec
+  self.GetPinnedFolders.CommitStatusRec
+  self.GetBasketFolder.RecalculateStatusRec
+  self.GetBasketFolder.CommitStatusRec
+  self.AllFolders.forAll(f | f.RecalculateStatusRec)
+  self.AllFolders.forAll(f | f.CommitStatusRec)
