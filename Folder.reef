@@ -373,7 +373,7 @@ post:
 context Folder::CutsubFolderToBasket(folderLink: FolderFolder): FolderFolder
 post:
     result = self.CopysubFolderToBasket(folderLink)
-    self.DettachsubFolder(folderLink)
+    self.DettachSubFolder(folderLink)
 
 context Folder::DettachAllContent
 post:
