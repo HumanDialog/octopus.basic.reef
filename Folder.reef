@@ -364,15 +364,15 @@ post:
     end if
 
 
-context Folder::CopysubFolderToBasket(folderLink: FolderFolder): FolderFolder
+context Folder::CopySubFolderToBasket(folderLink: FolderFolder): FolderFolder
 post:
     let folder: Folder = folderLink.Folder
     result = folder.CopyToBasket()
 
 
-context Folder::CutsubFolderToBasket(folderLink: FolderFolder): FolderFolder
+context Folder::CutSubFolderToBasket(folderLink: FolderFolder): FolderFolder
 post:
-    result = self.CopysubFolderToBasket(folderLink)
+    result = self.CopySubFolderToBasket(folderLink)
     self.DettachSubFolder(folderLink)
 
 context Folder::DettachAllContent
