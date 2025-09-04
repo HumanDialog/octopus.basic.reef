@@ -1,6 +1,6 @@
 context App::Kick(label: string)
 post:
-    --Kick(label)
+    Kick(label)
 
 
 context App::CreateTilosCommunityGroup : Group
@@ -78,7 +78,7 @@ post:
 
 context Group::CreateDiscussionsStructrure(): Folder
 post:
-    let discussions: Folder = self.Folders.newElement(element.Title = "Dissusions" and element.Summary="Ongoing support questions")
+    let discussions: Folder = self.Folders.newElement(element.Title = "Discussions" and element.Summary="Ongoing support questions")
     discussions.Kind = FK_DISCUSSION
 
     let link: FolderFolder

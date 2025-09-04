@@ -41,7 +41,7 @@ post:
 context Group::OnAfterCreate
 post:
     self.ListIndexPrefix = 'OCT'
-    self.CreateList("Things to do")
+    self.CreateList("__; en: Things to do; es: Cosas por hacer; pl: Rzeczy do zrobienia")
 
 
 -- framework callbak invoked when Group is created.
@@ -55,15 +55,15 @@ post:
     user.VerifyFolders()
 
     if self.Folders.first = 0 then
-        self.NewFolder("Notes")
-        self.NewFolder("Projects")
+        self.NewFolder("__; en: Notes; es: Notas; pl: Notatki")
+        self.NewFolder("__; en: Projects; es: Proyectos; pl: Projekty")
     end if
 
     -- messages
     if  self.MessageChannels.first = 0 then
-      self.AddGeneralMessageChannel("Announcements")
-      self.AddGeneralMessageChannel("General")
-      self.AddGeneralMessageChannel("Random")
+      self.AddGeneralMessageChannel("__; en: Announcements; es: Anuncios; pl: Ogłoszenia")
+      self.AddGeneralMessageChannel("__; en: General; es: General; pl: Ogólny")
+      self.AddGeneralMessageChannel("__; en: Random; es: Varios; pl: Różne")
   end if
 
 

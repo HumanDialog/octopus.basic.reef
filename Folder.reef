@@ -595,13 +595,13 @@ post:
     self.DettachAllContent()
 
 
-context Folder::AddPost(title: string, summary: string, content: string, tags: string): string
+context Folder::AddPost(title: string, summary: string, content: string, tags: string): Note
 post:
     let note: Note = user.CreatedNotes.newElement
     result = self.AttachPost(note, title, summary, content, tags)
 
 admin
-context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): string
+context Folder::AttachPost(note: Note, title: string, summary: string, content: string, tags: string): Note
 post:
     note.Kind = NK_THREAD
     note.Title = title
@@ -613,7 +613,7 @@ post:
     let maxOrder: integer = self.Notes.max(element.Order)
     self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
     note.UpdateLatestGroupActivity()
-    result = note.href()
+    result = note
 
 
 

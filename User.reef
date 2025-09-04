@@ -53,7 +53,7 @@ context User::GetBasketFolder: Folder
 post:
 
     if self.BasketFolder.isNull then
-        self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Clipboard" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = "__; en: Clipboard; es: Portapapeles; pl: Schowek" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
     end if
 
     result = self.BasketFolder
@@ -134,7 +134,7 @@ post:
     let channel: MessageChannel = self.FindDirectMessageChannel(toWhom)
 
     if channel = 0 then
-        channel = self.NewPrivateMessageChannel(self.Name + " and " + toWhom.Name)
+        channel = self.NewPrivateMessageChannel(self.Name + ", " + toWhom.Name)
         toWhom.AttachToChannel(channel)
     end if
 
