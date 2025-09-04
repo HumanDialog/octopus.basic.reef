@@ -144,13 +144,14 @@ post:
     ]
     result = checkColumns
 
-context Group::CreateList(name: string, optional order: integer = 0): TaskList
+context Group::CreateList(name: string, optional order: integer = 0, optional summary: string = ''): TaskList
 post:
     let list: TaskList = self.Lists.newElement
     list.Kind = TLK_KANBAN_CHECKLIST
     list.TaskStates = self.GetChecklistDefaultColumns().ToString()
     list.Name = name
     list.Order = order
+    list.Summary = summary
 
     result = list
 
