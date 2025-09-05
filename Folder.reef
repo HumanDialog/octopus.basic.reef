@@ -48,6 +48,21 @@ class Folder
     TasksCount:         integer
 end class
 
+class FolderElement
+    Title(128):         string
+    Kind:               integer
+    Order:              integer
+    Pos(8):             string
+    Group:              Group       <backNav: FolderElements>
+    User:               User        <backNav: FolderElements>
+    Folder(0..1):       Folder      <backNav: UpFolders[0..n]>
+    InFolder(0..1):     Folder      <backNav: Elements[0..n]>
+    GroupId:            integer
+    UserId:             integer
+    InFolderId:         integer
+    FolderId:           integer
+end class
+
 
 class FolderFolder
     Title(128):         string
