@@ -90,27 +90,18 @@ post:
     self.ModificationDate.SetUTCDate()
     self.ModifiedBy = user
 
-context Note::Title_SetX(val: string)
-post:
-    self.Title = val
 
-
--- to remove
 context Note::SetTitle(val: string)
 post:
     self.Title = val
     self.UpdateMetaInfo()
 
+
 context Note::GetTitle(): string
 post:
     result = self.Title
 
-context Note::Summary_SetX(val: string)
-post:
-    self.Summary = val
-    self.UpdateMetaInfo()
 
--- to remove
 context Note::SetSummary(val: string)
 post:
     self.Summary = val
@@ -119,40 +110,33 @@ context Note::GetSummary(): string
 post:
     result = self.Summary
 
-context Note::Tags_Set(val: string)
+context Note::SetTags(val: string)
 post:
     self.Tags = val
     self.UpdateMetaInfo()
 
--- to remove
-context Note::SetTags(val: string)
-post:
-    self.Tags_Set(val)
 
-context Note::Tags_Get(): string
+context Note::GetTags: string
 post:
     result = self.Tags
 
-context Note::Index_Set(val: string)
+
+context Note::SetIndex(val: string)
 post:
     self.Index = val
     self.UpdateMetaInfo()
 
--- to remove
-context Note::SetIndex(val: string)
-post:
-    self.Index_Set(val)
 
-context Note::Index_Get: string
+context Note::GetIndex: string
 post:
     result = self.Index
 
 
-context Note::Content_Get: string
+context Note::GetContent: string
 post:
     result = self.Content
 
-context Note::Content_Set(val: string)
+context Note::SetContent(val: string)
 post:
     self.Content = val
 
@@ -161,11 +145,6 @@ post:
     end if
 
     self.UpdateMetaInfo()
-
--- to remove
-context Note::SetContent(val: string)
-post:
-    self.Content_Set(val)
 
 
 context Note::AddPost(content: string): NoteNote

@@ -47,7 +47,7 @@ post:
 
 context Group::CreateSimpleDiscussionsStructure(): Folder
 post:
-    let discussions: Folder = self.Folders.newElement(element.Title = "Dissusions" and element.Summary="Ongoing support questions")
+    let discussions: Folder = self.Folders.newElement(element.Title = "__; en: Discussions; es: Debates; pl: Dyskusje" and element.Summary="__; en: Ongoing support questions; es: Preguntas sobre asistencia continua; pl: Bieżące pytania dotyczące wsparcia")
     discussions.Kind = FK_DISCUSSION
 
     let link: FolderFolder
