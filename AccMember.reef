@@ -117,7 +117,7 @@ context MessageChannel::AccMember
 post:
     if self.Group = group then
         result = ACC_READ
-    else if self.Users.exists(element.Id = user.Id) then
+    else if self.Users.exists(element.UserId = user.Id) then
         result = ACC_READ
     end if
     end if
