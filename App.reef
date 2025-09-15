@@ -2,12 +2,15 @@
 class App
     Users<all>:     User
     Groups<all>:    Group
+    PublicFolders(0..n):  Folder
 
 --public DEMO:
     PublicGroups(0..n): Group
 
-end class 
+end class
 
 constraint App::PublicGroups
     element.IsPublic = true
 
+constraint App::PublicFolders
+    element.Status = FS_PUBLIC_ROOT_FOLDER

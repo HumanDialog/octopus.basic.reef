@@ -82,7 +82,7 @@ post:
     else if self.IsPublic then
         result = ACC_READWRITE
     else
-        if self.IsShared then
+        if self.IsSharedGroupFolder then
             if self.InFolders.exists(element.GroupId = group.Id) then
                 result = ACC_READ
             end if

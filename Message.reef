@@ -128,6 +128,12 @@ post:
         self.Users.select(element.User <> user ).forAll(element.UnreadMessagesNo = element.UnreadMessagesNo + 1)
     end if
 
+    Kick(self.KickLabel)
+
+context MessageChannel::KickLabel: string
+post:
+    result = "MsgC_" + self.Id
+
 context MessageChannel::Subscribe
 post:
     self.SubscribeA

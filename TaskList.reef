@@ -182,11 +182,11 @@ post:
     else
         result = [
             {
-                name: 'To Do',
+                name: '__; en: To do; es: Por hacer; pl: Do zrobienia',
                 state: STATE_UNSPECIFIED
             },
             {
-                name: 'Finished',
+                name: '__; en: Finished; es: Terminado; pl: Zakończone',
                 state: STATE_FINISHED
             }
         ]

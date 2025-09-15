@@ -18,10 +18,7 @@ post:
 
   --group.AddGeneralMessageChannels
 
-context User::VerifyFolders()
-post:
-      self.GetPinnedFolders
-      self.GetBasketFolder
+
 
 context Group::VerifyTaskLists()
 post:
@@ -47,19 +44,10 @@ post:
   end if
 
 
-context Group::VerifyFolders()
-post:
-  if self.Folders.first = 0 then
-    self.NewFolder("Notes")
-    self.NewFolder("Projects")
-  end if
-  if self.Folders.select(element.Kind = FK_DISCUSSION).first = 0 then
-    self.CreateSimpleDiscussionsStructure
-  end if
 
 context Group::CreateSimpleDiscussionsStructure(): Folder
 post:
-    let discussions: Folder = self.Folders.newElement(element.Title = "Dissusions" and element.Summary="Ongoing support questions")
+    let discussions: Folder = self.Folders.newElement(element.Title = "__; en: Discussions; es: Debates; pl: Dyskusje" and element.Summary="__; en: Ongoing support questions; es: Preguntas sobre asistencia continua; pl: Bieżące pytania dotyczące wsparcia")
     discussions.Kind = FK_DISCUSSION
 
     let link: FolderFolder

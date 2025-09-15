@@ -16,6 +16,7 @@ class User
     AllFolders(0..n):       Folder              <backNav: Owner>
     PinnedFolders:          Folder
     BasketFolder:           Folder
+    SharedFolders:          Folder
     MessageChannels[0..n]:  MessageChannelUser      <backNav: User>
     AllMessageChannels[0..n]:  MessageChannelUser   <backNav: Owner>
     CreatedNotes(0..n):     Note                <backNav: CreatedBy>
@@ -26,6 +27,9 @@ end class
 
 constraint User::PinnedFolders
     element.UserId = self.Id and element.Status = FS_PINNED_ROOT_FOLDER
+
+constraint User::SharedFolders
+    element.UserId = self.Id and element.Status = FS_USER_ROOT_SHARED_FOLDER
 
 constraint User::BasketFolder
     element.UserId = self.Id and element.Status = FS_BASKET_ROOT_FOLDER
@@ -49,7 +53,7 @@ context User::GetBasketFolder: Folder
 post:
 
     if self.BasketFolder.isNull then
-        self.BasketFolder = self.AllFolders.newElement(e | e.Title = self.Name + " Clipboard" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
+        self.BasketFolder = self.AllFolders.newElement(e | e.Title = "__; en: Clipboard; es: Portapapeles; pl: Schowek" and e.Status = FS_BASKET_ROOT_FOLDER and e.Kind = FK_BASKET)
     end if
 
     result = self.BasketFolder
@@ -62,6 +66,13 @@ post:
     end if
 
     result = self.PinnedFolders
+
+context User::GetSharedFolders: Folder
+post:
+    if self.SharedFolders.isNull then
+        self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+    end if
+    result = self.SharedFolders
 
 
 context User::FinishTasks()
@@ -123,7 +134,7 @@ post:
     let channel: MessageChannel = self.FindDirectMessageChannel(toWhom)
 
     if channel = 0 then
-        channel = self.NewPrivateMessageChannel(self.Name + " and " + toWhom.Name)
+        channel = self.NewPrivateMessageChannel(self.Name + ", " + toWhom.Name)
         toWhom.AttachToChannel(channel)
     end if
 
@@ -138,3 +149,17 @@ post:
 context User::href: string
 post:
     result = '/profile/' + self.Id
+
+
+context User::GetSubscribedChannelsKickLabels: JsonObject
+post:
+    result = []
+    --self.MessageChannels.forAll(ch | 
+    --    result = [..., ch.MessageChannel.KickLabel])
+
+    self.AllMessageChannels.forAll(ch | 
+        result = [..., ch.MessageChannel.KickLabel])
+
+context User::GetUnreadMessagesNo: integer
+post:
+    result = self.AllMessageChannels.sum(element.UnreadMessagesNo)

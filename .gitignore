@@ -6,4 +6,5 @@ bin/release/*
 build_output.txt
 .reef/*
 !.reef/app_id
-!.reef/mini_app_id
+!.reef/basic.objectreef.dev_app_id
+!.reef/octopus.objectreef.dev_app_id
