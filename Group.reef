@@ -231,13 +231,13 @@ post:
 
     ------------ Messages -------------
 
-context Group::AddGeneralMessageChannel(title: string, optional order: integer): MessageChannel
+context Group::AddGeneralMessageChannel(title: string, optional order: integer=0, optional summary: string = ''): MessageChannel
 post:
     if order = 0 then
         order = self.MessageChannels.max(element.Order) + ORDER_STEP
     end if
 
-    result = self.MessageChannels.newElement(element.Title = title and element.Order = order)
+    result = self.MessageChannels.newElement(element.Title = title and element.Order = order and element.Summary = summary)
 
 context Group::GetPossibleDirectChannelUsers(optional excludeExisting: boolean = false): JsonObject
 post:

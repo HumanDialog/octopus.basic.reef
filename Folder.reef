@@ -270,6 +270,10 @@ post:
 
 ------------------------------------------------------------------------------------
 
+context Folder::IsRootPinned: boolean
+post:
+    result = (self.Status = FS_PINNED_ROOT_FOLDER)
+
 context Folder::IsPinned: boolean
 post:
     result = user.PinnedFolders.Folders.exists(element.Folder.Id = self.Id)
@@ -286,7 +290,7 @@ post:
 
 
 
-context Folder::CreateSubFolderEx(properties: JsonObject) : FolderFolder
+context Folder::CreateSubFolderExX(properties: JsonObject) : FolderFolder
 post:
     result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)
 
@@ -396,8 +400,9 @@ post:
 
 context Folder::AttachFolderInt(subFolder: Folder, order: integer): FolderFolder
 post:
-    let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder)
+    let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder and ff.Order = order)
     subFolder.RecalculateStatus
+    result = link
 
 
 context Folder::AttachNote(note: Note, optional order: integer = 0) : boolean

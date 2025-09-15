@@ -149,3 +149,17 @@ post:
 context User::href: string
 post:
     result = '/profile/' + self.Id
+
+
+context User::GetSubscribedChannelsKickLabels: JsonObject
+post:
+    result = []
+    --self.MessageChannels.forAll(ch | 
+    --    result = [..., ch.MessageChannel.KickLabel])
+
+    self.AllMessageChannels.forAll(ch | 
+        result = [..., ch.MessageChannel.KickLabel])
+
+context User::GetUnreadMessagesNo: integer
+post:
+    result = self.AllMessageChannels.sum(element.UnreadMessagesNo)
