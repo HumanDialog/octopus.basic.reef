@@ -728,6 +728,9 @@ context FolderNote::NotesCount: integer
 post:
     result = self.Note.NotesCount
 
+context FolderNote::IsPinned: boolean
+post:
+    result = self.Note.IsPinned
 
 -- ==============================================================================
 
@@ -761,3 +764,7 @@ post:
 context FolderTask::State: string
 post:
     result = self.Task.State
+
+context FolderTask::IsPinned: boolean
+post:
+    result = self.Task.IsPinned

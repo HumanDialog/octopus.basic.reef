@@ -101,6 +101,13 @@ context Note::GetTitle(): string
 post:
     result = self.Title
 
+--context Note::Title_Set(val: string)
+--post:
+--    self.SetTitle(val)
+--
+--context Note::Title_Get(): string
+--post:
+--    result = self.GetTitle()
 
 context Note::SetSummary(val: string)
 post:
@@ -109,6 +116,14 @@ post:
 context Note::GetSummary(): string
 post:
     result = self.Summary
+
+--context Note::Summary_Set(val: string)
+--post:
+--    self.SetSummary(val)
+--
+--context Note::Summary_Get(): string
+--post:
+--    result = self.GetSummary()
 
 context Note::SetTags(val: string)
 post:
@@ -121,6 +136,14 @@ post:
     result = self.Tags
 
 
+--context Note::Tags_Set(val: string)
+--post:
+--    self.SetTags(val)
+--
+--context Note::Tags_Get(): string
+--post:
+--    result = self.GetTags()
+
 context Note::SetIndex(val: string)
 post:
     self.Index = val
@@ -131,6 +154,13 @@ context Note::GetIndex: string
 post:
     result = self.Index
 
+--context Note::Index_Set(val: string)
+--post:
+--    self.SetIndex(val)
+--
+--context Note::Index_Get: stirng
+--post:
+--    result = self.GetIndex()
 
 context Note::GetContent: string
 post:
@@ -146,6 +176,14 @@ post:
 
     self.UpdateMetaInfo()
 
+
+--context Note::Content_Set(val: string)
+--post:
+--    self.SetContent(val)
+--
+--context Note::Content_Get(): string
+--post:
+--    result = self.GetContent
 
 context Note::AddPost(content: string): NoteNote
 pre:
@@ -221,6 +259,30 @@ post:
         let maxOrder: integer = basket.Notes.max(element.Order)
         result = basket.Notes.newElement(e | e.Note = self and e.Order = maxOrder + ORDER_STEP)
     end if
+
+
+context Note::TogglePinned : FolderNote
+post:
+    let pinnedLink :FolderNote = user.PinnedFolders.Notes.select(element.Note.Id = self.Id).first
+    if pinnedLink <> null then
+        pinnedLink.delete
+        result = null
+    else
+        let maxOrder: integer = 0
+        if user.PinnedFolders.Notes.count > 0 then
+            maxOrder = user.PinnedFolders.Notes.max(element.Order)
+        else
+            maxOrder = user.PinnedFolders.Folders.max(element.Order)    
+        end if
+
+        result = user.PinnedFolders.Notes.newElement(e | e.Note = self and e.Order = maxOrder+ORDER_STEP)
+    end if
+
+
+context Note::IsPinned: boolean
+post:
+    result = user.PinnedFolders.Notes.exists(element.Note.Id = self.Id)
+
 
 -- ----------------------------------------------------------------------------------------------------------------
 

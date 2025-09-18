@@ -65,7 +65,7 @@ constraint Task::TaskList
 
 context Task::Finish()
 post:
-    self.State = STATE_FINISHED
+    self.ChangeTaskState(STATE_FINISHED)
 
 
 context Task::Archive()
@@ -91,29 +91,36 @@ post:
 
 context Task::ChangeTaskState(newState: integer)
 post:
-    self.State = newState
+    if self.State <> newState then
+        self.State = newState
+    end if
 
 context Task::ReduceStateToBase()
 post:
+    let newState: integer = -1
     if self.State < STATE_UNSPECIFIED then
-        self.State = STATE_UNSPECIFIED
+        newState = STATE_UNSPECIFIED
     else if self.State > STATE_UNSPECIFIED and self.State < STATE_IN_PREPARATION then
-        self.State = STATE_UNSPECIFIED
+        newState = STATE_UNSPECIFIED
     else if self.State > STATE_IN_PREPARATION and self.State < STATE_PLANNED then
-        self.State = STATE_IN_PREPARATION
+        newState = STATE_IN_PREPARATION
     else if self.State > STATE_PLANNED and self.State < STATE_READY then
-        self.State = STATE_PLANNED
+        newState = STATE_PLANNED
     else if self.State > STATE_READY and self.State < STATE_EXECUTING then
-        self.State = STATE_READY
+        newState = STATE_READY
     else if self.State > STATE_EXECUTING and self.State < STATE_FINISHED then
-        self.State = STATE_EXECUTING
+        newState = STATE_EXECUTING
     else if self.State > STATE_FINISHED and self.State < STATE_CLOSED then
-        self.State = STATE_FINISHED
+        newState = STATE_FINISHED
     else if self.State > STATE_CLOSED and self.State < STATE_ARCHIVED then
-        self.State = STATE_ARCHIVED
+        newState = STATE_ARCHIVED
     else if self.State > STATE_ARCHIVED then
-        self.State = STATE_ARCHIVED
+        newState = STATE_ARCHIVED
     end if  end if    end if     end if  end if   end if    end if     end if  end if
+
+    if newState >= 0 then
+        self.ChangeTaskState(newState)
+    end if
 
 
 context Task::MoveToList(list: TaskList, optional order: integer = 0)
@@ -132,3 +139,27 @@ post:
         let maxOrder: integer = basket.Tasks.max(element.Order)
         result = basket.Tasks.newElement(e | e.Task = self and e.Order = maxOrder + ORDER_STEP)
     end if
+
+context Task::TogglePinned : FolderTask
+post:
+    let pinnedLink :FolderTask = user.PinnedFolders.Tasks.select(element.Task.Id = self.Id).first
+    if pinnedLink <> null then
+        pinnedLink.delete
+        result = null
+    else
+        let maxOrder: integer = 0
+        if user.PinnedFolders.Tasks.count > 0 then
+            maxOrder = user.PinnedFolders.Tasks.max(element.Order)
+        else if user.PinnedFolders.Notes.count > 0 then
+            maxOrder = user.PinnedFolders.Notes.max(element.Order)
+        else
+            maxOrder = user.PinnedFolders.Folders.max(element.Order)    
+        end if
+        end if
+
+        result = user.PinnedFolders.Tasks.newElement(e | e.Task = self and e.Order = maxOrder+ORDER_STEP)
+    end if
+
+context Task::IsPinned: boolean
+post:
+    result = user.PinnedFolders.Tasks.exists(element.Task.Id = self.Id)
