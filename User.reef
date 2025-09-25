@@ -163,3 +163,15 @@ post:
 context User::GetUnreadMessagesNo: integer
 post:
     result = self.AllMessageChannels.sum(element.UnreadMessagesNo)
+
+context User::CreateMyTask(Title: string, optional Summary: string = "", optional UserOrder: integer = 0): Task
+post:
+    if UserOrder = 0 then
+        UserOrder = self.MyTasks.max(element.UserOrder) + ORDER_STEP
+    end if
+
+    result = self.CreatedTasks.newElement(t | 
+        t.Title = Title
+        t.Summary = Summary
+        t.UserOrder = UserOrder
+        t.Actor = self)

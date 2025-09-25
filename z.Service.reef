@@ -42,3 +42,8 @@ post:
   self.GetBasketFolder.CommitStatusRec
   self.AllFolders.forAll(f | f.RecalculateStatusRec)
   self.AllFolders.forAll(f | f.CommitStatusRec)
+
+context App::CorrectFoldersElementsOrder
+post:
+  self.Groups.forAll(element.AllFolders.forAll(f | f.ReorderElements()))
+  self.Users.forAll(element.AllFolders.forAll(f | f.ReorderElements()))

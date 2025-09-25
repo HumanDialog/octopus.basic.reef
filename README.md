@@ -33,6 +33,12 @@ At the end of the preparation, it is worth saving the data just created, so as n
 
 Now that our service is ready to use, you can send HTTP requests to it using any client, i.e. cURL, Postman or using one of the sample fronteds listed above.
 
+If you intend to use the service together with a Single-Page Application running in a browser using local authorization, also call: 
+
+`sys/logout?bl`
+
+so that access rights, user, and group are set based on X-Reef-... headers. 
+
 ## About ObjectReef
 ObjectReef is a complete platform to design, test and deploy any high performance backend services. It ensures robust, scalability and security with zero tech debt. That Model-driven developement solution offers you everything you need to develop, maintain, integrate and run the software without the advanced technical knowledge.
 
