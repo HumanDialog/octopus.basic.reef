@@ -288,8 +288,6 @@ post:
     end if
 
 
-
-
 context Folder::CreateSubFolderExX(properties: JsonObject) : FolderFolder
 post:
     result = self.CreateSubFolder(properties.Title, properties.Summary, properties.Order)

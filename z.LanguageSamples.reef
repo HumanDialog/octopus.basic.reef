@@ -2,3 +2,19 @@
 context TaskList::tt(): boolean
 post:
     result = self.TaskStates.isEmpty()
+
+context App::JS: string
+post:
+    let j: JsonObject = ["ala", "ma", "kota"]
+    result = j[1]
+
+
+context App::JD: string
+post:
+    let j: JsonObject = ["a", 2010.6.15, 135, 10.7]
+    let s:string =  j[0]
+    let i:integer = j[2]
+    --let n:currency =  j[3]
+    --let d:date =    j[1]
+
+    result = s + i
