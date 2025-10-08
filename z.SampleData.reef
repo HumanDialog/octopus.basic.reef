@@ -476,34 +476,39 @@ post:
     self.Folders.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
 
 
-context Folder::ReorderSubFolders()
+context Folder::ReorderSubFolders(optional fromOrder: integer = 0): integer
 post:
     let order: integer = MIN_USER_TASK_ORDER in
     self.Folders.orderedBy('Order').forAll(element.Order = order and order = order + 1)
-    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
     self.Folders.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+    
 
 
-context Folder::ReorderNotes()
+context Folder::ReorderNotes(optional fromOrder: integer = 0): integer
 post:
     let order: integer = MIN_USER_TASK_ORDER in
     self.Notes.orderedBy('Order').forAll(element.Order = order and order = order + 1)
-    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
     self.Notes.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
 
 
-context Folder::ReorderTasks()
+context Folder::ReorderTasks(optional fromOrder: integer = 0): integer
 post:
     let order: integer = MIN_USER_TASK_ORDER in
     self.Tasks.orderedBy('Order').forAll(element.Order = order and order = order + 1)
-    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
     self.Tasks.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
 
 context Folder::ReorderElements()
 post:
-    self.ReorderSubFolders()
-    self.ReorderNotes()
-    self.ReorderTasks()
+    let lastOrder: integer = 0
+    lastOrder = self.ReorderSubFolders(lastOrder)
+    lastOrder = self.ReorderNotes(lastOrder)
+    lastOrder = self.ReorderTasks(lastOrder)
 
 
 context Group::AddGeneralMessageChannels()
