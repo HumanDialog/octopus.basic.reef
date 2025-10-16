@@ -18,3 +18,17 @@ post:
     --let d:date =    j[1]
 
     result = s + i
+
+context App::js1: string
+post:
+    let j: JsonObject = ['A', 'B', 'C']
+    let c: integer = j.count
+    let s: string
+    set(0 .. c-1).forAll(i | 
+        s = j[i]
+        result = result + s + ' ')
+
+context App::js2: string
+post:
+    let j: JsonObject = ['A', 'B', 'C']
+    j.forAll(s: string | result = result + s + ' ')

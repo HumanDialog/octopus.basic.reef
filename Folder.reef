@@ -278,6 +278,10 @@ context Folder::IsPinned: boolean
 post:
     result = user.PinnedFolders.Folders.exists(element.Folder.Id = self.Id)
 
+context Folder::IsInBasket: boolean
+post:
+    result = user.BasketFolder.Folders.exists(element.FolderId = self.Id)
+
 
 context Folder::IsBasket: boolean
 post:
@@ -286,6 +290,8 @@ post:
     else
         result = false
     end if
+
+
 
 
 context Folder::CreateSubFolderExX(properties: JsonObject) : FolderFolder
@@ -390,6 +396,65 @@ post:
     result = self.CopySubFolderToBasket(folderLink)
     self.DettachSubFolder(folderLink)
 
+context Folder::CopyToBasketMulti(items: JsonObject): Folder
+post:
+    let itemsNo: integer = items.count
+
+    let typeName: string
+    let itemId: integer
+
+    let note: FolderNote
+    let task: FolderTask
+    let folder: FolderFolder
+
+    set(0 .. itemsNo-1).forAll(i | 
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderNote'
+                note = system.GetItem(itemId, typeName)
+                self.CopyNoteToBasket(note)
+            case 'FolderTask'
+                task = system.GetItem(itemId, typeName)
+                self.CopyTaskToBasket(task)
+            case 'FolderFolder'
+                folder = system.GetItem(itemId, typeName)
+                self.CopySubFolderToBasket(folder)
+        end select
+    )
+    result = self
+
+context Folder::CutToBasketMulti(items: JsonObject): Folder
+post:
+    let itemsNo: integer = items.count
+
+    let typeName: string
+    let itemId: integer
+
+    let note: FolderNote
+    let task: FolderTask
+    let folder: FolderFolder
+
+    set(0 .. itemsNo-1).forAll(i | 
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderNote'
+                note = system.GetItem(itemId, typeName)
+                self.CutNoteToBasket(note)
+            case 'FolderTask'
+                task = system.GetItem(itemId, typeName)
+                self.CutTaskToBasket(task)
+            case 'FolderFolder'
+                folder = system.GetItem(itemId, typeName)
+                self.CutSubFolderToBasket(folder)
+        end select
+    )
+    result = self
+
+
 context Folder::DettachAllContent
 post:
     self.Folders.removeAll
@@ -445,7 +510,7 @@ post:
 context Folder::AttachBasketContent(): Folder
 post:
     let basket: Folder = user.BasketFolder
-    let maxOrder: integer = basket.MaxOrder
+    let maxOrder: integer = self.MaxOrder
 
     let order: integer = maxOrder + ORDER_STEP
     basket.Folders.forAll(
@@ -468,13 +533,124 @@ post:
 
     result = self
 
+context Folder::AttachBasketContentMulti(items: JsonObject): Folder
+post:
+    let basket: Folder = user.BasketFolder
+    let maxOrder: integer = self.MaxOrder
+    let order: integer = maxOrder + ORDER_STEP
 
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i | 
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = basket.Folders.select(element.Id = itemId).first
+                if f <> null and self.AttachFolder(f.Folder, order) then
+                    order = order + ORDER_STEP
+                end if
+            
+            case 'FolderNote'
+                n = basket.Notes.select(element.Id = itemId).first
+                if n <> null and self.AttachNote(n.Note, order) then
+                    order = order + ORDER_STEP
+                end if
+
+            case 'FolderTask'
+                t = basket.Tasks.select(element.Id = itemId).first
+                if t <> null and self.AttachTask(t.Task, order) then
+                    order = order + ORDER_STEP
+                end if
+        end select
+    )
+    result = self
 
 context Folder::AttachAndClearBasketContent(): Folder
 post:
     self.AttachBasketContent()
     user.BasketFolder.DettachAllContent()
     result = self
+
+context Folder::AttachAndClearBasketContentMulti(items: JsonObject): Folder
+post:
+    let basket: Folder = user.BasketFolder
+    let maxOrder: integer = self.MaxOrder
+    let order: integer = maxOrder + ORDER_STEP
+
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i | 
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = basket.Folders.select(element.Id = itemId).first
+                if f <> null and self.AttachFolder(f.Folder, order) then
+                    order = order + ORDER_STEP
+                end if
+                f.delete        -- dettach
+            
+            case 'FolderNote'
+                n = basket.Notes.select(element.Id = itemId).first
+                if n <> null and self.AttachNote(n.Note, order) then
+                    order = order + ORDER_STEP
+                end if
+                n.delete        -- dettach
+
+            case 'FolderTask'
+                t = basket.Tasks.select(element.Id = itemId).first
+                if t <> null and self.AttachTask(t.Task, order) then
+                    order = order + ORDER_STEP
+                end if
+                t.delete        -- dettach
+
+        end select
+    )
+    result = self
+
+context Folder::DettachElementMulti(items: JsonObject): Folder
+post:
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i | 
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = system.GetItem(itemId, typeName)
+                self.DettachSubFolder(f)
+            
+            case 'FolderNote'
+                n = system.GetItem(itemId, typeName)
+                self.DettachNote(n)
+
+            case 'FolderTask'
+                t = system.GetItem(itemId, typeName)
+                self.DettachTask(t)
+        end select
+    )
 
 context Folder::DettachNote(noteLink: FolderNote)
 pre:
@@ -627,7 +803,34 @@ post:
     result = note
 
 
+context Folder::DeletePermanentlyMulti(items: JsonObject): Folder
+post:
+    let typeName: string
+    let itemId: integer
 
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i | 
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = system.GetItem(itemId, typeName)
+                self.DeletePermanentlyFolder(f)
+            
+            case 'FolderNote'
+                n = system.GetItem(itemId, typeName)
+                self.DeletePermanentlyNote(n)
+
+            case 'FolderTask'
+                t = system.GetItem(itemId, typeName)
+                self.DeletePermanentlyTask(t)
+        end select
+    )
 
 -- ==============================================================================
 
@@ -661,6 +864,10 @@ post:
 context FolderFolder::IsPinned: boolean
 post:
     result = self.Folder.IsPinned
+
+context FolderFolder::IsInBasket: boolean
+post:
+    result = self.Folder.IsInBasket
 
 context FolderFolder::icon: string
 post:
@@ -738,6 +945,10 @@ context FolderNote::IsPinned: boolean
 post:
     result = self.Note.IsPinned
 
+context FolderNote::IsInBasket: boolean
+post:
+    result = self.Note.IsInBasket
+
 -- ==============================================================================
 
 
@@ -774,3 +985,7 @@ post:
 context FolderTask::IsPinned: boolean
 post:
     result = self.Task.IsPinned
+
+context FolderTask::IsInBasket: boolean
+post:
+    result = self.Task.IsInBasket

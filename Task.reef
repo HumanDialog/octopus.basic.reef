@@ -162,3 +162,7 @@ post:
 context Task::IsPinned: boolean
 post:
     result = user.PinnedFolders.Tasks.exists(element.Task.Id = self.Id)
+
+context Task::IsInBasket: boolean
+post:
+    result = user.BasketFolder.Tasks.exists(element.Task.Id = self.Id)

@@ -282,6 +282,10 @@ context Note::IsPinned: boolean
 post:
     result = user.PinnedFolders.Notes.exists(element.Note.Id = self.Id)
 
+context Note::IsInBasket: boolean
+post:
+    result = user.BasketFolder.Notes.exists(element.Note.Id = self.Id)
+
 
 -- ----------------------------------------------------------------------------------------------------------------
 
