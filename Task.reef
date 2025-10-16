@@ -136,8 +136,7 @@ post:
     let basket: Folder = user.BasketFolder
 
     if not basket.Tasks.exists(element.Task.Id = self.Id) then
-        let maxOrder: integer = basket.Tasks.max(element.Order)
-        result = basket.Tasks.newElement(e | e.Task = self and e.Order = maxOrder + ORDER_STEP)
+        result = basket.Tasks.newElement(e | e.Task = self and e.Order = basket.MaxOrder + ORDER_STEP)
     end if
 
 context Task::TogglePinned : FolderTask

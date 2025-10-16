@@ -357,14 +357,27 @@ post:
     let folder: Folder = folderLink.Folder
     folder.DeletePermanently()
 
+context Folder::MaxOrder: integer
+post:
+    let f: integer = self.Folders.max(element.Order)
+    let n: integer = self.Notes.max(element.Order)
+    let t: integer = self.Tasks.max(element.Order)
+
+    result = f
+    if n > result then
+        result = n
+    end if
+
+    if t > result then
+        result = t
+    end if
 
 context Folder::CopyToBasket(): FolderFolder
 post:
     let basket: Folder = user.BasketFolder
 
     if not basket.Folders.exists(element.Folder.Id = self.Id) then
-        let maxOrder: integer = basket.Folders.max(element.Order)
-        result = basket.Folders.newElement(e | e.Folder = self and e.Order = maxOrder + ORDER_STEP)
+        result = basket.Folders.newElement(e | e.Folder = self and e.Order = basket.MaxOrder + ORDER_STEP)
     end if
 
 
@@ -434,8 +447,8 @@ post:
 context Folder::AttachBasketContent(): Folder
 post:
     let basket: Folder = user.BasketFolder
+    let maxOrder: integer = basket.MaxOrder
 
-    let maxOrder: integer = self.Folders.max(element.Order)
     let order: integer = maxOrder + ORDER_STEP
     basket.Folders.forAll(
             if self.AttachFolder(element.Folder, order) then
@@ -443,16 +456,12 @@ post:
             end if
     )
 
-    maxOrder = self.Notes.max(element.Order)
-    order = maxOrder + ORDER_STEP
     basket.Notes.forAll(
             if self.AttachNote(element.Note, order) then
                 order = order + ORDER_STEP
             end if
     )
 
-    maxOrder = self.Tasks.max(element.Order)
-    order = maxOrder + ORDER_STEP
     basket.Tasks.forAll(
             if self.AttachTask(element.Task, order) then
                 order = order + ORDER_STEP
@@ -487,8 +496,7 @@ post:
     let basket: Folder = user.BasketFolder
 
     if not basket.Notes.exists(element.Note.Id = note.Id) then
-        let maxOrder: integer = basket.Notes.max(element.Order)
-        result = basket.Notes.newElement(e | e.Note = note and e.Order = maxOrder + ORDER_STEP)
+        result = basket.Notes.newElement(e | e.Note = note and e.Order = basket.MaxOrder + ORDER_STEP)
     end if
 
 
