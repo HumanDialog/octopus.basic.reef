@@ -16,7 +16,9 @@ const ORDER_STEP        = 64
 
 
 class Task
+protected:
     Title(128):             string
+public:    
     Summary(196):	        string
     Tags(64):               string
     Index(16):              string
@@ -28,15 +30,16 @@ class Task
     Effort:                 integer
     Status:                 integer
 
-
     Steps[0..n]:	        TaskStep
     Description:	        string
     Images:                 string      <readOnly>
     AttachedFiles:          string      <readOnly>
+    CanonicalPath(0):       string
 
     TaskList(0..1):         TaskList    <backNav: AllTasks>
     InFolders[0..n]:        FolderTask
     Notes[0..n]:            TaskNote
+    Files[0..n]:            TaskFile
     InMessages[0..n]:       MessageTask
     ListOrder:              integer
     UserOrder:              integer
@@ -56,6 +59,7 @@ end class
 class TaskNote
     Note:                   Note <backNav: InTasks>
     Task:                   Task <backNav: Notes>
+    LinkInfo:               integer
 end class
 
 
@@ -86,8 +90,19 @@ post:
     self.InFolders.removeAll
     self.InMessages.removeAll
     self.Notes.removeAll
+    self.Files.removeAll
     self.delete
 
+
+context Task::SetTitle(val: string)
+post:
+    self.Title = val
+    self.ValidateSubTreeCanonicalPaths()
+
+
+context Task::GetTitle(): string
+post:
+    result = self.Title
 
 context Task::ChangeTaskState(newState: integer)
 post:
@@ -166,3 +181,117 @@ post:
 context Task::IsInBasket: boolean
 post:
     result = user.BasketFolder.Tasks.exists(element.Task.Id = self.Id)
+
+
+context TaskNote::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context Task::CalculateCanonicalPath: string
+post:
+    let canonicalFolderLink: FolderTask
+
+    let canonicalPath: JsonObject
+    let parentPath: JsonObject
+
+    canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+    if canonicalFolderLink <> null then
+        if not canonicalFolderLink.Folder.CanonicalPath.isEmpty then
+            parentPath = new JsonObject
+            parentPath.Parse(canonicalFolderLink.Folder.CanonicalPath)
+            canonicalPath = [...parentPath]
+        else
+            canonicalPath = []
+        end if
+    else
+        if self.TaskList <> null then
+            parentPath = new JsonObject
+            parentPath.Parse(self.TaskList.CanonicalPath)
+            canonicalPath = [...parentPath]
+        else
+            if self.Actor <> null then
+                canonicalPath = [
+                    {
+                        Name: self.Actor.Name,
+                        href: self.Actor.href
+                    },
+                    {
+                        Name: '__; en: My tasks; es: Mis tareas; pl: Moje zadania',
+                        href: '/mytasks'
+                    }
+                ]
+            else
+                canonicalPath = []
+            end if
+        end if
+    end if
+
+    canonicalPath = [..., 
+        {
+            Name:       self.Title,
+            Summary:    self.Summary,
+            href:       self.href,
+            icon:       'Task'
+        }
+    ]
+
+    result = canonicalPath.ToString()
+
+
+context Task::ValidateSubTreeCanonicalPaths
+post:
+    self.CanonicalPath = self.CalculateCanonicalPath()
+
+    self.Notes.select(element.IsCanonical).forAll(link: TaskNote |
+        link.Note.ValidateSubTreeCanonicalPaths()
+    )
+
+    self.Files.select(element.IsCanonical).forAll(link: TaskFile |
+        link.File.ValidateSubTreeCanonicalPaths()
+    )
+
+
+context Task::RecalculateCanonicalLinksAfterAttach(newLink: FolderTask)
+post:
+    let changed: boolean = false
+    let prevCanonicalLink: FolderTask = self.InFolders.select(element.IsCanonical).first
+
+    let fromFolder: Folder = prevCanonicalLink.Folder
+    let toFolder: Folder = newLink.Folder
+
+    if prevCanonicalLink = null then
+        newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+        changed = true
+    else
+
+        if toFolder.IsPublic then 
+            if not fromFolder.IsPublic then
+                newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                changed = true
+            end if
+        else
+            if toFolder.IsGroupFolder then
+                if fromFolder.IsPersonal then
+                    newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                    prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                    changed = true
+                end if
+            end if
+        end if
+
+    end if
+
+    if changed = true then
+        self.ValidateSubTreeCanonicalPaths()
+    end if
+
+
+context Task::GetCanonicalPath: JsonObject
+post:
+    if not self.CanonicalPath.isEmpty then
+        result = new JsonObject
+        result.Parse(self.CanonicalPath)
+    else
+        result = null
+    end if

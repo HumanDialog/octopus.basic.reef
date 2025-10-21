@@ -1,0 +1,292 @@
+
+class UploadedFile
+    Title(128):             string
+    Summary(196):           string
+    Tags(64):               string
+    Index(16):              string
+
+    Key:                    string      <readOnly>
+    MimeType:               string
+    Size:                   integer
+
+    CreationDate:	        date
+    ModificationDate:       date
+    CreatedBy:              User
+    ModifiedBy:             User
+
+    CanonicalPath(0):       string
+    InFolders[0..n]:        FolderFile
+    InTasks[0..n]:          TaskFile
+    InMessages[0..n]:       MessageFile
+end class
+
+
+class FolderFile
+    Title(128):     string
+    Order:          integer
+    Pos(8):         string
+    LinkInfo:       integer
+    Folder(0..1):   Folder  <backNav: Files[0..n]>
+    File(0..1):     UploadedFile    <backNav: InFolders[0..n]>
+end class
+
+
+class TaskFile
+    File:                   UploadedFile <backNav: InTasks>
+    Task:                   Task <backNav: Files>
+    LinkInfo:               integer
+end class
+
+
+class MessageFile
+    Title(128):     string
+    Message(0..1):  Message     <backNav: Files>
+    File(0..1):     UploadedFile        <backNav: InMessages>
+end class
+
+
+
+context UploadedFile::OnAfterCreate
+post:
+    self.CreationDate.SetUTCDate()
+    self.CreatedBy = user
+
+    self.ModificationDate = self.CreationDate
+    self.ModifiedBy = self.CreatedBy
+
+
+context UploadedFile::DeletePermanently
+post:
+    self.InFolders.removeAll
+    self.InTasks.removeAll
+    self.InMessages.removeAll
+    self.delete
+
+context UploadedFile::UpdateMetaInfo
+post:
+    self.ModificationDate.SetUTCDate()
+    self.ModifiedBy = user
+
+context UploadedFile::SetTitle(val: string)
+post:
+    self.Title = val
+    self.UpdateMetaInfo()
+    self.ValidateSubTreeCanonicalPaths()
+
+context UploadedFile::GetTitle(): string
+post:
+    result = self.Title
+
+
+context UploadedFile::SetSummary(val: string)
+post:
+    self.Summary = val
+
+context UploadedFile::GetSummary(): string
+post:
+    result = self.Summary
+
+
+context UploadedFile::SetTags(val: string)
+post:
+    self.Tags = val
+    self.UpdateMetaInfo()
+
+
+context UploadedFile::GetTags: string
+post:
+    result = self.Tags
+
+context UploadedFile::SetIndex(val: string)
+post:
+    self.Index = val
+    self.UpdateMetaInfo()
+
+
+context UploadedFile::GetIndex: string
+post:
+    result = self.Index
+
+
+context UploadedFile::CopyToBasket(): FolderFile
+post:
+    let basket: Folder = user.BasketFolder
+
+    if not basket.Files.exists(element.File.Id = self.Id) then
+        result = basket.Files.newElement(e | e.File = self and e.Order = basket.MaxOrder + ORDER_STEP)
+    end if
+
+context UploadedFile::IsInBasket: boolean
+post:
+    result = user.BasketFolder.Files.exists(element.File.Id = self.Id)
+
+
+context UploadedFile::CalculateCanonicalPath: string
+post:
+    let canonicalPath: JsonObject
+    let parentPath: JsonObject
+
+    let canonicalFolderLink: FolderFile
+    let canonicalTaskLink:   TaskFile
+    -- let canonicalNoteLink:   NoteFile
+    --let canonicalMessageLink: MessageFile
+
+    canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+    if canonicalFolderLink <> null then
+        if not canonicalFolderLink.Folder.CanonicalPath.isEmpty then
+            parentPath = new JsonObject
+            parentPath.Parse(canonicalFolderLink.Folder.CanonicalPath)
+            canonicalPath = [...parentPath]
+        else
+            canonicalPath = []
+        end if
+    else 
+        canonicalTaskLink = self.InTasks.select(element.IsCanonical).first
+        if canonicalTaskLink <> null then
+            if not canonicalTaskLink.Task.CanonicalPath.isEmpty then
+                parentPath = new JsonObject
+                parentPath.Parse(canonicalTaskLink.Task.CanonicalPath)
+                canonicalPath = [...parentPath]
+            else
+                canonicalPath = []
+            end if
+        else
+            canonicalPath = []
+        end if
+    end if
+
+    canonicalPath = [..., 
+        {
+            Name:       self.Title,
+            Summary:    self.Summary,
+            href:       self.href,
+            icon:       'File'
+        }
+    ]
+
+    result = canonicalPath.ToString()
+
+
+context UploadedFile::ValidateSubTreeCanonicalPaths
+post:
+    self.CanonicalPath = self.CalculateCanonicalPath()
+
+
+context UploadedFile::RecalculateCanonicalLinksAfterAttach(newLink: FolderFile)
+post:
+    let changed: boolean = false
+    let prevCanonicalLink: FolderFile = self.InFolders.select(element.IsCanonical).first
+
+    let fromFolder: Folder = prevCanonicalLink.Folder
+    let toFolder: Folder = newLink.Folder
+
+    if prevCanonicalLink = null then
+        newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+        changed = true
+    else
+
+        if toFolder.IsPublic then 
+            if not fromFolder.IsPublic then
+                newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                changed = true
+            end if
+        else
+            if toFolder.IsGroupFolder then
+                if fromFolder.IsPersonal then
+                    newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                    prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                    changed = true
+                end if
+            end if
+        end if
+
+    end if
+
+    if changed = true then
+        self.ValidateSubTreeCanonicalPaths()
+    end if
+
+
+context UploadedFile::GetCanonicalPath: JsonObject
+post:
+    if not self.CanonicalPath.isEmpty then
+        result = new JsonObject
+        result.Parse(self.CanonicalPath)
+    else
+        result = null
+    end if
+
+context UploadedFile::href: string
+post:
+    result = './UploadedFile/'+self.Id+'/Key/blob'
+
+-- ==============================================================================
+
+context FolderFile
+inv:
+    self.Title = self.File.Title
+
+
+context FolderFile::SetTitle(value: string)
+post:
+    self.File.Title = value
+    
+
+context FolderFile::Summary: string
+post:
+    result = self.File.Summary
+
+
+context FolderFile::SetSummary(value: string)
+post:
+    self.File.Summary = value
+
+
+context FolderFile::href: string
+post:
+    result = self.File.href
+
+context FolderFile::ModifiedBy: User
+post:
+    result = self.File.ModifiedBy
+
+context FolderFile::ModificationDate: date
+post:
+    result = self.File.ModificationDate
+
+context FolderFile::Tags: string
+post:
+    result = self.File.Tags
+
+
+context FolderFile::IsInBasket: boolean
+post:
+    result = self.File.IsInBasket
+
+context FolderFile::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+
+context FolderFile::SetLocationAsCanonical
+post:
+    self.File.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    --self.File.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.File.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.File.ValidateSubTreeCanonicalPaths()
+
+-- ==============================================================================
+
+context TaskFile::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+
+-- ==============================================================================
+
+context MessageFile::href: string
+post:
+    result = self.File.href

@@ -27,6 +27,8 @@ const FIN_PUBLIC     =  10000
 const FIN_GROUP      =   9000
 const FIN_USER       =   5000
 
+-- [F]older [L]ink [I]nfo
+const FLI_CANONICAL     = &h00000001
 
 class Folder
     Title(128):         string
@@ -36,10 +38,12 @@ class Folder
     Owner:              User        <backNav: AllFolders>
     Kind:               integer
     Status:             integer
+    CanonicalPath(0):   string
     Folders[0..n]:      FolderFolder
     InFolders[0..n]:    FolderFolder
     Notes[0..n]:        FolderNote
     Tasks[0..n]:        FolderTask
+    Files[0..n]:        FolderFile
     Order:              integer
     GroupId:            integer
     UserId:             integer
@@ -54,6 +58,7 @@ class FolderFolder
     Kind:               integer
     Order:              integer
     Pos(8):             string
+    LinkInfo:           integer
     Group:              Group       <backNav: FolderFolder>
     User:               User        <backNav: FolderFolder>
     Folder(0..1):       Folder      <backNav: InFolders[0..n]>
@@ -68,6 +73,7 @@ class FolderNote
     Title(128):     string
     Order:          integer
     Pos(8):         string
+    LinkInfo:       integer
     Folder(0..1):   Folder  <backNav: Notes[0..n]>
     Note(0..1):     Note    <backNav: InFolders[0..n]>
 end class
@@ -77,6 +83,7 @@ class FolderTask
     Title(128):     string
     Order:          integer
     Pos(8):         string
+    LinkInfo:       integer
     Folder(0..1):   Folder <backNav: Tasks[0..n]>
     Task(0..1):     Task   <backNav: InFolders[0..n]>
 end class
@@ -234,11 +241,11 @@ post:
 
 context Folder::IsPersonal: boolean
 post:
-    result = (self.Status = FS_USER_FOLDER)
+    result = (self.Status = FS_USER_FOLDER or self.Status = FS_USER_ROOT_FOLDER)
 
 context Folder::IsPublic: boolean
 post:
-     result = (self.Status = FS_PUBLIC_FOLDER)
+     result = (self.Status = FS_PUBLIC_FOLDER or self.Status = FS_PUBLIC_ROOT_FOLDER)
 
 
 context Folder::IsSharedGroupFolder: boolean
@@ -325,6 +332,7 @@ post:
             n.Summary = properties.Summary) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
+    n.RecalculateCanonicalLinksAfterAttach(result)
 
 
 context Folder::CreateTaskEx(properties: JsonObject) : FolderTask
@@ -334,9 +342,30 @@ post:
     let t: Task = user.CreatedTasks.newElement(t |
             t.Title = properties.Title
             t.Summary = properties.Summary) in
-
-
+    
     result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
+    t.RecalculateCanonicalLinksAfterAttach(result)
+
+
+context Folder::CreateFile(title: string, mimeType: string, size: integer, optional order: integer=0) : FolderFile
+pre Only logged in users may upload files:
+    user <> null
+post:
+    let upFile: UploadedFile
+    let fileLink: FolderFile
+
+    upFile = user.UploadedFiles.newElement(n |  n.Title = title
+                                                n.MimeType = mimeType
+                                                n.Size = size)
+
+    if order = 0 then
+        order = self.MaxOrder + ORDER_STEP
+    end if
+
+    fileLink = self.Files.newElement( e | e.File = upFile and e.Order = order)
+    upFile.RecalculateCanonicalLinksAfterAttach(fileLink)
+    result = fileLink
+
 
 context Folder::DeletePermanently
 post:
@@ -366,6 +395,7 @@ post:
     let f: integer = self.Folders.max(element.Order)
     let n: integer = self.Notes.max(element.Order)
     let t: integer = self.Tasks.max(element.Order)
+    let s: integer = self.Files.max(element.Order)
 
     result = f
     if n > result then
@@ -374,6 +404,10 @@ post:
 
     if t > result then
         result = t
+    end if
+
+    if s > result then
+        result = s
     end if
 
 context Folder::CopyToBasket(): FolderFolder
@@ -406,6 +440,7 @@ post:
     let note: FolderNote
     let task: FolderTask
     let folder: FolderFolder
+    let upFile: FolderFile
 
     set(0 .. itemsNo-1).forAll(i | 
         typeName = items[i].Type
@@ -421,6 +456,9 @@ post:
             case 'FolderFolder'
                 folder = system.GetItem(itemId, typeName)
                 self.CopySubFolderToBasket(folder)
+            case 'FolderFile'
+                upFile = system.GetItem(itemId, typeName)
+                self.CopyFileToBasket(upFile)
         end select
     )
     result = self
@@ -435,6 +473,7 @@ post:
     let note: FolderNote
     let task: FolderTask
     let folder: FolderFolder
+    let upFile: FolderFile
 
     set(0 .. itemsNo-1).forAll(i | 
         typeName = items[i].Type
@@ -450,6 +489,9 @@ post:
             case 'FolderFolder'
                 folder = system.GetItem(itemId, typeName)
                 self.CutSubFolderToBasket(folder)
+            case 'FolderFile'
+                upFile = system.GetItem(itemId, typeName)
+                self.CutFileToBasket(upFile)
         end select
     )
     result = self
@@ -460,13 +502,14 @@ post:
     self.Folders.removeAll
     self.Notes.removeAll
     self.Tasks.removeAll
+    self.Files.removeAll
 
 
 context Folder::AttachFolder(folder: Folder, optional order: integer = 0) : boolean
 post:
     if not self.Folders.exists(element.Folder.Id = folder.Id) then
         if order = 0 then
-            order = self.Folders.max(element.Order) + ORDER_STEP
+            order = self.MaxOrder + ORDER_STEP
         end if
         self.AttachFolderInt(folder, order)
         result = true
@@ -477,18 +520,24 @@ post:
 context Folder::AttachFolderInt(subFolder: Folder, order: integer): FolderFolder
 post:
     let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder and ff.Order = order)
-    subFolder.RecalculateStatus
+    
+    subFolder.RecalculateStatus()
+    subFolder.RecalculateCanonicalLinksAfterAttach(link)
+
     result = link
 
 
 context Folder::AttachNote(note: Note, optional order: integer = 0) : boolean
 post:
+    let folderNote: FolderNote
+
     if not self.Notes.exists(element.Note.Id = note.Id) then
         if order = 0 then
-            order = self.Notes.max(element.Order) + ORDER_STEP
+            order = self.MaxOrder + ORDER_STEP
         end if
 
-        self.Notes.newElement(e | e.Note=note and e.Order=order)
+        folderNote = self.Notes.newElement(e | e.Note=note and e.Order=order)
+        note.RecalculateCanonicalLinksAfterAttach(folderNote)
         result = true
     else
         result = false
@@ -496,12 +545,30 @@ post:
 
 context Folder::AttachTask(task: Task, optional order: integer = 0) : boolean
 post:
+    let folderTask: FolderTask
     if not self.Tasks.exists(element.Task.Id = task.Id) then
         if order = 0 then
-            order = self.Tasks.max(element.Order) + ORDER_STEP
+            order = self.MaxOrder + ORDER_STEP
         end if
 
-        self.Tasks.newElement(e | e.Task=task and e.Order=order)
+        folderTask = self.Tasks.newElement(e | e.Task=task and e.Order=order)
+        task.RecalculateCanonicalLinksAfterAttach(folderTask)
+        result = true
+    else
+        result = false
+    end if
+
+context Folder::AttachFile(upFile: UploadedFile, optional order: integer = 0) : boolean
+post:
+    let folderFile: FolderFile
+
+    if not self.Files.exists(element.File.Id = upFile.Id) then
+        if order = 0 then
+            order = self.MaxOrder + ORDER_STEP
+        end if
+
+        folderFile = self.Files.newElement(e | e.File=upFile and e.Order=order)
+        upFile.RecalculateCanonicalLinksAfterAttach(folderFile)
         result = true
     else
         result = false
@@ -531,6 +598,12 @@ post:
             end if
     )
 
+    basket.Files.forAll(
+            if self.AttachFile(element.File, order) then
+                order = order + ORDER_STEP
+            end if
+    )
+
     result = self
 
 context Folder::AttachBasketContentMulti(items: JsonObject): Folder
@@ -545,6 +618,7 @@ post:
     let t: FolderTask
     let n: FolderNote
     let f: FolderFolder
+    let s: FolderFile
 
     let itemsNo: integer = items.count
     set(0 .. itemsNo-1).forAll(i | 
@@ -569,6 +643,12 @@ post:
                 if t <> null and self.AttachTask(t.Task, order) then
                     order = order + ORDER_STEP
                 end if
+
+            case 'FolderFile'
+                s = basket.Files.select(element.Id = itemId).first
+                if s <> null and self.AttachFile(s.File, order) then
+                    order = order + ORDER_STEP
+                end if
         end select
     )
     result = self
@@ -591,6 +671,7 @@ post:
     let t: FolderTask
     let n: FolderNote
     let f: FolderFolder
+    let s: FolderFile
 
     let itemsNo: integer = items.count
     set(0 .. itemsNo-1).forAll(i | 
@@ -619,6 +700,13 @@ post:
                 end if
                 t.delete        -- dettach
 
+            case 'FolderFile'
+                s = basket.Files.select(element.Id = itemId).first
+                if s <> null and self.AttachFile(s.File, order) then
+                    order = order + ORDER_STEP
+                end if
+                s.delete        -- dettach
+
         end select
     )
     result = self
@@ -631,6 +719,7 @@ post:
     let t: FolderTask
     let n: FolderNote
     let f: FolderFolder
+    let s: FolderFile
 
     let itemsNo: integer = items.count
     set(0 .. itemsNo-1).forAll(i | 
@@ -649,6 +738,10 @@ post:
             case 'FolderTask'
                 t = system.GetItem(itemId, typeName)
                 self.DettachTask(t)
+
+            case 'FolderFile'
+                s = system.GetItem(itemId, typeName)
+                self.DettachFile(s)
         end select
     )
 
@@ -705,6 +798,35 @@ post:
     self.DettachTask(taskLink)
 
 
+context Folder::DettachFile(fileLink: FolderFile)
+pre:
+    fileLink.Folder.Id = self.Id
+post:
+    fileLink.delete
+
+context Folder::DeletePermanentlyFile(fileLink: FolderFile)
+post:
+    let upFile: UploadedFile = fileLink.File
+    upFile.DeletePermanently()
+
+
+context Folder::CopyFileToBasket(fileLink: FolderFile): FolderFile
+post:
+    let upFile: UploadedFile = fileLink.File
+    let basket: Folder = user.BasketFolder
+
+    if not basket.Files.exists(element.File.Id = upFile.Id) then
+        result = basket.Files.newElement(e | e.File = upFile and e.Order = basket.MaxOrder + ORDER_STEP)
+    end if
+
+
+context Folder::CutFileToBasket(fileLink: FolderFile): FolderFile
+post:
+    result = self.CopyFileToBasket(fileLink)
+    self.DettachFile(fileLink)
+
+
+
 context Folder::TogglePinned : FolderFolder
 post:
     let pinnedLink :FolderFolder = user.PinnedFolders.Folders.select(element.Folder.Id = self.Id).first
@@ -748,6 +870,14 @@ post:
         }]
     )
 
+    self.Files.forAll(
+        result = [..., {
+            Type: 'File',
+            Id: element.FileId,
+            Title: element.Title
+        }]
+    )
+
 context Folder::GetBasketContentsAndClear : JsonObject
 pre:
     self = user.BasketFolder
@@ -779,6 +909,14 @@ post:
         }]
     )
 
+    self.Files.forAll(
+        result = [..., {
+            Type: 'File',
+            Id: element.FileId,
+            Title: element.Title
+        }]
+    )
+
     self.DettachAllContent()
 
 
@@ -797,8 +935,9 @@ post:
     note.Tags = tags
     note.Summary = note.Content.textFromHTML(128, true)
 
-    let maxOrder: integer = self.Notes.max(element.Order)
-    self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
+    let maxOrder: integer = self.MaxOrder
+    let folderNote: FolderNote = self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
+    note.RecalculateCanonicalLinksAfterAttach(folderNote)
     note.UpdateLatestGroupActivity()
     result = note
 
@@ -811,6 +950,7 @@ post:
     let t: FolderTask
     let n: FolderNote
     let f: FolderFolder
+    let s: FolderFile
 
     let itemsNo: integer = items.count
     set(0 .. itemsNo-1).forAll(i | 
@@ -829,9 +969,127 @@ post:
             case 'FolderTask'
                 t = system.GetItem(itemId, typeName)
                 self.DeletePermanentlyTask(t)
+
+            case 'FolderFile'
+                s = system.GetItem(itemId, typeName)
+                self.DeletePermanentlyFile(s)
         end select
     )
 
+
+context Folder::CalculateCanonicalPath: string
+post:
+    let canonicalPath: JsonObject
+    let canonicalLink: FolderFolder
+    let parentPath: JsonObject
+
+    select case self.Status
+        case FS_PUBLIC_ROOT_FOLDER
+            canonicalPath = [ ]
+
+        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER
+            canonicalPath = [
+                {
+                    Name: self.InGroup.Name
+                }
+            ]
+
+
+        case FS_USER_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER
+            canonicalPath = [
+                {
+                    Name: self.User.Name,
+                    href: self.User.href
+                }
+            ]
+
+        case else
+            canonicalLink = self.InFolders.select(element.IsCanonical).first
+            if canonicalLink <> null then
+                if not canonicalLink.InFolder.CanonicalPath.isEmpty then
+                    parentPath = new JsonObject
+                    parentPath.Parse(canonicalLink.InFolder.CanonicalPath)
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+            else
+                canonicalPath = []
+            end if
+    end select
+
+    canonicalPath = [..., 
+        {
+            Name:       self.Title,
+            Summary:    self.Summary,
+            href:       self.href,
+            icon:       self.icon
+        }
+    ]
+
+    result = canonicalPath.ToString()
+
+context Folder::ValidateSubTreeCanonicalPaths
+post:
+    self.CanonicalPath = self.CalculateCanonicalPath()
+
+    self.Folders.select(element.IsCanonical).forAll(link: FolderFolder |
+        link.Folder.ValidateSubTreeCanonicalPaths()
+    )
+
+    self.Notes.select(element.IsCanonical).forAll(link: FolderNote |
+        link.Note.ValidateSubTreeCanonicalPaths()
+    )
+
+    self.Tasks.select(element.IsCanonical).forAll(link: FolderTask |
+        link.Task.ValidateSubTreeCanonicalPaths()
+    )
+
+
+context Folder::RecalculateCanonicalLinksAfterAttach(newLink: FolderFolder)
+post:
+    let changed: boolean = false
+    let prevCanonicalLink: FolderFolder = self.InFolders.select(element.IsCanonical).first
+
+    let fromFolder: Folder = prevCanonicalLink.InFolder
+    let toFolder: Folder = newLink.InFolder
+
+    if prevCanonicalLink = null then
+        newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+        changed = true
+    else
+
+        if toFolder.IsPublic then 
+            if not fromFolder.IsPublic then
+                newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                changed = true
+            end if
+        else
+            if toFolder.IsGroupFolder then
+                if fromFolder.IsPersonal then
+                    newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                    prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                    changed = true
+                end if
+            end if
+        end if
+
+    end if
+
+    if changed = true then
+        self.ValidateSubTreeCanonicalPaths()
+    end if
+
+
+context Folder::GetCanonicalPath: JsonObject
+post:
+    if not self.CanonicalPath.isEmpty then
+        result = new JsonObject
+        result.Parse(self.CanonicalPath)
+    else
+        result = null
+    end if
 -- ==============================================================================
 
 
@@ -843,6 +1101,7 @@ inv:
 context FolderFolder::SetTitle(value: string)
 post:
     self.Folder.Title = value
+    self.Folder.ValidateSubTreeCanonicalPaths()
 
 
 context FolderFolder::Summary: string
@@ -898,6 +1157,18 @@ post:
         result = null
     end if
 
+
+context FolderFolder::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+
+context FolderFolder::SetLocationAsCanonical
+post:
+    self.Folder.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.Folder.ValidateSubTreeCanonicalPaths()
+
 -- ==============================================================================
 
 
@@ -909,7 +1180,7 @@ inv:
 context FolderNote::SetTitle(value: string)
 post:
     self.Note.Title = value
-
+    
 
 context FolderNote::Summary: string
 post:
@@ -949,6 +1220,20 @@ context FolderNote::IsInBasket: boolean
 post:
     result = self.Note.IsInBasket
 
+context FolderNote::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+
+context FolderNote::SetLocationAsCanonical
+post:
+    self.Note.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.Note.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.Note.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.Note.ValidateSubTreeCanonicalPaths()
+
 -- ==============================================================================
 
 
@@ -960,8 +1245,8 @@ inv:
 context FolderTask::SetTitle(value: string)
 post:
     self.Task.Title = value
-
-
+    
+    
 context FolderTask::Summary: string
 post:
     result = self.Task.Summary
@@ -989,3 +1274,13 @@ post:
 context FolderTask::IsInBasket: boolean
 post:
     result = self.Task.IsInBasket
+
+context FolderTask::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context FolderTask::SetLocationAsCanonical
+post:
+    self.Task.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.Task.ValidateSubTreeCanonicalPaths()

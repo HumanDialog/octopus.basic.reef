@@ -23,6 +23,7 @@ class User
     ModifiedNotes(0..n):    Note                <backNav: ModifiedBy>
     MyMessages(0..n):       Message
     CreatedTasks(0..n):     Task                <backNav: CreatedBy>
+    UploadedFiles(0..n):    UploadedFile        <backNav: CreatedBy>
 end class
 
 constraint User::PinnedFolders
@@ -175,3 +176,18 @@ post:
         t.Summary = Summary
         t.UserOrder = UserOrder
         t.Actor = self)
+
+context User::ValidateSubTreeCanonicalPaths()
+post:
+    self.Folders.forAll(element.ValidateSubTreeCanonicalPaths())
+    self.SharedFolders.ValidateSubTreeCanonicalPaths()
+
+    self.MyTasks.forAll(task: Task |
+        if not task.InFolders.exists(element.IsCanonical) then
+            if task.TaskList = null then
+                task.ValidateSubTreeCanonicalPaths()
+            end if
+        end if
+    )
+
+    self.MyLists.forAll(element.ValidateSubTreeCanonicalPaths())

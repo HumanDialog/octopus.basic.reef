@@ -60,3 +60,89 @@ post:
     link = discussions.CreateSubFolder("Libraries",                         "", 18 * ORDER_STEP, FK_DISCUSSION)
 
     result = discussions
+
+
+context App::SetupDefaultCanonicalLocations: string
+post:
+  result = self.SetupDefaultCanonicalLocationsA()
+
+admin context App::SetupDefaultCanonicalLocationsA: string
+post:
+  self.Groups.forAll(element.SetupDefaultCanonicalLocations())
+  self.Users.forAll(element.SetupDefaultCanonicalLocations())
+  result = 'Success'
+
+
+context Group::SetupDefaultCanonicalLocations
+post:
+  self.Folders.forAll(element.SetupDefaultCanonicalLocations())
+  self.SharedFolders.SetupDefaultCanonicalLocations()
+
+
+context User::SetupDefaultCanonicalLocations
+post:
+  self.Folders.forAll(element.SetupDefaultCanonicalLocations())
+  self.SharedFolders.SetupDefaultCanonicalLocations()
+
+context Folder::SetupDefaultCanonicalLocations
+post:
+  self.Folders.forAll(link: FolderFolder |
+    if not link.Folder.InFolders.exists(element.IsCanonical) then
+      link.LinkInfo = link.LinkInfo | FLI_CANONICAL
+    end if
+  )
+  
+  self.Tasks.forAll( element.Task.SetupDefaultCanonicalLocations() )
+  self.Notes.forAll( element.Note.SetupDefaultCanonicalLocations() )
+
+  self.Folders.forAll( element.Folder.SetupDefaultCanonicalLocations() )
+
+context Note::SetupDefaultCanonicalLocations
+post:
+  let folderNote: FolderNote
+  let taskNote: TaskNote
+  let noteNote: NoteNote
+
+  if self.InNotes.count > 0 then
+    if not self.InNotes.exists(element.IsCanonical) then
+      noteNote = self.InNotes.first
+      noteNote.LinkInfo = noteNote.LinkInfo | FLI_CANONICAL
+    end if
+  else
+    if self.InTasks.count > 0 then
+      if not self.InTasks.exists(element.IsCanonical) then
+        taskNote = self.InTasks.first
+        taskNote.LinkInfo = taskNote.LinkInfo | FLI_CANONICAL
+      end if
+    else
+      if self.InFolders.count > 0 then
+        if not self.InFolders.exists(element.IsCanonical) then
+          folderNote = self.InFolders.first
+          folderNote.LinkInfo = folderNote.LinkInfo | FLI_CANONICAL
+        end if
+      end if
+    end if
+  end if
+
+
+context Task::SetupDefaultCanonicalLocations
+post:
+  let folderTask: FolderTask
+
+  if self.InFolders.count > 0 then
+    if not self.InFolders.exists(element.IsCanonical) then
+      folderTask = self.InFolders.first
+      folderTask.LinkInfo = folderTask.LinkInfo | FLI_CANONICAL
+    end if
+  end if
+
+
+context App::RecalculateCanonicalPaths: string
+post:
+  result = self.RecalculateCanonicalPathsA()
+
+admin context App::RecalculateCanonicalPathsA: string
+post:
+  self.Groups.forAll( element.ValidateSubTreeCanonicalPaths() )
+  self.Users.forAll( element.ValidateSubTreeCanonicalPaths() )
+  result = 'Success'

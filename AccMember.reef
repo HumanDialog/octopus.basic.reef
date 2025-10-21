@@ -25,6 +25,12 @@ access role GroupMember: Group Member
 
     acc Message = self.AccMember
 
+    acc UploadedFile = self.AccMember
+    
+    acc FolderFile = self.Folder.Acc
+
+    acc TaskFile = self.Task.AccMember
+
 
 context User::AccMember: integer
 post:
@@ -130,3 +136,16 @@ post:
         result = ACC_READ
     end if
     end if
+
+context UploadedFile::AccMember: integer
+post:
+    if self.CreatedBy = user or self.ModifiedBy = user then
+        result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+        result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
+        result = ACC_READWRITE
+    end if
+    end if
+    end if
+    

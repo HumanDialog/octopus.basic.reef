@@ -27,6 +27,7 @@ public:
 
     Images:                 string      <readOnly>
     AttachedFiles:          string      <readOnly>
+    CanonicalPath(0):       string
     InFolders[0..n]:        FolderNote
     InTasks[0..n]:          TaskNote
     InMessages[0..n]:       MessageNote
@@ -40,6 +41,7 @@ end class
 class NoteNote
     Title(128):             string
     Order:                  integer
+    LinkInfo:               integer
     Note(0..1):             Note      <backNav: InNotes[0..n]>
     InNote(0..1):           Note      <backNav: Notes[0..n]>
     InNoteId:               integer
@@ -95,6 +97,7 @@ context Note::SetTitle(val: string)
 post:
     self.Title = val
     self.UpdateMetaInfo()
+    self.ValidateSubTreeCanonicalPaths()
 
 
 context Note::GetTitle(): string
@@ -287,6 +290,128 @@ post:
     result = user.BasketFolder.Notes.exists(element.Note.Id = self.Id)
 
 
+context Note::CalculateCanonicalPath: string
+post:
+    let canonicalPath: JsonObject
+    let parentPath: JsonObject
+
+    let canonicalFolderLink: FolderNote
+    let canonicalTaskLink:   TaskNote
+    let canonicalNoteLink:   NoteNote
+    --let canonicalMessageLink: MessageNote
+
+    canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+    if canonicalFolderLink <> null then
+        if not canonicalFolderLink.Folder.CanonicalPath.isEmpty then
+            parentPath = new JsonObject
+            parentPath.Parse(canonicalFolderLink.Folder.CanonicalPath)
+            canonicalPath = [...parentPath]
+        else
+            canonicalPath = []
+        end if
+    else 
+        canonicalTaskLink = self.InTasks.select(element.IsCanonical).first
+        if canonicalTaskLink <> null then
+            if not canonicalTaskLink.Task.CanonicalPath.isEmpty then
+                parentPath = new JsonObject
+                parentPath.Parse(canonicalTaskLink.Task.CanonicalPath)
+                canonicalPath = [...parentPath]
+            else
+                canonicalPath = []
+            end if
+        else
+            canonicalNoteLink = self.InNotes.select(element.IsCanonical).first
+            if canonicalNoteLink <> null then
+                if not canonicalNoteLink.InNote.CanonicalPath.isEmpty then
+                    parentPath = new JsonObject
+                    parentPath.Parse(canonicalNoteLink.InNote.CanonicalPath)
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+            else
+                -- not sure if Message can be canonical note container
+                -- canonicalMessageLink = self.InMessages.select(element.IsCanonical).first
+                -- if canonicalMessageLink <> null then
+                --     if not canonicalMessageLink.Message.CanonicalPath.isEmpty then
+                --         parentPath = new JsonObject
+                --         parentPath.Parse(canonicalMessageLink.Message.CanonicalPath)
+                --         canonicalPath = [...parentPath]
+                --     else
+                --         canonicalPath = []
+                --     end if
+                -- else
+                    canonicalPath = []
+            end if
+        end if
+    end if
+
+    canonicalPath = [..., 
+        {
+            Name:       self.Title,
+            Summary:    self.Summary,
+            href:       self.href,
+            icon:       'Note'
+        }
+    ]
+
+    result = canonicalPath.ToString()
+
+
+context Note::ValidateSubTreeCanonicalPaths
+post:
+    self.CanonicalPath = self.CalculateCanonicalPath()
+
+    self.Notes.select(element.IsCanonical).forAll(link: NoteNote |
+        link.Note.ValidateSubTreeCanonicalPaths()
+    )
+
+
+context Note::RecalculateCanonicalLinksAfterAttach(newLink: FolderNote)
+post:
+    let changed: boolean = false
+    let prevCanonicalLink: FolderNote = self.InFolders.select(element.IsCanonical).first
+
+    let fromFolder: Folder = prevCanonicalLink.Folder
+    let toFolder: Folder = newLink.Folder
+
+    if prevCanonicalLink = null then
+        newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+        changed = true
+    else
+
+        if toFolder.IsPublic then 
+            if not fromFolder.IsPublic then
+                newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                changed = true
+            end if
+        else
+            if toFolder.IsGroupFolder then
+                if fromFolder.IsPersonal then
+                    newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                    prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                    changed = true
+                end if
+            end if
+        end if
+
+    end if
+
+    if changed = true then
+        self.ValidateSubTreeCanonicalPaths()
+    end if
+
+
+context Note::GetCanonicalPath: JsonObject
+post:
+    if not self.CanonicalPath.isEmpty then
+        result = new JsonObject
+        result.Parse(self.CanonicalPath)
+    else
+        result = null
+    end if
+
 -- ----------------------------------------------------------------------------------------------------------------
 
 
@@ -319,3 +444,8 @@ post:
 context NoteNote::NotesCount: integer
 post:
     result = self.Note.NotesCount
+
+
+context NoteNote::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0

@@ -28,6 +28,10 @@ access role GroupOwner: Group Leader
 
     acc MessageChannelUser = self.AccOwner
 
+    acc UploadedFile = self.AccOwner
+    acc FolderFile = self.Folder.Acc
+    acc TaskFile = self.Task.AccOwner
+
 context User::AccOwner: integer
 post:
     if self = user then
@@ -132,5 +136,18 @@ post:
         ACC_READWRITE
     else if self.MessageChannel.acc then
         result = ACC_READWRITE
+    end if
+    end if
+
+
+context UploadedFile::AccOwner: integer
+post:
+    if self.CreatedBy = user or self.ModifiedBy = user then
+        result = ACC_READWRITE
+    else if self.InPersonalFolder(user) then
+        result = ACC_READWRITE
+    else if self.InGroupFolder(group) then
+        result = ACC_READWRITE
+    end if
     end if
     end if

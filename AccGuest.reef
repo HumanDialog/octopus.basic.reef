@@ -29,6 +29,8 @@ access role Guest
             self.AccGuest
         end if
 
+    acc UploadedFile = self.AccGuest
+
     acc Folder = self.AccGuest
 
     acc FolderFolder = self.InFolder.Acc
@@ -36,6 +38,8 @@ access role Guest
     acc FolderNote = self.Folder.Acc
 
     acc FolderTask = self.Folder.Acc
+
+    acc FolderFile = self.Folder.Acc
 
     acc MessageChannel = self.AccGuest
 
@@ -68,3 +72,8 @@ post:
         result = ACC_READ
     end if
     end if
+
+
+context UploadedFile::AccGuest: integer
+post:
+    result = self.InFolders.iterate(f; ac: integer | ac = ac | f.Folder.AccGuest)

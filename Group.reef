@@ -270,3 +270,9 @@ post:
     if result = null then
         result = self.AllFolders.newElement(element.Status = FS_LATEST_ELEMENTS and element.Kind = FK_DISCUSSION)
     end if
+
+context Group::ValidateSubTreeCanonicalPaths()
+post:
+    self.Folders.forAll(element.ValidateSubTreeCanonicalPaths())
+    self.SharedFolders.ValidateSubTreeCanonicalPaths()
+    self.Lists.forAll( element.ValidateSubTreeCanonicalPaths())

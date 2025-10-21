@@ -15,3 +15,11 @@ post:
 context Note::InGroupFolder(group: Group): boolean
 post:
     result = self.InFolders.exists(element.Folder.Group = group)
+
+context UploadedFile::InPersonalFolder(user: User): boolean
+post:
+    result = self.InFolders.exists(element.Folder.User = user)
+
+context UploadedFile::InGroupFolder(group: Group): boolean
+post:
+    result = self.InFolders.exists(element.Folder.Group = group)

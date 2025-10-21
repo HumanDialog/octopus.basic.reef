@@ -26,6 +26,7 @@ class Message
     Images:                 string          <readOnly>
     Notes[0..n]:            MessageNote     <backNav: Message>
     Tasks[0..n]:            MessageTask     <backNav: Message>
+    Files[0..n]:            MessageFile     <backNav: Message>
     Channel(0..1):          MessageChannel  <backNav: Messages>
 end class
 
