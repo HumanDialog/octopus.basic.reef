@@ -254,13 +254,15 @@ post:
     end if
 
 
-context Note::CopyToBasket(): FolderNote
+context Note::CopyToBasket(optional flags: integer=0): ElementReference
 post:
-    let basket: Folder = user.BasketFolder
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "Note", self.href, flags)
 
-    if not basket.Notes.exists(element.Note.Id = self.Id) then
-        result = basket.Notes.newElement(e | e.Note = self and e.Order = basket.MaxOrder + ORDER_STEP)
-    end if
+
+-- to remove
+context Note::IsInBasket: boolean
+post:
+    result = false
 
 
 context Note::TogglePinned : FolderNote
@@ -284,10 +286,6 @@ post:
 context Note::IsPinned: boolean
 post:
     result = user.PinnedFolders.Notes.exists(element.Note.Id = self.Id)
-
-context Note::IsInBasket: boolean
-post:
-    result = user.BasketFolder.Notes.exists(element.Note.Id = self.Id)
 
 
 context Note::CalculateCanonicalPath: string
@@ -411,6 +409,48 @@ post:
     else
         result = null
     end if
+
+
+context Note::AttachNote(note: Note, order: integer): boolean
+post:
+    if not self.Notes.exists(element.Note = note) then
+        self.Notes.newElement( element.Note = note and element.Order = order)
+        result = true
+    else
+        result = false
+    end if
+
+context Note::AttachClipboard(references: JsonObject): Note
+post:
+    let referencesNo: integer = references.count
+    let maxOrder: integer = self.Notes.max(element.Order)
+    let order: integer = maxOrder + ORDER_STEP
+
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    let flags: integer
+
+    let note: Note
+    
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        flags = reference.flags         -- todo: EIF_CUT handle
+
+        select case typeName
+            case 'Note'
+                note = system.GetItem(id, typeName)
+                if note <> null then
+                    if self.AttachNote(note, order) then
+                        order = order + ORDER_STEP
+                    end if        
+                end if
+        end select
+    )
+    result = self
+
 
 -- ----------------------------------------------------------------------------------------------------------------
 

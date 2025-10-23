@@ -22,6 +22,7 @@ class Group
     RelatedToGroups(0..n):      GroupGroup   <backNav: Group>
     FolderFolder[0..n]:         FolderFolder <backNav: Group>
     TaskIndexCounter:           integer
+    Clipboards<0..n>:           Clipboard    <backNav: Group>
 end class
 
 class GroupGroup
@@ -276,3 +277,13 @@ post:
     self.Folders.forAll(element.ValidateSubTreeCanonicalPaths())
     self.SharedFolders.ValidateSubTreeCanonicalPaths()
     self.Lists.forAll( element.ValidateSubTreeCanonicalPaths())
+
+
+context Group::Clipboard: Clipboard
+post:
+    result = self.Clipboards.first
+    if result = null then
+        result = self.Clipboards.newElement(
+            element.Title = "__; en: Clipboard ("+ self.Name +"); es: Portapapeles ("+ self.Name +"); pl: Schowek ("+ self.Name +")"
+        )
+    end if

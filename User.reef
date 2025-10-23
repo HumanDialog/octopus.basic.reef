@@ -24,6 +24,7 @@ class User
     MyMessages(0..n):       Message
     CreatedTasks(0..n):     Task                <backNav: CreatedBy>
     UploadedFiles(0..n):    UploadedFile        <backNav: CreatedBy>
+    Clipboards<0..n>:       Clipboard           <backNav: User>
 end class
 
 constraint User::PinnedFolders
@@ -191,3 +192,12 @@ post:
     )
 
     self.MyLists.forAll(element.ValidateSubTreeCanonicalPaths())
+
+context User::Clipboard: Clipboard
+post:
+    result = self.Clipboards.first
+    if result = null then
+        result = self.Clipboards.newElement(
+            element.Title = "__; en: Clipboard ("+ self.Name +"); es: Portapapeles ("+ self.Name +"); pl: Schowek ("+ self.Name +")"
+        )
+    end if

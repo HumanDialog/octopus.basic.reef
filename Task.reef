@@ -146,13 +146,14 @@ post:
         self.ListOrder = order
     end if
 
-context Task::CopyToBasket(): FolderTask
+context Task::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
-    let basket: Folder = user.BasketFolder
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "Task", self.href, flags)
 
-    if not basket.Tasks.exists(element.Task.Id = self.Id) then
-        result = basket.Tasks.newElement(e | e.Task = self and e.Order = basket.MaxOrder + ORDER_STEP)
-    end if
+-- to remove
+context Task::IsInBasket: boolean
+post:
+    result = false
 
 context Task::TogglePinned : FolderTask
 post:
@@ -177,10 +178,6 @@ post:
 context Task::IsPinned: boolean
 post:
     result = user.PinnedFolders.Tasks.exists(element.Task.Id = self.Id)
-
-context Task::IsInBasket: boolean
-post:
-    result = user.BasketFolder.Tasks.exists(element.Task.Id = self.Id)
 
 
 context TaskNote::IsCanonical: boolean
@@ -295,3 +292,57 @@ post:
     else
         result = null
     end if
+
+
+context Task::AttachNote(note: Note): boolean
+post:
+    if not self.Notes.exists(element.Note = note) then
+        self.Notes.newElement(element.Note=note)
+        result = true
+    else
+        result = false
+    end if
+
+
+context Task::AttachFile(f: UploadedFile): boolean
+post:
+    if not self.Files.exists(element.File = f) then
+        self.Files.newElement(element.File=f)
+        result = true
+    else
+        result = false
+    end if
+
+
+context Task::AttachClipboard(references: JsonObject): Task
+post:
+    let referencesNo: integer = references.count
+
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    
+    let note: Note
+    let upFile: UploadedFile
+
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        
+        select case typeName
+            case 'Note'
+                note = system.GetItem(id, typeName)
+                if note <> null then
+                    self.AttachNote(note)
+                end if
+
+            case 'UploadedFile'
+                upFile = system.GetItem(id, typeName)
+                if upFile <> null then
+                    self.AttachFile(upFile)
+                end if
+
+        end select
+    )
+    result = self

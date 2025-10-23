@@ -108,17 +108,15 @@ post:
     result = self.Index
 
 
-context UploadedFile::CopyToBasket(): FolderFile
+context UploadedFile::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
-    let basket: Folder = user.BasketFolder
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "File", self.href, flags)
+    
 
-    if not basket.Files.exists(element.File.Id = self.Id) then
-        result = basket.Files.newElement(e | e.File = self and e.Order = basket.MaxOrder + ORDER_STEP)
-    end if
-
+-- to remove
 context UploadedFile::IsInBasket: boolean
 post:
-    result = user.BasketFolder.Files.exists(element.File.Id = self.Id)
+    result = false
 
 
 context UploadedFile::CalculateCanonicalPath: string

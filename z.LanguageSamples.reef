@@ -32,3 +32,38 @@ context App::js2: string
 post:
     let j: JsonObject = ['A', 'B', 'C']
     j.forAll(s: string | result = result + s + ' ')
+
+context App::js3: string
+post:
+    let in_str: string = "Żółć"
+    let in_dat: date = 2025.10.21
+    let in_tsp: timespan = 1440
+    let in_num: currency = 123.45
+    let in_int: integer = 123
+
+    let js: JsonObject = [
+        in_str,
+        in_dat,
+        in_tsp,
+        in_num,
+        in_int,
+        "SGVsbG8="
+    ]
+
+    let out_str: string     = js[0]
+    let out_dat: date       = js[1]
+    let out_tsp: timespan   = js[2]
+    let out_num: currency   = js[3]
+    let out_int: integer    = js[4]
+   -- let out_mem: memblock   = js[5] 
+
+    result = js.ToString() + "\n"
+    result = result + "str: " + out_str + "\n"
+    result = result + "dat: " + out_dat + "\n"
+    result = result + "tsp: " + out_tsp + "\n"
+    result = result + "num: " + out_num + "\n"
+    result = result + "int: " + out_int + "\n"
+  --  result = result + "mem: " + out_mem + "\n"
+
+    let c: integer = js.count
+    set(0 .. c-1).forAll(i| result = result + js[i] + ' ')

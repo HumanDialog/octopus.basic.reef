@@ -515,25 +515,42 @@ post:
     result = self.href()
 
 
-context TaskList::AttachBasketContent(): TaskList
+context TaskList::CopyToBasket(optional flags: integer = 0): ElementReference 
 post:
-    let basket: Folder = user.BasketFolder
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Name, self.Summary, "TaskList", self.href, flags)
 
+
+context TaskList::AttachClipboard(references: JsonObject): TaskList
+post:
+    let referencesNo: integer = references.count
     let maxOrder: integer = self.Tasks.max(element.ListOrder)
     let order: integer = maxOrder + ORDER_STEP
-    basket.Tasks.forAll(
-            if element.Task.MoveToList(self, order) then
-                order = order + ORDER_STEP
-            end if
-    )
 
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    let flags: integer
+
+    let task: Task
+    
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        flags = reference.flags         -- todo: EIF_CUT handle
+
+        select case typeName
+            case 'Task'
+                task = system.GetItem(id, typeName)
+                if task <> null then
+                    if task.MoveToList(self, order) then
+                        order = order + ORDER_STEP
+                    end if        
+                end if
+        end select
+    )
     result = self
 
-
-context TaskList::AttachAndClearBasketContent(): TaskList
-post:
-    result = self.AttachBasketContent()
-    user.BasketFolder.Tasks.removeAll       -- user.BasketFolder.DettachAllContent
 
 
 context TaskList::CalculateCanonicalPath: string

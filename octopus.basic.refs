@@ -11,6 +11,6 @@
     <UserClass Name="User"/>
     <RootClass Name="App"/>
     <API Version="v001"/>
-    <Structure Version="1.4.0" ReleaseDate="2025-10-21T12:00Z"/>
+    <Structure Version="1.4.1" ReleaseDate="2025-10-23T16:00Z"/>
   </AppSettings>
 </BobcatSolution>

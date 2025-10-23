@@ -86,39 +86,51 @@ pre No rights to post messages in this message channel:
     self.acc > ACC_DENIED
 post:
     result = self.Messages.newElement(element.Author=user and element.Date.SetUTCDate and element.Text=text)
+    result.AttachClipboard(attachements)
+    self.InformSubscribers()
 
-    let attachementsNo: integer = attachements.count
+
+context Message::AttachClipboard(references: JsonObject): Message
+post:
+    let referencesNo: integer = references.count
+    
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    let flags: integer
+
     let note: Note
     let task: Task
+    let upFile: UploadedFile
 
-    let itemId: integer
-    let itemType: string
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        
+        select case typeName
+            case 'Note'
+                note = system.GetItem(id, typeName)
+                if note <> null then
+                    self.Notes.newElement(element.Note=note and element.Title=note.Title)        
+                end if
 
-    set(0 .. attachementsNo-1).forAll(i |
-        itemType = attachements[i].Type
-        itemId = attachements[i].Id
+            case 'Task'
+                task = system.GetItem(id, typeName)
+                if task <> null then
+                    self.Tasks.newElement(element.Task=task and element.Title=task.Title)
+                end if
 
-        if itemType = "Note" then
+            case 'UploadedFile'
+                upFile = system.GetItem(id, typeName)
+                if upFile <> null then
+                    self.Files.newElement(element.File=upFile and element.Title=task.Title)
+                end if
 
-            note = system.GetItem(itemId, "Note")
-            if note <> null then
-                result.Notes.newElement(element.Note=note and element.Title=note.Title)
-            end if
-
-        else if itemType = "Task" then
-
-            task = system.GetItem(itemId, "Task")
-            if task <> null then
-                result.Tasks.newElement(element.Task=task and element.Title=task.Title)
-            end if
-
-        else if itemType = "Folder" then
-            -- Folders cannot be attached to message
-        end if
-        end if
-        end if
+        end select
     )
-    self.InformSubscribers()
+    result = self
+
 
 --admin
 context MessageChannel::InformSubscribers()

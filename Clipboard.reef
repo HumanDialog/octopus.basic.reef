@@ -1,0 +1,268 @@
+
+const EIF_ITEM              =  &h00000000
+const EIF_CUT               =  &h00000001
+const EIF_BEGIN_GROUP       =  &h00000100
+const EIF_END_GROUP         =  &h00000200
+
+
+const CS_MAX_ELEMENTS_NO    = 100
+const CS_FIRST_ORDER_NO     = 6400
+const CS_LAST_ORDER_NO      = 0
+
+
+class Clipboard
+    Title:                  string
+    Elements[0..n]:         ElementReference    <backNav: Clipboard>
+
+    User:                   User                <backNav: Clipboards>
+    Group:                  Group               <backNav: Clipboards>
+end class
+
+
+class ElementReference
+    Title(128):				string
+    Summary(196):			string
+    icon:				    string
+    href(255):				string
+    Order:				    integer
+
+    ElementId:              integer
+    ElementType:            string
+    ElementNav:             string
+    ElementInfo:            integer
+
+    Clipboard:              Clipboard    
+end class
+
+
+context Clipboard::Has(elementId: integer, elementType: string): boolean
+post:
+    result = self.Elements.exists(element.ElementId = elementId and element.ElementType = elementType)
+
+
+context Clipboard::TopOrder: integer
+post:
+    let minOrder: integer in
+
+    if self.Elements.count = 0 then
+        result = CS_FIRST_ORDER_NO
+    else
+        minOrder = self.Elements.min(element.Order)
+        result = minOrder - ORDER_STEP
+        
+        if result < 0 then
+            result = self.ReorderElements()
+        end if
+    end if
+
+    
+
+context Clipboard::ReorderElements(): integer
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.Elements.orderedBy('Order').forAll(element.Order = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + CS_FIRST_ORDER_NO
+    self.Elements.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+    result = order
+
+
+context Clipboard::Get(el: ElementReference): JsonObject
+post:
+    let beginGroup: ElementReference
+    let endGroup: ElementReference
+
+    if el <> null then
+        if (el.ElementInfo & EIF_BEGIN_GROUP) <> 0 then
+            beginGroup = el
+            endGroup = self.Elements.orderedBy("Order").select((element.ElementInfo & EIF_END_GROUP) <> 0 and element.Order > beginGroup.Order).first
+            
+            result = []
+            self.Elements.orderedBy("Order").select(element.Order > beginGroup.Order and element.Order < endGroup.Order).forAll(
+                result = [..., 
+                        {
+                            id:         element.ElementId,
+                            typeName:   element.ElementType,
+                            navPath:    element.ElementNav,
+                            Title:      element.Title,
+                            Summary:    element.Summary,
+                            icon:       element.icon,
+                            href:       element.href, 
+                            flags:      element.ElementInfo
+                        }]
+            )
+        else
+            result = [ 
+                {
+                    id:         el.ElementId,
+                    typeName:   el.ElementType,
+                    navPath:    el.ElementNav,
+                    Title:      el.Title,
+                    Summary:    el.Summary,
+                    icon:       el.icon,
+                    href:       el.href,
+                    flags:      el.ElementInfo
+                }]
+        end if
+    else
+        result = []
+    end if
+
+
+
+context Clipboard::GetLast(): JsonObject
+post:
+    let el: ElementReference = self.Elements.orderedBy("Order").first
+    result = self.Get(el)
+
+
+
+
+context Clipboard::GetByNav(navPath: string): JsonObject
+post:
+    let el: ElementReference = self.Elements.select(element.ElementNav = navPath).first
+    let minOrder: integer = self.Elements.min(element.Order)
+    if el.Order > minOrder then
+        el.Order = self.TopOrder()
+    end if
+    result = self.Get(el)
+
+
+
+context Clipboard::GetByPos(pos: integer): JsonObject
+post:
+    let el: ElementReference = self.Elements.orderedBy("Order").at(pos)
+    let minOrder: integer = self.Elements.min(element.Order)
+    if el.Order > minOrder then
+        el.Order = self.TopOrder()
+    end if
+    result = self.Get(el)
+
+
+context Clipboard::Push(id: integer, typeName: string, navPath: string, title: string, optional summary: string="", optional icon: string="", optional href: string="", optional flags: integer=0): ElementReference
+post:
+    let order: integer
+    let el: ElementReference = self.Elements.select(element.ElementId = id and element.ElementType = typeName).first
+    if el <> null then
+        el.Order = self.TopOrder()
+    else
+        while self.Elements.count >= CS_MAX_ELEMENTS_NO do
+            self.Elements.first.delete
+        end while
+
+        order = self.TopOrder()
+        el = self.Elements.newElement(e | 
+            e.ElementInfo = (EIF_ITEM | flags)
+            e.Order = order
+            e.ElementId = id
+            e.ElementType = typeName
+            e.ElementNav = navPath
+            e.Title = title
+            e.Summary = summary
+            e.icon = icon
+            e.href = href
+            )
+    end if
+    result = el
+
+
+context Clipboard::BeginGroup(title: string): ElementReference
+post:
+    let order: integer = self.TopOrder()
+    result = self.Elements.newElement(e | 
+            e.ElementInfo = EIF_BEGIN_GROUP
+            e.Order = order
+            e.Title = title
+            e.icon = "Multi")
+
+
+context Clipboard::EndGroup(): ElementReference
+post:
+    let order: integer = self.TopOrder()
+    result = self.Elements.newElement(e | 
+            e.ElementInfo = EIF_END_GROUP
+            e.Order = order)
+
+
+context Clipboard::PushMulti(multi: JsonObject, optional flags: integer=0): JsonObject
+post:
+    let elementsNo: integer = multi.count
+    let obj: JsonObject
+
+    let id: integer
+    let typeName: string
+    let ref: string
+    let title: string
+    let summary: string
+    let icon: string
+    let href: string
+    let iflags: integer
+
+    let groupTitle: string
+
+    if elementsNo > 0 then
+
+        self.EndGroup()
+
+        set(0 .. elementsNo-1).revForAll(i | 
+            obj         = multi[i]    
+            id          = obj.id 
+            typeName    = obj.typeName 
+            ref         = obj.navPath 
+            title       = obj.Title 
+            summary     = obj.Summary 
+            icon        = obj.icon 
+            href        = obj.href 
+            iflags      = obj.flags | flags
+            
+            self.Push(id, typeName, ref, title, summary, icon, href, iflags)
+        )
+
+        set(0 .. elementsNo-1).forAll(i | 
+            obj         = multi[i]  
+            title       = obj.Title 
+            
+            if not groupTitle.isEmpty then
+                groupTitle = groupTitle + ", "
+            end if  
+
+            groupTitle = groupTitle + title
+        )
+
+        self.BeginGroup(groupTitle)
+
+    end if
+
+    result = self.GetLast()
+
+context Clipboard::SetRecentElements(refs: JsonObject)
+post:
+    let elementsNo: integer = refs.count
+    let ref: string
+    let reference: ElementReference
+
+    let minOrder: integer = self.Elements.min(element.Order)
+    let beginGroupOrder: integer
+    let endGroupOrder: integer
+
+    set(0 .. elementsNo-1).forAll(i |
+         
+        ref = refs[i]
+        reference = system.GetItemByRef(ref)
+        if reference <> null then
+            if (reference.ElementInfo & EIF_BEGIN_GROUP) <> 0 then
+                minOrder = self.TopOrder()
+                beginGroupOrder = reference.Order
+                endGroupOrder = self.Elements.orderedBy("Order").select(element.Order > beginGroupOrder and ((element.ElementInfo & EIF_END_GROUP) <> 0)).first.Order
+                self.Elements.orderedBy("Order").select(element.Order >= beginGroupOrder and element.Order <= endGroupOrder).revForAll(
+                    element.Order = minOrder
+                    minOrder = minOrder - ORDER_STEP
+                )
+                minOrder = self.TopOrder()          -- Reorder if needed
+            else
+                if reference.Order > minOrder then
+                    reference.Order = self.TopOrder()
+                    minOrder = reference.Order
+                end if
+            end if
+        end if
+    )
