@@ -31,6 +31,8 @@ access role GroupMember: Group Member
 
     acc TaskFile = self.Task.AccMember
 
+    acc NoteFile = self.Note.AccMember
+
 
 context User::AccMember: integer
 post:
@@ -113,6 +115,9 @@ post:
         result = ACC_READWRITE
     else if self.InGroupFolder(group) then
         result = ACC_READWRITE
+    else
+        result = self.InTasks.max(element.Task.AccMember)
+        result = Max(result, self.InNotes.max(element.Note.AccMember))
     end if
     end if
     end if
@@ -145,7 +150,12 @@ post:
         result = ACC_READWRITE
     else if self.InGroupFolder(group) then
         result = ACC_READWRITE
+    else
+        result = self.InTasks.max(element.Task.AccMember)
+        result = Max(result, self.InNotes.max(element.Note.AccMember))
     end if
     end if
     end if
+
+
     

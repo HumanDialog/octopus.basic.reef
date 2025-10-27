@@ -31,6 +31,7 @@ access role GroupOwner: Group Leader
     acc UploadedFile = self.AccOwner
     acc FolderFile = self.Folder.Acc
     acc TaskFile = self.Task.AccOwner
+    acc NoteFile = self.Note.AccOwner
 
 context User::AccOwner: integer
 post:
@@ -105,6 +106,9 @@ post:
         result = ACC_READWRITE
     else if self.InGroupFolder(group) then
         result = ACC_READWRITE
+    else
+        result = self.InTasks.max(element.Task.AccOwner)
+        result = Max(result, self.InNotes.max(element.Note.AccOwner))
     end if
     end if
     end if
@@ -148,6 +152,9 @@ post:
         result = ACC_READWRITE
     else if self.InGroupFolder(group) then
         result = ACC_READWRITE
+    else
+        result = self.InTasks.max(element.Task.AccOwner)
+        result = Max(result, self.InNotes.max(element.Note.AccOwner))
     end if
     end if
     end if

@@ -184,6 +184,18 @@ context TaskNote::IsCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) <> 0
 
+context TaskNote::Title: string
+post:
+    result = self.Note.Title
+
+context TaskNote::Summary: string
+post:
+    result = self.Note.Summary
+
+context TaskNote::href: string
+post:
+    result = self.Note.href
+
 context Task::CalculateCanonicalPath: string
 post:
     let canonicalFolderLink: FolderTask
@@ -346,3 +358,22 @@ post:
         end select
     )
     result = self
+
+
+context Task::CreateFile(title: string, mimeType: string, size: integer, optional order: integer=0) : TaskFile
+pre Only logged in users may upload files:
+    user <> null
+post:
+    let upFile: UploadedFile
+    let fileLink: TaskFile
+
+    upFile = user.UploadedFiles.newElement(n |  n.Title = title
+                                                n.MimeType = mimeType
+                                                n.Size = size)
+
+    fileLink = self.Files.newElement( e | 
+        e.File = upFile
+        e.LinkInfo = FLI_CANONICAL)
+
+    upFile.ValidateSubTreeCanonicalPaths()
+    result = fileLink

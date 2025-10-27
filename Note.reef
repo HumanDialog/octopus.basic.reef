@@ -33,6 +33,7 @@ public:
     InMessages[0..n]:       MessageNote
 
     Notes[0..n]:            NoteNote
+    Files[0..n]:            NoteFile
     InNotes[0..n]:          NoteNote
     NotesCount:             integer
 end class
@@ -364,6 +365,10 @@ post:
         link.Note.ValidateSubTreeCanonicalPaths()
     )
 
+    self.Files.select(element.IsCanonical).forAll(link: NoteFile |
+        link.File.ValidateSubTreeCanonicalPaths()
+    )
+
 
 context Note::RecalculateCanonicalLinksAfterAttach(newLink: FolderNote)
 post:
@@ -420,6 +425,15 @@ post:
         result = false
     end if
 
+context Note::AttachFile(f: UploadedFile, order: integer): boolean
+post:
+    if not self.Files.exists(element.File = f) then
+        self.Files.newElement(element.File=f)
+        result = true
+    else
+        result = false
+    end if
+
 context Note::AttachClipboard(references: JsonObject): Note
 post:
     let referencesNo: integer = references.count
@@ -432,6 +446,7 @@ post:
     let flags: integer
 
     let note: Note
+    let upFile: UploadedFile
     
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
@@ -447,9 +462,37 @@ post:
                         order = order + ORDER_STEP
                     end if        
                 end if
+
+            case 'UploadedFile'
+                upFile = system.GetItem(id, typeName)
+                if upFile <> null then
+                    if self.AttachFile(upFile, order) then
+                        order = order + ORDER_STEP
+                    end if        
+                end if
+
         end select
     )
     result = self
+
+
+context Note::CreateFile(title: string, mimeType: string, size: integer, optional order: integer=0) : NoteFile
+pre Only logged in users may upload files:
+    user <> null
+post:
+    let upFile: UploadedFile
+    let fileLink: NoteFile
+
+    upFile = user.UploadedFiles.newElement(n |  n.Title = title
+                                                n.MimeType = mimeType
+                                                n.Size = size)
+
+    fileLink = self.Files.newElement( e | 
+        e.File = upFile
+        e.LinkInfo = FLI_CANONICAL)
+
+    upFile.ValidateSubTreeCanonicalPaths()
+    result = fileLink
 
 
 -- ----------------------------------------------------------------------------------------------------------------

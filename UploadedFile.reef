@@ -17,6 +17,7 @@ class UploadedFile
     CanonicalPath(0):       string
     InFolders[0..n]:        FolderFile
     InTasks[0..n]:          TaskFile
+    InNotes[0..n]:          NoteFile
     InMessages[0..n]:       MessageFile
 end class
 
@@ -37,6 +38,11 @@ class TaskFile
     LinkInfo:               integer
 end class
 
+class NoteFile
+    File:                   UploadedFile <backNav: InNotes>
+    Note:                   Note <backNav: Files>
+    LinkInfo:               integer
+end class
 
 class MessageFile
     Title(128):     string
@@ -126,7 +132,7 @@ post:
 
     let canonicalFolderLink: FolderFile
     let canonicalTaskLink:   TaskFile
-    -- let canonicalNoteLink:   NoteFile
+    let canonicalNoteLink:   NoteFile
     --let canonicalMessageLink: MessageFile
 
     canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
@@ -149,7 +155,20 @@ post:
                 canonicalPath = []
             end if
         else
-            canonicalPath = []
+            canonicalNoteLink = self.InNotes.select(element.IsCanonical).first
+            if canonicalNoteLink <> null then
+                if not canonicalNoteLink.Note.CanonicalPath.isEmpty then
+                    parentPath = new JsonObject
+                    parentPath.Parse(canonicalNoteLink.Note.CanonicalPath)
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+            else
+                canonicalPath = []
+            end if
+
+
         end if
     end if
 
@@ -282,6 +301,35 @@ context TaskFile::IsCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) <> 0
 
+context TaskFile::Title: string
+post:
+    result = self.File.Title
+
+context TaskFile::Summary: string
+post:
+    result = self.File.Summary
+
+context TaskFile::href: string
+post:
+    result = self.File.href
+
+-- ==============================================================================
+
+context NoteFile::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context NoteFile::Title: string
+post:
+    result = self.File.Title
+
+context NoteFile::Summary: string
+post:
+    result = self.File.Summary
+
+context NoteFile::href: string
+post:
+    result = self.File.href
 
 -- ==============================================================================
 

@@ -146,3 +146,109 @@ post:
   self.Groups.forAll( element.ValidateSubTreeCanonicalPaths() )
   self.Users.forAll( element.ValidateSubTreeCanonicalPaths() )
   result = 'Success'
+
+
+context App::MigrateAttachements: string
+post:
+  system.allInstances("Task").forAll(t | 
+    result = result + t.MigrateAttachements()
+  )
+
+  system.allInstances("Note").forAll(t | 
+    result = result + t.MigrateAttachements()
+  )
+
+
+admin context Task::MigrateAttachements: string
+post:
+  let s: integer = 0
+  let e: integer = 0
+  let attName: string
+  let len: integer = self.AttachedFiles.Len
+  let upFile: UploadedFile
+  let fileLink: TaskFile
+
+  let prefix: string
+  let niceName: string
+
+  if len > 0 then
+    result = result + self.ref + ": " + self.Title + "\n"
+
+    prefix = "Task_" + self.Id + "_AttachedFiles_"
+
+    while e < len do
+      e = self.AttachedFiles.indexOf(';', s)
+      
+      if e < 0 or e > 40000 then
+        e = len
+      end if
+
+      attName = self.AttachedFiles.substring(s, e)
+      if not attName.isEmpty then
+        -- make attachement
+        result = result + "\tatt: " + attName + "\n"
+
+        if attName.startsWith(prefix) then
+          niceName = attName.substring(prefix.Len)
+        else
+          niceName = attName
+        end if
+
+        upFile = new UploadedFile
+        upFile.Title = niceName
+        upFile.Key = attName
+
+        self.Files.newElement(link | link.File = upFile)
+
+      end if
+      s = e + 1
+    end while
+
+    end if
+
+
+admin context Note::MigrateAttachements: string
+post:
+  let s: integer = 0
+  let e: integer = 0
+  let attName: string
+  let len: integer = self.AttachedFiles.Len
+  let upFile: UploadedFile
+  let fileLink: NoteFile
+
+  let prefix: string
+  let niceName: string
+
+  if len > 0 then
+    result = result + self.ref + ": " + self.Title + "\n"
+
+    prefix = "Note_" + self.Id + "_AttachedFiles_"
+
+    while e < len do
+      e = self.AttachedFiles.indexOf(';', s)
+      
+      if e < 0 or e > 40000 then 
+        e = len
+      end if
+
+      attName = self.AttachedFiles.substring(s, e)
+      if not attName.isEmpty then
+        result = result + "\tatt: " + attName + "\n"
+
+        if attName.startsWith(prefix) then
+          niceName = attName.substring(prefix.Len)
+        else
+          niceName = attName
+        end if
+
+        upFile = new UploadedFile
+        upFile.Title = niceName
+        upFile.Key = attName
+
+        self.Files.newElement(link | link.File = upFile)
+
+      end if
+      s = e + 1
+    end while
+
+    end if
