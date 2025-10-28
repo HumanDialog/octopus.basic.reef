@@ -824,9 +824,11 @@ post:
 
 context Folder::CalculateCanonicalPath: string
 post:
-    let canonicalPath: JsonObject
-    let canonicalLink: FolderFolder
     let parentPath: JsonObject
+    let canonicalPath: JsonObject
+
+    let canonicalLink: FolderFolder
+    let parentFolder: Folder
 
     select case self.Status
         case FS_PUBLIC_ROOT_FOLDER
@@ -835,7 +837,8 @@ post:
         case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER
             canonicalPath = [
                 {
-                    Name: self.InGroup.Name
+                    Name: '__; en: Common folders; es: Carpetas comunes; pl: Wspólne foldery',
+                    href: '/group-folders'
                 }
             ]
 
@@ -843,18 +846,26 @@ post:
         case FS_USER_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER
             canonicalPath = [
                 {
-                    Name: self.User.Name,
-                    href: self.User.href
+                    Name: '__; en: My Folders; es: Mis carpetas; pl: Moje foldery',
+                    href: '/myfolders'
                 }
             ]
 
         case else
             canonicalLink = self.InFolders.select(element.IsCanonical).first
             if canonicalLink <> null then
-                if not canonicalLink.InFolder.CanonicalPath.isEmpty then
+                parentFolder = canonicalLink.InFolder
+                if not parentFolder.CanonicalPath.isEmpty then
                     parentPath = new JsonObject
-                    parentPath.Parse(canonicalLink.InFolder.CanonicalPath)
-                    canonicalPath = [...parentPath]
+                    parentPath.Parse(parentFolder.CanonicalPath)
+                    canonicalPath = [...parentPath, 
+                        {
+                            Name: parentFolder.Title,
+                            Summary: parentFolder.Summary,
+                            href: parentFolder.href,
+                            icon: parentFolder.icon
+                        }
+                    ]
                 else
                     canonicalPath = []
                 end if
@@ -862,15 +873,6 @@ post:
                 canonicalPath = []
             end if
     end select
-
-    canonicalPath = [..., 
-        {
-            Name:       self.Title,
-            Summary:    self.Summary,
-            href:       self.href,
-            icon:       self.icon
-        }
-    ]
 
     result = canonicalPath.ToString()
 

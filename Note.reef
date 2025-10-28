@@ -291,68 +291,71 @@ post:
 
 context Note::CalculateCanonicalPath: string
 post:
-    let canonicalPath: JsonObject
     let parentPath: JsonObject
-
+    let canonicalPath: JsonObject
+    
     let canonicalFolderLink: FolderNote
     let canonicalTaskLink:   TaskNote
     let canonicalNoteLink:   NoteNote
-    --let canonicalMessageLink: MessageNote
-
+    let parentFolder: Folder
+    let parentTask: Task
+    let parentNote: Note
+   
     canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
     if canonicalFolderLink <> null then
-        if not canonicalFolderLink.Folder.CanonicalPath.isEmpty then
+        parentFolder = canonicalFolderLink.Folder
+        if not parentFolder.CanonicalPath.isEmpty then
             parentPath = new JsonObject
-            parentPath.Parse(canonicalFolderLink.Folder.CanonicalPath)
-            canonicalPath = [...parentPath]
+            parentPath.Parse(parentFolder.CanonicalPath)
+            canonicalPath = [...parentPath, 
+                {
+                    Name: parentFolder.Title,
+                    Summary: parentFolder.Summary,
+                    href: parentFolder.href,
+                    icon: parentFolder.icon
+                }]
         else
             canonicalPath = []
         end if
     else 
         canonicalTaskLink = self.InTasks.select(element.IsCanonical).first
         if canonicalTaskLink <> null then
-            if not canonicalTaskLink.Task.CanonicalPath.isEmpty then
+            parentTask = canonicalTaskLink.Task
+            if not parentTask.CanonicalPath.isEmpty then
                 parentPath = new JsonObject
-                parentPath.Parse(canonicalTaskLink.Task.CanonicalPath)
-                canonicalPath = [...parentPath]
+                parentPath.Parse(parentTask.CanonicalPath)
+                canonicalPath = [...parentPath, 
+                    {
+                        Name: parentTask.Title,
+                        Summary: parentTask.Summary,
+                        href: parentTask.href,
+                        icon: 'Task'
+                    }]
             else
                 canonicalPath = []
             end if
         else
             canonicalNoteLink = self.InNotes.select(element.IsCanonical).first
             if canonicalNoteLink <> null then
-                if not canonicalNoteLink.InNote.CanonicalPath.isEmpty then
+                parentNote = canonicalNoteLink.InNote
+                if not parentNote.CanonicalPath.isEmpty then
                     parentPath = new JsonObject
-                    parentPath.Parse(canonicalNoteLink.InNote.CanonicalPath)
-                    canonicalPath = [...parentPath]
+                    parentPath.Parse(parentNote.CanonicalPath)
+                    canonicalPath = [...parentPath, 
+                        {
+                            Name:       parentNote.Title,
+                            Summary:    parentNote.Summary,
+                            href:       parentNote.href,
+                            icon:       'Note'
+                        }]
                 else
                     canonicalPath = []
                 end if
             else
-                -- not sure if Message can be canonical note container
-                -- canonicalMessageLink = self.InMessages.select(element.IsCanonical).first
-                -- if canonicalMessageLink <> null then
-                --     if not canonicalMessageLink.Message.CanonicalPath.isEmpty then
-                --         parentPath = new JsonObject
-                --         parentPath.Parse(canonicalMessageLink.Message.CanonicalPath)
-                --         canonicalPath = [...parentPath]
-                --     else
-                --         canonicalPath = []
-                --     end if
-                -- else
-                    canonicalPath = []
+                canonicalPath = []
             end if
         end if
     end if
-
-    canonicalPath = [..., 
-        {
-            Name:       self.Title,
-            Summary:    self.Summary,
-            href:       self.href,
-            icon:       'Note'
-        }
-    ]
 
     result = canonicalPath.ToString()
 

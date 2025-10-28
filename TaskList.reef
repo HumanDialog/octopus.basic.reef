@@ -560,25 +560,18 @@ post:
     if self.User <> null then
         canonicalPath = [
             {
-                Name: self.User.Name,
-                href: self.User.href
+                Name: '__; en: My lists; es: Mis listas; pl: Moje listy',
+                href: '/mylists'
             }
         ]
     else
         canonicalPath = [
             {
-                Name: self.Group.Name
+                Name: '__; en: Common lists; es: Listas comunes; pl: Wspólne listy',
+                href: '/alllists'
             }
         ]
     end if
-
-    canonicalPath = [..., 
-        {
-            Name:       self.Name,
-            Summary:    self.Summary,
-            href:       self.href
-        }
-    ]
 
     result = canonicalPath.ToString()
 

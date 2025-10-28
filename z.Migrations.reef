@@ -22,6 +22,7 @@ context App::MigrateFrom_141_to_142: string
 post:
     result = "Migration from 1.4.1 to 1.4.2\n"
     result = app.MigrateAttachements()
+    app.RecalculateCanonicalPaths()
 
 
 context App::MigrateFrom_138_to_139: string

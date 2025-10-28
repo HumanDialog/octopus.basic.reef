@@ -198,17 +198,25 @@ post:
 
 context Task::CalculateCanonicalPath: string
 post:
-    let canonicalFolderLink: FolderTask
-
-    let canonicalPath: JsonObject
     let parentPath: JsonObject
+    let canonicalPath: JsonObject
 
+    let canonicalFolderLink: FolderTask
+    let parentFolder: Folder
+    
     canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
     if canonicalFolderLink <> null then
-        if not canonicalFolderLink.Folder.CanonicalPath.isEmpty then
+        parentFolder = canonicalFolderLink.Folder
+        if not parentFolder.CanonicalPath.isEmpty then
             parentPath = new JsonObject
-            parentPath.Parse(canonicalFolderLink.Folder.CanonicalPath)
-            canonicalPath = [...parentPath]
+            parentPath.Parse(parentFolder.CanonicalPath)
+            canonicalPath = [...parentPath,
+                {
+                    Name: parentFolder.Title,
+                    Summary: parentFolder.Summary,
+                    href: parentFolder.href,
+                    icon: parentFolder.icon
+                }]
         else
             canonicalPath = []
         end if
@@ -216,14 +224,16 @@ post:
         if self.TaskList <> null then
             parentPath = new JsonObject
             parentPath.Parse(self.TaskList.CanonicalPath)
-            canonicalPath = [...parentPath]
+            canonicalPath = [...parentPath,
+                {
+                    Name:       self.TaskList.Name,
+                    Summary:    self.TaskList.Summary,
+                    href:       self.TaskList.href,
+                    icon:       'TaskList'
+                }]
         else
             if self.Actor <> null then
                 canonicalPath = [
-                    {
-                        Name: self.Actor.Name,
-                        href: self.Actor.href
-                    },
                     {
                         Name: '__; en: My tasks; es: Mis tareas; pl: Moje zadania',
                         href: '/mytasks'
@@ -234,15 +244,6 @@ post:
             end if
         end if
     end if
-
-    canonicalPath = [..., 
-        {
-            Name:       self.Title,
-            Summary:    self.Summary,
-            href:       self.href,
-            icon:       'Task'
-        }
-    ]
 
     result = canonicalPath.ToString()
 
