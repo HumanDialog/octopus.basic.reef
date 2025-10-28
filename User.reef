@@ -201,3 +201,14 @@ post:
             element.Title = "__; en: Clipboard ("+ self.Name +"); es: Portapapeles ("+ self.Name +"); pl: Schowek ("+ self.Name +")"
         )
     end if
+
+context User::CreateList(name: string, optional order: integer = 0, optional summary: string = ''): TaskList
+post:
+    let list: TaskList = self.MyLists.newElement
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.TaskStates = group.GetChecklistDefaultColumns().ToString()
+    list.Name = name
+    list.Order = order
+    list.Summary = summary
+
+    result = list

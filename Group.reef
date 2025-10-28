@@ -41,7 +41,7 @@ post:
 
 context Group::OnAfterCreate
 post:
-    self.ListIndexPrefix = 'OCT'
+    self.ListIndexPrefix = 'TSK'
     self.CreateList("__; en: Things to do; es: Cosas por hacer; pl: Rzeczy do zrobienia")
 
 
