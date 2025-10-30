@@ -522,6 +522,17 @@ post:
     result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Name, self.Summary, "TaskList", self.href, flags)
 
 
+context TaskList::CopyTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
+post:
+    result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, "Task", task.href, flags)
+
+
+context TaskList::CutTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
+post:
+    result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, "Task", task.href, flags)
+    task.TaskList = null
+    
+
 context TaskList::AttachClipboard(references: JsonObject): TaskList
 post:
     let referencesNo: integer = references.count
