@@ -303,7 +303,7 @@ post:
 context FolderFile::SetLocationAsCanonical
 post:
     self.File.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
-    --self.File.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.File.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
     self.File.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
 
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
@@ -319,13 +319,30 @@ context TaskFile::Title: string
 post:
     result = self.File.Title
 
+context TaskFile::SetTitle(value: string)
+post:
+    self.File.Title = value
+
 context TaskFile::Summary: string
 post:
     result = self.File.Summary
 
+context TaskFile::SetSummary(value: string)
+post:
+    self.File.Summary = value
+
 context TaskFile::href: string
 post:
     result = self.File.href
+
+context TaskFile::SetLocationAsCanonical
+post:
+    self.File.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.File.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.File.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.File.ValidateSubTreeCanonicalPaths()
 
 -- ==============================================================================
 
@@ -337,13 +354,30 @@ context NoteFile::Title: string
 post:
     result = self.File.Title
 
+context NoteFile::SetTitle(value: string)
+post:
+    self.File.Title = value
+
 context NoteFile::Summary: string
 post:
     result = self.File.Summary
 
+context NoteFile::SetSummary(value: string)
+post:
+    self.File.Summary = value
+
 context NoteFile::href: string
 post:
     result = self.File.href
+
+context NoteFile::SetLocationAsCanonical
+post:
+    self.File.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.File.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.File.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.File.ValidateSubTreeCanonicalPaths()
 
 -- ==============================================================================
 

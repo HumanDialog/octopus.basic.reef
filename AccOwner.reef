@@ -12,6 +12,8 @@ access role GroupOwner: Group Leader
 
     acc Task = self.AccOwner
 
+    acc TaskNote = self.Task.AccOwner
+
     acc Folder = self.AccOwner
 
     acc FolderFolder = self.InFolder.Acc
@@ -32,6 +34,7 @@ access role GroupOwner: Group Leader
     acc FolderFile = self.Folder.Acc
     acc TaskFile = self.Task.AccOwner
     acc NoteFile = self.Note.AccOwner
+    acc NoteNote = self.Note.AccOwner
 
 context User::AccOwner: integer
 post:

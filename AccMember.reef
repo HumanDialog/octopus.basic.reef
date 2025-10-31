@@ -11,6 +11,8 @@ access role GroupMember: Group Member
 
     acc Task = self.AccMember
 
+    acc TaskNote = self.Task.AccMember
+
     acc Folder = self.AccMember
 
     acc FolderFolder = self.InFolder.Acc
@@ -32,6 +34,8 @@ access role GroupMember: Group Member
     acc TaskFile = self.Task.AccMember
 
     acc NoteFile = self.Note.AccMember
+
+    acc NoteNote = self.Note.AccMember
 
 
 context User::AccMember: integer

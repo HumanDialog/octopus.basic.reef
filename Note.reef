@@ -498,6 +498,52 @@ post:
     result = fileLink
 
 
+context Note::CopyNoteToBasket(noteLink: NoteNote, optional flags: integer=0): ElementReference
+post:
+    result = noteLink.Note.CopyToBasket(flags)
+
+context Note::CutNoteToBasket(noteLink: NoteNote): ElementReference
+post:
+    result = self.CopyNoteToBasket(noteLink, EIF_CUT)
+    self.DettachNote(noteLink)
+
+
+context Note::CopyFileToBasket(fileLink: NoteFile, optional flags: integer=0): ElementReference
+post:
+    result = fileLink.File.CopyToBasket(flags)
+
+
+context Note::CutFileToBasket(fileLink: NoteFile): ElementReference
+post:
+    result = self.CopyFileToBasket(fileLink, EIF_CUT)
+    self.DettachFile(fileLink)
+
+
+context Note::DettachNote(noteLink: NoteNote)
+pre:
+    noteLink.InNote.Id = self.Id
+post:
+    noteLink.delete
+
+
+context Note::DettachFile(fileLink: NoteFile)
+pre:
+    fileLink.Note.Id = self.Id
+post:
+    fileLink.delete
+
+context Note::DeletePermanentlyNote(noteLink: NoteNote)
+post:
+    let note: Note = noteLink.Note
+    note.DeletePermanently()
+
+
+context Note::DeletePermanentlyFile(fileLink: NoteFile)
+post:
+    let upFile: UploadedFile = fileLink.File
+    upFile.DeletePermanently()
+
+
 -- ----------------------------------------------------------------------------------------------------------------
 
 
@@ -535,3 +581,12 @@ post:
 context NoteNote::IsCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context NoteNote::SetLocationAsCanonical
+post:
+    self.Note.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.Note.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.Note.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.Note.ValidateSubTreeCanonicalPaths()

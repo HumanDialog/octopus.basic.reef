@@ -188,13 +188,30 @@ context TaskNote::Title: string
 post:
     result = self.Note.Title
 
+context TaskNote::SetTitle(value: string)
+post:
+    self.Note.Title = value
+
 context TaskNote::Summary: string
 post:
     result = self.Note.Summary
 
+context TaskNote::SetSummary(value: string)
+post:
+    self.Note.Summary = value
+
 context TaskNote::href: string
 post:
     result = self.Note.href
+
+context TaskNote::SetLocationAsCanonical
+post:
+    self.Note.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.Note.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+    self.Note.InTasks.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
+
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+    self.Note.ValidateSubTreeCanonicalPaths()
 
 context Task::CalculateCanonicalPath: string
 post:
@@ -378,3 +395,51 @@ post:
 
     upFile.ValidateSubTreeCanonicalPaths()
     result = fileLink
+
+
+context Task::CopyNoteToBasket(noteLink: TaskNote, optional flags: integer=0): ElementReference
+post:
+    result = noteLink.Note.CopyToBasket(flags)
+
+context Task::CutNoteToBasket(noteLink: TaskNote): ElementReference
+post:
+    result = self.CopyNoteToBasket(noteLink, EIF_CUT)
+    self.DettachNote(noteLink)
+
+
+context Task::CopyFileToBasket(fileLink: TaskFile, optional flags: integer=0): ElementReference
+post:
+    result = fileLink.File.CopyToBasket(flags)
+
+
+context Task::CutFileToBasket(fileLink: TaskFile): ElementReference
+post:
+    result = self.CopyFileToBasket(fileLink, EIF_CUT)
+    self.DettachFile(fileLink)
+
+
+context Task::DettachNote(noteLink: TaskNote)
+pre:
+    noteLink.Task.Id = self.Id
+post:
+    noteLink.delete
+
+
+context Task::DettachFile(fileLink: TaskFile)
+pre:
+    fileLink.Task.Id = self.Id
+post:
+    fileLink.delete
+
+context Task::DeletePermanentlyNote(noteLink: TaskNote)
+post:
+    let note: Note = noteLink.Note
+    note.DeletePermanently()
+
+
+context Task::DeletePermanentlyFile(fileLink: TaskFile)
+post:
+    let upFile: UploadedFile = fileLink.File
+    upFile.DeletePermanently()
+
+
