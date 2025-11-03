@@ -148,7 +148,7 @@ post:
 
 context Task::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
-    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "Task", self.href, flags)
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, self.icon, self.href, flags)
 
 -- to remove
 context Task::IsInBasket: boolean
@@ -212,6 +212,12 @@ post:
 
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
     self.Note.ValidateSubTreeCanonicalPaths()
+
+
+context TaskNote::AttachMeTo(references: JsonObject)
+post:
+    self.Note.AttachMeTo(references)
+
 
 context Task::CalculateCanonicalPath: string
 post:
@@ -443,3 +449,45 @@ post:
     upFile.DeletePermanently()
 
 
+
+context Task::icon: string
+post:
+    if self.State >= STATE_FINISHED then
+        result = 'TaskFinished'
+    else
+        result = 'Task'
+    end if
+
+
+context Task::AttachMeTo(references: JsonObject)
+post:
+    let referencesNo: integer = references.count
+
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    
+    let folder: Folder
+    let list: TaskList 
+
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        
+        select case typeName
+            case 'Folder'
+                folder = system.GetItem(id, typeName)
+                if folder <> null then
+                    folder.AttachTask(self)
+                end if
+
+            case 'TaskList'
+                list = system.GetItem(id, typeName)
+                if list <> null then
+                    self.MoveToList(list)
+                end if
+
+        end select
+    )
+    

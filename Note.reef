@@ -544,6 +544,45 @@ post:
     upFile.DeletePermanently()
 
 
+context Note::AttachMeTo(references: JsonObject)
+post:
+    let referencesNo: integer = references.count
+
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    
+    let folder: Folder
+    let note: Note 
+    let task: Task 
+
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        
+        select case typeName
+            case 'Folder'
+                folder = system.GetItem(id, typeName)
+                if folder <> null then
+                    folder.AttachNote(self)
+                end if
+
+            case 'Task'
+                task = system.GetItem(id, typeName)
+                if task <> null then
+                    task.AttachNote(self)
+                end if
+
+            case 'Note'
+                note = system.GetItem(id, typeName)
+                if note <> null then
+                    note.AttachNote(self, 0)
+                end if
+
+        end select
+    )
+
 -- ----------------------------------------------------------------------------------------------------------------
 
 
@@ -590,3 +629,7 @@ post:
 
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
     self.Note.ValidateSubTreeCanonicalPaths()
+
+context NoteNote::AttachMeTo(references: JsonObject)
+post:
+    self.Note.AttachMeTo(references)

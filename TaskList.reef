@@ -524,12 +524,12 @@ post:
 
 context TaskList::CopyTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
 post:
-    result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, "Task", task.href, flags)
+    result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, task.icon, task.href, flags)
 
 
 context TaskList::CutTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
 post:
-    result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, "Task", task.href, flags)
+    result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, task.icon, task.href, flags)
     task.TaskList = null
     
 

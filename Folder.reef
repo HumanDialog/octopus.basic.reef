@@ -1018,6 +1018,34 @@ post:
     else
         result = null
     end if
+
+
+context Folder::AttachMeTo(references: JsonObject)
+post:
+    let referencesNo: integer = references.count
+
+    let reference: JsonObject
+    let id: integer
+    let typeName: string
+    
+    let folder: Folder
+    
+    set(0 .. referencesNo-1).forAll(i |
+        reference = references[i]
+        id = reference.id
+        typeName = reference.typeName
+        
+        select case typeName
+            case 'Folder'
+                folder = system.GetItem(id, typeName)
+                if folder <> null then
+                    folder.AttachFolder(self)
+                end if
+
+        end select
+    )
+
+
 -- ==============================================================================
 
 
@@ -1097,6 +1125,10 @@ post:
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
     self.Folder.ValidateSubTreeCanonicalPaths()
 
+context FolderFolder::AttachMeTo(references: JsonObject)
+post:
+    self.Folder.AttachMeTo(references)
+
 -- ==============================================================================
 
 
@@ -1162,6 +1194,11 @@ post:
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
     self.Note.ValidateSubTreeCanonicalPaths()
 
+
+context FolderNote::AttachMeTo(references: JsonObject)
+post:
+    self.Note.AttachMeTo(references)
+
 -- ==============================================================================
 
 
@@ -1212,3 +1249,11 @@ post:
     self.Task.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
     self.Task.ValidateSubTreeCanonicalPaths()
+
+context FolderTask::icon: string
+post:
+    result = self.Task.icon
+
+context FolderTask::AttachMeTo(references: JsonObject)
+post:
+    self.Task.AttachMeTo(references)
