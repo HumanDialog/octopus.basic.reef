@@ -212,3 +212,7 @@ post:
     list.Summary = summary
 
     result = list
+
+context User::ModifiedNotesCount: integer
+post:
+    result = self.ModifiedNotes.count

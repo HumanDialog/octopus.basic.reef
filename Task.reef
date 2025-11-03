@@ -219,6 +219,22 @@ post:
     self.Note.AttachMeTo(references)
 
 
+context TaskNote::InTitle: string
+post:
+    result = self.Task.Title
+
+context TaskNote::InSummary: string
+post:
+    result = self.Task.Summary
+
+context TaskNote::InHRef: string
+post:
+    result = self.Task.href
+
+context TaskNote::InIcon: string
+post:
+    result = self.Task.icon
+
 context Task::CalculateCanonicalPath: string
 post:
     let parentPath: JsonObject

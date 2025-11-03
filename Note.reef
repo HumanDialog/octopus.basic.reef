@@ -633,3 +633,15 @@ post:
 context NoteNote::AttachMeTo(references: JsonObject)
 post:
     self.Note.AttachMeTo(references)
+
+context NoteNote::InTitle: string
+post:
+    result = self.InNote.Title
+
+context NoteNote::InSummary: string
+post:
+    result = self.InNote.Summary
+
+context NoteNote::InHRef: string
+post:
+    result = self.InNote.href

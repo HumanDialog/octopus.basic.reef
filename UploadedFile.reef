@@ -432,6 +432,18 @@ context NoteFile::AttachMeTo(references: JsonObject)
 post:
     self.File.AttachMeTo(references)
 
+context NoteFile::InTitle: string
+post:
+    result = self.Note.Title
+
+context NoteFile::InSummary: string
+post:
+    result = self.Note.Summary
+
+context NoteFile::InHRef: string
+post:
+    result = self.Note.href
+
 -- ==============================================================================
 
 context MessageFile::href: string

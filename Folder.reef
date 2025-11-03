@@ -1129,6 +1129,23 @@ context FolderFolder::AttachMeTo(references: JsonObject)
 post:
     self.Folder.AttachMeTo(references)
 
+
+context FolderFolder::InTitle: string
+post:
+    result = self.InFolder.Title
+
+context FolderFolder::InSummary: string
+post:
+    result = self.InFolder.Summary
+
+context FolderFolder::InHRef: string
+post:
+    result = self.InFolder.href
+
+context FolderFolder::InIcon: string
+post:
+    result = self.InFolder.icon
+
 -- ==============================================================================
 
 
@@ -1199,6 +1216,23 @@ context FolderNote::AttachMeTo(references: JsonObject)
 post:
     self.Note.AttachMeTo(references)
 
+
+context FolderNote::InTitle: string
+post:
+    result = self.Folder.Title
+
+context FolderNote::InSummary: string
+post:
+    result = self.Folder.Summary
+
+context FolderNote::InHRef: string
+post:
+    result = self.Folder.href
+
+context FolderNote::InIcon: string
+post:
+    result = self.Folder.icon
+
 -- ==============================================================================
 
 
@@ -1257,3 +1291,19 @@ post:
 context FolderTask::AttachMeTo(references: JsonObject)
 post:
     self.Task.AttachMeTo(references)
+
+context FolderTask::InTitle: string
+post:
+    result = self.Folder.Title
+
+context FolderTask::InSummary: string
+post:
+    result = self.Folder.Summary
+
+context FolderTask::InHRef: string
+post:
+    result = self.Folder.href
+
+context FolderTask::InIcon: string
+post:
+    result = self.Folder.icon
