@@ -213,6 +213,14 @@ post:
 
     result = list
 
+context User::CreateFolder(title: string, optional order: integer=0, optional summary: string = ""): Folder
+post:
+    if order = 0 then
+        order = self.Folders.max(element.Order) + ORDER_STEP
+    end if
+    result = self.Folders.newElement(element.Title = title and element.Order=order and element.Summary = summary)
+    result.ValidateSubTreeCanonicalPaths()
+
 context User::ModifiedNotesCount: integer
 post:
     result = self.ModifiedNotes.count

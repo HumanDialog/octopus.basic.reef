@@ -143,7 +143,12 @@ post:
         if not parentFolder.CanonicalPath.isEmpty then
             parentPath = new JsonObject
             parentPath.Parse(parentFolder.CanonicalPath)
-            canonicalPath = [...parentPath, 
+            if parentPath.count > 0 then
+                canonicalPath = [...parentPath]
+            else
+                canonicalPath = []
+            end if
+            canonicalPath = [..., 
                 {
                     Name: parentFolder.Title,
                     Summary: parentFolder.Summary,
@@ -160,7 +165,12 @@ post:
             if not parentTask.CanonicalPath.isEmpty then
                 parentPath = new JsonObject
                 parentPath.Parse(parentTask.CanonicalPath)
-                canonicalPath = [...parentPath, 
+                if parentPath.count > 0 then
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+                canonicalPath = [..., 
                     {
                         Name: parentTask.Title,
                         Summary: parentTask.Summary,
@@ -177,7 +187,12 @@ post:
                 if not parentNote.CanonicalPath.isEmpty then
                     parentPath = new JsonObject
                     parentPath.Parse(parentNote.CanonicalPath)
-                    canonicalPath = [...parentPath,
+                    if parentPath.count > 0 then
+                        canonicalPath = [...parentPath]
+                    else
+                        canonicalPath = []
+                    end if
+                    canonicalPath = [...,
                         {
                             Name:       parentNote.Title,
                             Summary:    parentNote.Summary,

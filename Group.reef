@@ -287,3 +287,11 @@ post:
             element.Title = "__; en: Clipboard ("+ self.Name +"); es: Portapapeles ("+ self.Name +"); pl: Schowek ("+ self.Name +")"
         )
     end if
+
+context Group::CreateFolder(title: string, optional order: integer=0, optional summary: string = ""): Folder
+post:
+    if order = 0 then
+        order = self.Folders.max(element.Order) + ORDER_STEP
+    end if
+    result = self.Folders.newElement(element.Title = title and element.Order=order and element.Summary = summary)
+    result.ValidateSubTreeCanonicalPaths()

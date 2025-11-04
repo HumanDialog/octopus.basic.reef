@@ -67,3 +67,10 @@ post:
 
     let c: integer = js.count
     set(0 .. c-1).forAll(i| result = result + js[i] + ' ')
+
+context App::js4: string
+post:
+    let emptyArray: JsonObject = []
+    let js: JsonObject
+    js = [...emptyArray, 5]
+    result = js.ToString()

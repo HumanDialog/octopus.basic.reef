@@ -249,7 +249,12 @@ post:
         if not parentFolder.CanonicalPath.isEmpty then
             parentPath = new JsonObject
             parentPath.Parse(parentFolder.CanonicalPath)
-            canonicalPath = [...parentPath,
+            if parentPath.count > 0 then
+                canonicalPath = [...parentPath]
+            else
+                canonicalPath = []
+            end if
+            canonicalPath = [...,
                 {
                     Name: parentFolder.Title,
                     Summary: parentFolder.Summary,
@@ -263,7 +268,12 @@ post:
         if self.TaskList <> null then
             parentPath = new JsonObject
             parentPath.Parse(self.TaskList.CanonicalPath)
-            canonicalPath = [...parentPath,
+            if parentPath.count > 0 then
+                canonicalPath = [...parentPath]
+            else
+                canonicalPath = []
+            end if
+            canonicalPath = [...,
                 {
                     Name:       self.TaskList.Name,
                     Summary:    self.TaskList.Summary,
