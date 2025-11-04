@@ -517,3 +517,15 @@ post:
         end select
     )
     
+
+context Task::CreateSubNote(title: string, optional order: integer=0, optional summary: string = ""): TaskNote
+post:
+    let note: Note = user.CreatedNotes.newElement(element.Title = title and element.Summary = summary)
+    
+    --if order = 0 then
+    --    order = self.Notes.max(element.Order) + ORDER_STEP
+    --end if
+
+    --result = self.Notes.newElement(element.Note = note and element.Order = order)
+    result = self.Notes.newElement(element.Note = note)
+    result.SetLocationAsCanonical()

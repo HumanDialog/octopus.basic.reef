@@ -74,7 +74,7 @@ post:
     else if self.InPersonalFolder(user) then
             result = ACC_READWRITE
     else if self.InGroupFolder(group) then
-            result = ACC_READ
+            result = ACC_READWRITE
     end if
     end if
     end if
