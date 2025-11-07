@@ -368,6 +368,23 @@ context FolderFile::AttachMeTo(references: JsonObject)
 post:
     self.File.AttachMeTo(references)
 
+
+context FolderFile::InTitle: string
+post:
+    result = self.Folder.Title
+
+context FolderFile::InSummary: string
+post:
+    result = self.Folder.Summary
+
+context FolderFile::InHRef: string
+post:
+    result = self.Folder.href
+
+context FolderFile::InIcon: string
+post:
+    result = self.Folder.icon
+
 -- ==============================================================================
 
 context TaskFile::IsCanonical: boolean
@@ -406,6 +423,23 @@ post:
 context TaskFile::AttachMeTo(references: JsonObject)
 post:
     self.File.AttachMeTo(references)
+
+
+context TaskFile::InTitle: string
+post:
+    result = self.Task.Title
+
+context TaskFile::InSummary: string
+post:
+    result = self.Task.Summary
+
+context TaskFile::InHRef: string
+post:
+    result = self.Task.href
+
+context TaskFile::InIcon: string
+post:
+    result = self.Task.icon
 
 -- ==============================================================================
 
@@ -458,6 +492,10 @@ post:
 context NoteFile::InHRef: string
 post:
     result = self.Note.href
+
+context NoteFile::InIcon: string
+post:
+    result = 'Note'
 
 -- ==============================================================================
 

@@ -19,6 +19,8 @@ const FSX_IN_CALCULATION    = 100000
 const FK_FOLDER             = 0
 const FK_BASKET             = 1
 const FK_DISCUSSION         = 2
+const FK_TABLE              = 3
+const FK_DOCUMENT           = 4
 
 const FIN_PUBLIC_FOLDER     =  10000
 const FIN_GROUP_FOLDER     =    9000
@@ -50,6 +52,9 @@ class Folder
     FoldersCount:       integer
     NotesCount:         integer
     TasksCount:         integer
+    CreationDate:	    date
+    ModificationDate:   date
+    CreatedBy:          User
 end class
 
 
@@ -124,6 +129,15 @@ inv:
     self.TasksCount = self.Tasks.count
 
 ---------------------------------------------------------------------------------
+
+context Folder::OnAfterCreate
+post:
+    self.CreationDate.SetUTCDate()
+    self.CreatedBy = user
+
+    self.ModificationDate = self.CreationDate
+
+
 context Folder::href: string
 post:
     select case self.Kind
@@ -275,6 +289,7 @@ post:
             result = false
     end select
 
+
 ------------------------------------------------------------------------------------
 
 context Folder::IsRootPinned: boolean
@@ -311,7 +326,7 @@ post:
                 subFolder.Summary = summary
                 subFolder.Kind = kind
                 subFolder.Group = group) in
-
+    
     result = self.AttachFolderInt(subFolder, order)
 
 
@@ -1051,6 +1066,11 @@ post:
         end select
     )
 
+
+context Folder::ChangeKind(kind: integer): Folder
+post:
+    self.Kind = kind
+    result = self
 
 -- ==============================================================================
 

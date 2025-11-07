@@ -102,9 +102,9 @@ post:
 
 context TaskList::CreateTaskEx(properties: JsonObject): Task
 post:
-    let task: Task = new Task
-    self.Tasks.insert(task)
-
+    let task: Task = user.CreatedTasks.newElement in
+    task.TaskList = self
+    
     task.Title = properties.Title
     task.Summary = properties.Summary
     task.Description = properties.Description
@@ -112,7 +112,6 @@ post:
     task.State = properties.State
     task.Tags = properties.Tags
     task.Status = STATUS_ACTIVE
-
 
 
     if self.IndexPrefix.Len <> 0 then
