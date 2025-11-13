@@ -5,9 +5,12 @@ const NK_POST              = 2
 
 
 const NS_PUBLISHED_NOTE = 10
-
-
 const NS_PUBLIC            = 100
+
+-- [N]ote [R]ole
+const NR_NONE               = 0
+const NR_DESCRIPTION        = 1
+const NR_COVER              = 2
 
 class Note
 protected:
@@ -47,6 +50,7 @@ class NoteNote
     InNote(0..1):           Note      <backNav: Notes[0..n]>
     InNoteId:               integer
     NoteId:                 integer
+    Role:                   integer
 end class
 
 
@@ -610,6 +614,29 @@ post:
     result = self.Notes.newElement(element.Note = note and element.Order = order)
     result.SetLocationAsCanonical()
 
+
+context Note::ReorderNotes(optional fromOrder: integer = 0): integer
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.Notes.orderedBy('Order').forAll(element.Order = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
+    self.Notes.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+
+
+context Note::ReorderFiles(optional fromOrder: integer = 0): integer
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.Files.orderedBy('Order').forAll(element.Order = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
+    self.Files.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+
+context Note::ReorderAttachements()
+post:
+    let lastOrder: integer = 0
+    lastOrder = self.ReorderNotes(lastOrder)
+    lastOrder = self.ReorderFiles(lastOrder)
 
 -- ----------------------------------------------------------------------------------------------------------------
 

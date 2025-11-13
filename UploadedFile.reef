@@ -36,12 +36,16 @@ class TaskFile
     File:                   UploadedFile <backNav: InTasks>
     Task:                   Task <backNav: Files>
     LinkInfo:               integer
+    Order:                  integer
+    Role:                   integer
 end class
 
 class NoteFile
     File:                   UploadedFile <backNav: InNotes>
     Note:                   Note <backNav: Files>
     LinkInfo:               integer
+    Order:                  integer
+    Role:                   integer
 end class
 
 class MessageFile

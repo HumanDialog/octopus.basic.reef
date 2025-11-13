@@ -1,7 +1,32 @@
 
 context App::MigrateStructure(FromVersion: string): string
 post:
+    result = self.MigrateTo_144(FromVersion)
+    --result = self.MigrateTo_OLD(FromVersion)
+
+
+context App::MigrateTo_144(FromVersion: string): string
+post:
     select case FromVersion
+        case "1.4.3"
+            result = result + self.MigrateFrom_143_to_144()
+         case "1.4.2"
+            result = result + self.MigrateFrom_142_to_143()
+            result = result + self.MigrateFrom_143_to_144()
+        case "1.4.1"
+            result = result + self.MigrateFrom_141_to_142()
+            result = result + self.MigrateFrom_142_to_143()
+            result = result + self.MigrateFrom_143_to_144()
+        case else
+            result = "Too old to migrate from " + FromVersion
+    end select
+
+
+context App::MigrateTo_OLD(FromVersion: string): string
+post:
+    select case FromVersion
+        case "1.4.3"
+            result = self.MigrateFrom_143_to_144()
         case "1.4.1"
             result = self.MigrateFrom_141_to_142()
         case "1.3.8"
@@ -17,6 +42,34 @@ post:
         case else
             result = "No special structure treatment when migrating from version " + FromVersion
     end select
+
+
+context App::MigrateFrom_143_to_144: string
+post:
+    result = "Migration from 1.4.3 to 1.4.4\n"
+
+    -- tasks recalclate canoncal paths
+    result = result + "Recalculating Task canonical paths\n"
+    app.Groups.forAll(g :Group | 
+        g.Lists.forAll(l: TaskList |
+            l.Tasks.forAll(t: Task | t.ValidateSubTreeCanonicalPaths())
+        )    
+    )
+
+    -- tasks reorder attachements
+    result = result + "Reordering Tasks attachements\n"
+    system.allInstances("Task").forAll(element.ReorderAttachements())
+    
+    -- notes reorder attachements   
+    result = result + "Reordering Notes attachements\n"
+    system.allInstances("Note").forAll(element.ReorderAttachements())
+
+
+context App::MigrateFrom_142_to_143: string
+post:
+    result = "Migration from 1.4.2 to 1.4.3\n"
+    result = result + "No special structure treatment when migrating from this version"
+
 
 context App::MigrateFrom_141_to_142: string
 post:

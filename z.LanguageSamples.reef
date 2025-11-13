@@ -74,3 +74,13 @@ post:
     let js: JsonObject
     js = [...emptyArray, 5]
     result = js.ToString()
+
+context App::js5: string
+post:
+    set(0 .. 5).revForAll( i |
+        result = result + " " + i
+    )
+
+    set(5 .. 0).forAll( i |
+        result = result + " " + i
+    )

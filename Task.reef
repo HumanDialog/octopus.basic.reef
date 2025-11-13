@@ -14,7 +14,6 @@ const STATE_ARCHIVED          = 9000  -- [9000 - 9999]
 --?enum state = [draft: 0, prepared: 1, accepted: 100, started: 101]
 const ORDER_STEP        = 64
 
-
 class Task
 protected:
     Title(128):             string
@@ -63,6 +62,8 @@ class TaskNote
     Note:                   Note <backNav: InTasks>
     Task:                   Task <backNav: Notes>
     LinkInfo:               integer
+    Order:                  integer
+    Role:                   integer
 end class
 
 
@@ -244,6 +245,35 @@ context TaskNote::InIcon: string
 post:
     result = self.Task.icon
 
+context TaskNote::ToggleDescriptionRole: TaskNote
+post:
+    if self.Role = NR_DESCRIPTION then
+        self.Role = NR_NONE
+    else
+        self.Role = NR_DESCRIPTION
+    end if
+    result = self
+
+context TaskNote::MoveUp: TaskNote
+post:
+    let prevNote: TaskNote = self.Task.Notes.orderedBy("Order").select(element.Order < self.Order).last
+    let prevNoteOrder: integer = prevNote.Order
+    if prevNote <> null then
+        prevNote.Order = self.Order
+        self.Order = prevNoteOrder
+    end if
+    result = self
+
+context TaskNote::MoveDown: TaskNote
+post:
+    let nextNote: TaskNote = self.Task.Notes.orderedBy("Order").select(element.Order > self.Order).first
+    let nextNoteOrder: integer = nextNote.Order
+    if nextNote <> null then
+        nextNote.Order = self.Order
+        self.Order = nextNoteOrder
+    end if
+    result = self
+
 context Task::CalculateCanonicalPath: string
 post:
     let parentPath: JsonObject
@@ -251,44 +281,44 @@ post:
 
     let canonicalFolderLink: FolderTask
     let parentFolder: Folder
-    
-    canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
-    if canonicalFolderLink <> null then
-        parentFolder = canonicalFolderLink.Folder
-        if not parentFolder.CanonicalPath.isEmpty then
-            parentPath = new JsonObject
-            parentPath.Parse(parentFolder.CanonicalPath)
-            if parentPath.count > 0 then
-                canonicalPath = [...parentPath]
-            else
-                canonicalPath = []
-            end if
-            canonicalPath = [...,
-                {
-                    Name: parentFolder.Title,
-                    Summary: parentFolder.Summary,
-                    href: parentFolder.href,
-                    icon: parentFolder.icon
-                }]
+
+    if self.TaskList <> null then
+        parentPath = new JsonObject
+        parentPath.Parse(self.TaskList.CanonicalPath)
+        if parentPath.count > 0 then
+            canonicalPath = [...parentPath]
         else
             canonicalPath = []
         end if
+        canonicalPath = [...,
+            {
+                Name:       self.TaskList.Name,
+                Summary:    self.TaskList.Summary,
+                href:       self.TaskList.href,
+                icon:       'TaskList'
+            }]
     else
-        if self.TaskList <> null then
-            parentPath = new JsonObject
-            parentPath.Parse(self.TaskList.CanonicalPath)
-            if parentPath.count > 0 then
-                canonicalPath = [...parentPath]
+        canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+        if canonicalFolderLink <> null then
+            parentFolder = canonicalFolderLink.Folder
+            if not parentFolder.CanonicalPath.isEmpty then
+                parentPath = new JsonObject
+                parentPath.Parse(parentFolder.CanonicalPath)
+                if parentPath.count > 0 then
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+                canonicalPath = [...,
+                    {
+                        Name: parentFolder.Title,
+                        Summary: parentFolder.Summary,
+                        href: parentFolder.href,
+                        icon: parentFolder.icon
+                    }]
             else
                 canonicalPath = []
             end if
-            canonicalPath = [...,
-                {
-                    Name:       self.TaskList.Name,
-                    Summary:    self.TaskList.Summary,
-                    href:       self.TaskList.href,
-                    icon:       'TaskList'
-                }]
         else
             if self.Actor <> null then
                 canonicalPath = [
@@ -302,7 +332,7 @@ post:
             end if
         end if
     end if
-
+    
     result = canonicalPath.ToString()
 
 
@@ -368,7 +398,7 @@ post:
 context Task::AttachNote(note: Note): boolean
 post:
     if not self.Notes.exists(element.Note = note) then
-        self.Notes.newElement(element.Note=note)
+        self.Notes.newElement(element.Note=note and element.Order = self.MaxOrder + ORDER_STEP)
         result = true
     else
         result = false
@@ -378,7 +408,7 @@ post:
 context Task::AttachFile(f: UploadedFile): boolean
 post:
     if not self.Files.exists(element.File = f) then
-        self.Files.newElement(element.File=f)
+        self.Files.newElement(element.File=f and element.Order = self.MaxOrder + ORDER_STEP)
         result = true
     else
         result = false
@@ -419,6 +449,16 @@ post:
     result = self
 
 
+context Task::MaxOrder: integer
+post:
+    let n: integer = self.Notes.max(element.Order)
+    let s: integer = self.Files.max(element.Order)
+
+    result = n
+    if s > result then
+        result = s
+    end if
+
 context Task::CreateFile(title: string, mimeType: string, size: integer, optional order: integer=0) : TaskFile
 pre Only logged in users may upload files:
     user <> null
@@ -429,10 +469,14 @@ post:
     upFile = user.UploadedFiles.newElement(n |  n.Title = title
                                                 n.MimeType = mimeType
                                                 n.Size = size)
-
+    if order = 0 then
+        order = self.MaxOrder + ORDER_STEP
+    end if
+    
     fileLink = self.Files.newElement( e | 
         e.File = upFile
-        e.LinkInfo = FLI_CANONICAL)
+        e.LinkInfo = FLI_CANONICAL
+        e.Order = order)
 
     upFile.ValidateSubTreeCanonicalPaths()
     result = fileLink
@@ -531,10 +575,34 @@ context Task::CreateSubNote(title: string, optional order: integer=0, optional s
 post:
     let note: Note = user.CreatedNotes.newElement(element.Title = title and element.Summary = summary)
     
-    --if order = 0 then
-    --    order = self.Notes.max(element.Order) + ORDER_STEP
-    --end if
+    if order = 0 then
+        order = self.MaxOrder + ORDER_STEP
+    end if
 
     --result = self.Notes.newElement(element.Note = note and element.Order = order)
-    result = self.Notes.newElement(element.Note = note)
+    result = self.Notes.newElement(element.Note = note and element.Order = order)
     result.SetLocationAsCanonical()
+
+    
+context Task::ReorderNotes(optional fromOrder: integer = 0): integer
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.Notes.orderedBy('Order').forAll(element.Order = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
+    self.Notes.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+
+
+context Task::ReorderFiles(optional fromOrder: integer = 0): integer
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.Files.orderedBy('Order').forAll(element.Order = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
+    result = order
+    self.Files.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+
+context Task::ReorderAttachements()
+post:
+    let lastOrder: integer = 0
+    lastOrder = self.ReorderNotes(lastOrder)
+    lastOrder = self.ReorderFiles(lastOrder)
