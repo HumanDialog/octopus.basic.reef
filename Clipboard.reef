@@ -203,7 +203,7 @@ post:
 
         self.EndGroup()
 
-        set(0 .. elementsNo-1).revForAll(i | 
+        set(0 .. elementsNo-1).forAll(i | 
             obj         = multi[i]    
             id          = obj.id 
             typeName    = obj.typeName 
@@ -222,10 +222,10 @@ post:
             title       = obj.Title 
             
             if not groupTitle.isEmpty then
-                groupTitle = groupTitle + ", "
+                groupTitle =  ", " + groupTitle
             end if  
 
-            groupTitle = groupTitle + title
+            groupTitle =  title + groupTitle
         )
 
         self.BeginGroup(groupTitle)

@@ -14,6 +14,9 @@ const STATE_ARCHIVED          = 9000  -- [9000 - 9999]
 --?enum state = [draft: 0, prepared: 1, accepted: 100, started: 101]
 const ORDER_STEP        = 64
 
+const TK_TASK           = 0
+const TK_EVENT          = 1
+
 class Task
 protected:
     Title(128):             string
@@ -28,6 +31,8 @@ public:
     DueDate:		        date
     Effort:                 integer
     Status:                 integer
+    StartDate:              date
+    EndDate:                date
 
     Steps[0..n]:	        TaskStep
     Description:	        string

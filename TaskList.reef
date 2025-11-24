@@ -17,7 +17,7 @@ protected:
 public:
     Summary(196):           string
     Tasks(0..n):            Task
-    AllTasks(0..n):         Task    <backNav: TaskList>
+    AllTasks(0..n):         Task            <backNav: TaskList>
     Order:                  integer
     TaskStates:             string
     Archived:               boolean
@@ -25,11 +25,23 @@ public:
     Kind:                   integer
     Status:                 integer
     CanonicalPath(0):       string
-    User:                   User   <backNav: MyLists>
+    User:                   User            <backNav: MyLists>
     Group:                  Group
     InGroup:                Group
     GroupId:                integer
+
+    SubscribedBy(0..n):     UserTaskList     <backNav: List>
 end class
+
+
+class UserTaskList
+    User:                   User            <backNav: SubscribedLists>
+    List:                   TaskList        <backNav: SubscribedBy>
+    LinkInfo:               integer
+    Order:                  integer
+    Role:                   integer
+end class
+
 
 
 constraint TaskList::Tasks
@@ -605,3 +617,92 @@ post:
             task.ValidateSubTreeCanonicalPaths()
         end if
     )
+
+
+context TaskList::Subscribe: UserTaskList
+post:
+    let maxOrder: integer
+    
+    result = user.SubscribedLists.select(element.List = self).first
+
+    if result = null then
+        maxOrder = user.SubscribedLists.max(element.Order) + ORDER_STEP
+        result = user.SubscribedLists.newElement(element.List = self and element.Order = maxOrder)
+    end if
+
+
+context TaskList::Unsubscribe: boolean
+post:
+    let subEntry: UserTaskList = user.SubscribedLists.select(element.List = self).first
+    if subEntry <> null then
+        subEntry.delete
+        result = true
+    else
+        result = false
+    end if
+
+context TaskList::IsSubscribed: boolean
+post:
+    result = user.SubscribedLists.exists(element.List = self)
+
+-- =====================================================================================
+
+context UserTaskList::Name: string
+post:
+    result = self.List.Name
+
+context UserTaskList::SetName(value: string)
+post:
+    self.List.Name = value
+
+context UserTaskList::Title: string
+post:
+    result = self.List.Name
+
+context UserTaskList::SetTitle(value: string)
+post:
+    self.List.Name = value
+
+context UserTaskList::Summary: string
+post:
+    result = self.List.Summary
+
+context UserTaskList::SetSummary(value: string)
+post:
+    self.List.Summary = value
+
+context UserTaskList::href: string
+post:
+    result = self.List.href
+
+context UserTaskList::MoveUp: UserTaskList
+post:
+    let prevList: UserTaskList = self.User.SubscribedLists.orderedBy("Order").select(element.Order < self.Order).last
+    let prevListOrder: integer = prevList.Order
+    if prevList <> null then
+        prevList.Order = self.Order
+        self.Order = prevListOrder
+    end if
+    result = self
+
+context UserTaskList::MoveDown: UserTaskList
+post:
+    let nextList: UserTaskList = self.User.SubscribedLists.orderedBy("Order").select(element.Order > self.Order).first
+    let nextListOrder: integer = nextList.Order
+    if nextList <> null then
+        nextList.Order = self.Order
+        self.Order = nextListOrder
+    end if
+    result = self
+
+context UserTaskList::IsPersonal: boolean
+post:
+    result = self.List.User <> null
+
+context UserTaskList::IsInGroup(g: Group): boolean
+post:
+    if self.List.InGroup = g then
+        result = true
+    else
+        result = false
+    end if

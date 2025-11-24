@@ -9,6 +9,8 @@ access role GroupMember: Group Member
 
     acc TaskList = self.AccMember
 
+    acc UserTaskList = self.List.AccMember
+
     acc Task = self.AccMember
 
     acc TaskNote = self.Task.AccMember

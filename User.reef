@@ -25,7 +25,9 @@ class User
     CreatedTasks(0..n):     Task                <backNav: CreatedBy>
     UploadedFiles(0..n):    UploadedFile        <backNav: CreatedBy>
     Clipboards<0..n>:       Clipboard           <backNav: User>
+    SubscribedLists[0..n]:  UserTaskList        <backNav: User>
 end class
+
 
 constraint User::PinnedFolders
     element.UserId = self.Id and element.Status = FS_PINNED_ROOT_FOLDER
@@ -224,3 +226,7 @@ post:
 context User::ModifiedNotesCount: integer
 post:
     result = self.ModifiedNotes.count
+
+context User::AssignedTasksCount: integer
+post:
+    result = self.MyTasks.count
