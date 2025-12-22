@@ -59,7 +59,9 @@ end class
 
 
 class FolderFolder
+protected:
     Title(128):         string
+public:
     Kind:               integer
     Order:              integer
     Pos(8):             string
@@ -157,13 +159,13 @@ context Folder::icon: string
 post:
     select case self.Kind
         case FK_FOLDER
-            result = 'Folder'
+            result = 'folder'
         case FK_BASKET
-            result = 'Clipboard'
+            result = 'clipboard-pen-line'
         case FK_DISCUSSION
-            result = 'Discussion'
+            result = 'messages-square'
         case else
-            result = 'Folder'
+            result = 'folder'
     end select
 
 
@@ -327,7 +329,7 @@ post:
                 subFolder.Summary = summary
                 subFolder.Kind = kind
                 subFolder.Group = group) in
-    
+
     result = self.AttachFolderInt(subFolder, order)
 
 
@@ -354,7 +356,7 @@ post:
     let t: Task = user.CreatedTasks.newElement(t |
             t.Title = properties.Title
             t.Summary = properties.Summary) in
-    
+
     result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
     t.RecalculateCanonicalLinksAfterAttach(result)
 
@@ -456,13 +458,13 @@ post:
     let taskLink: FolderTask
     let fileLink: FolderFile
 
-    set(0 .. refsNo-1).forAll(i | 
+    set(0 .. refsNo-1).forAll(i |
         ref = refs[i]
         itm = system.GetItemByRef(ref)
         select case itm.oclType
             case 'FolderFolder'
                 folderLink = itm.asType("FolderFolder")
-                items = [..., 
+                items = [...,
                     {
                         id:         folderLink.FolderId,
                         typeName:   'Folder',
@@ -476,7 +478,7 @@ post:
 
             case 'FolderNote'
                 noteLink = itm.asType("FolderNote")
-                items = [..., 
+                items = [...,
                     {
                         id:         noteLink.NoteId,
                         typeName:   'Note',
@@ -490,7 +492,7 @@ post:
 
             case 'FolderTask'
                 taskLink = itm.asType("FolderTask")
-                items = [..., 
+                items = [...,
                     {
                         id:         taskLink.TaskId,
                         typeName:   'Task',
@@ -504,7 +506,7 @@ post:
 
             case 'FolderFile'
                 fileLink = itm.asType("FolderFile")
-                items = [..., 
+                items = [...,
                     {
                         id:         fileLink.FileId,
                         typeName:   'UploadedFile',
@@ -516,12 +518,12 @@ post:
                         flags:      0
                     }]
 
-                
+
         end select
     )
 
     result = user.Clipboard.PushMulti(items)
-    
+
 
 context Folder::CutToBasketMulti(refs: JsonObject): JsonObject
 post:
@@ -537,13 +539,13 @@ post:
     let taskLink: FolderTask
     let fileLink: FolderFile
 
-    set(0 .. refsNo-1).forAll(i | 
+    set(0 .. refsNo-1).forAll(i |
         ref = refs[i]
         itm = system.GetItemByRef(ref)
         select case itm.oclType
             case 'FolderFolder'
                 folderLink = itm.asType("FolderFolder")
-                items = [..., 
+                items = [...,
                     {
                         id:         folderLink.FolderId,
                         typeName:   'Folder',
@@ -558,7 +560,7 @@ post:
 
             case 'FolderNote'
                 noteLink = itm.asType("FolderNote")
-                items = [..., 
+                items = [...,
                     {
                         id:         noteLink.NoteId,
                         typeName:   'Note',
@@ -573,7 +575,7 @@ post:
 
             case 'FolderTask'
                 taskLink = itm.asType("FolderTask")
-                items = [..., 
+                items = [...,
                     {
                         id:         taskLink.TaskId,
                         typeName:   'Task',
@@ -588,7 +590,7 @@ post:
 
             case 'FolderFile'
                 fileLink = itm.asType("FolderFile")
-                items = [..., 
+                items = [...,
                     {
                         id:         fileLink.FileId,
                         typeName:   'UploadedFile',
@@ -601,13 +603,13 @@ post:
                     }]
                 self.DettachFile(fileLink)
 
-                
+
         end select
     )
 
     result = user.Clipboard.PushMulti(items)
 
-    
+
 
 context Folder::DettachAllContent
 post:
@@ -632,7 +634,7 @@ post:
 context Folder::AttachFolderInt(subFolder: Folder, order: integer): FolderFolder
 post:
     let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder and ff.Order = order)
-    
+
     subFolder.RecalculateStatus()
     subFolder.RecalculateCanonicalLinksAfterAttach(link)
 
@@ -714,14 +716,14 @@ post:
                 if folder <> null then
                     if self.AttachFolder(folder, order) then
                         order = order + ORDER_STEP
-                    end if        
+                    end if
                 end if
             case 'Note'
                 note = system.GetItem(id, typeName)
                 if note <> null then
                     if self.AttachNote(note, order) then
                         order = order + ORDER_STEP
-                    end if        
+                    end if
                 end if
 
             case 'Task'
@@ -729,7 +731,7 @@ post:
                 if task <> null then
                     if self.AttachTask(task, order) then
                         order = order + ORDER_STEP
-                    end if        
+                    end if
                 end if
 
             case 'UploadedFile'
@@ -737,7 +739,7 @@ post:
                 if upFile <> null then
                     if self.AttachFile(upFile, order) then
                         order = order + ORDER_STEP
-                    end if        
+                    end if
                 end if
 
         end select
@@ -756,7 +758,7 @@ post:
     let s: FolderFile
 
     let itemsNo: integer = items.count
-    set(0 .. itemsNo-1).forAll(i | 
+    set(0 .. itemsNo-1).forAll(i |
         typeName = items[i].Type
         itemId = items[i].Id
 
@@ -764,7 +766,7 @@ post:
             case 'FolderFolder'
                 f = system.GetItem(itemId, typeName)
                 self.DettachSubFolder(f)
-            
+
             case 'FolderNote'
                 n = system.GetItem(itemId, typeName)
                 self.DettachNote(n)
@@ -794,7 +796,7 @@ post:
 context Folder::CopyNoteToBasket(noteLink: FolderNote, optional flags: integer=0): ElementReference
 post:
     result = noteLink.Note.CopyToBasket(flags)
-    
+
 
 context Folder::CutNoteToBasket(noteLink: FolderNote): ElementReference
 post:
@@ -841,7 +843,7 @@ post:
 context Folder::CopyFileToBasket(fileLink: FolderFile, optional flags: integer=0): ElementReference
 post:
     result = fileLink.File.CopyToBasket(flags)
-    
+
 
 context Folder::CutFileToBasket(fileLink: FolderFile): ElementReference
 post:
@@ -895,7 +897,7 @@ post:
     let s: FolderFile
 
     let itemsNo: integer = items.count
-    set(0 .. itemsNo-1).forAll(i | 
+    set(0 .. itemsNo-1).forAll(i |
         typeName = items[i].Type
         itemId = items[i].Id
 
@@ -903,7 +905,7 @@ post:
             case 'FolderFolder'
                 f = system.GetItem(itemId, typeName)
                 self.DeletePermanentlyFolder(f)
-            
+
             case 'FolderNote'
                 n = system.GetItem(itemId, typeName)
                 self.DeletePermanentlyNote(n)
@@ -961,7 +963,7 @@ post:
                         canonicalPath = []
                     end if
 
-                    canonicalPath = [..., 
+                    canonicalPath = [...,
                         {
                             Name: parentFolder.Title,
                             Summary: parentFolder.Summary,
@@ -1009,7 +1011,7 @@ post:
         changed = true
     else
 
-        if toFolder.IsPublic then 
+        if toFolder.IsPublic then
             if not fromFolder.IsPublic then
                 newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
                 prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
@@ -1049,14 +1051,14 @@ post:
     let reference: JsonObject
     let id: integer
     let typeName: string
-    
+
     let folder: Folder
-    
+
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
         id = reference.id
         typeName = reference.typeName
-        
+
         select case typeName
             case 'Folder'
                 folder = system.GetItem(id, typeName)
@@ -1080,10 +1082,13 @@ context FolderFolder
 inv:
     self.Title = self.Folder.Title
 
+context FolderFolder::GetTitle(): string
+post:
+    result = self.Title
 
 context FolderFolder::SetTitle(value: string)
 post:
-    self.Folder.Title = value
+    self.Folder.Title = value + '#'
     self.Folder.ValidateSubTreeCanonicalPaths()
 
 
@@ -1102,6 +1107,10 @@ context FolderFolder::href: string
 post:
     result = self.Folder.href
 
+context FolderFolder::icon: string
+post:
+    result = self.Folder.icon
+
 
 context FolderFolder::IsPinned: boolean
 post:
@@ -1111,9 +1120,6 @@ context FolderFolder::IsInBasket: boolean
 post:
     result = self.Folder.IsInBasket
 
-context FolderFolder::icon: string
-post:
-    result = self.Folder.icon
 
 
 context FolderFolder::GetLastForumActivity(): JsonObject
@@ -1184,7 +1190,7 @@ inv:
 context FolderNote::SetTitle(value: string)
 post:
     self.Note.Title = value
-    
+
 
 context FolderNote::Summary: string
 post:
@@ -1199,6 +1205,10 @@ post:
 context FolderNote::href: string
 post:
     result = self.Note.href
+
+context FolderNote::icon: string
+post:
+    result = self.Note.icon
 
 context FolderNote::ModifiedBy: User
 post:
@@ -1271,8 +1281,8 @@ inv:
 context FolderTask::SetTitle(value: string)
 post:
     self.Task.Title = value
-    
-    
+
+
 context FolderTask::Summary: string
 post:
     result = self.Task.Summary
@@ -1287,6 +1297,9 @@ context FolderTask::href: string
 post:
     result = self.Task.href
 
+context FolderTask::icon: string
+post:
+    result = self.Task.icon
 
 
 context FolderTask::State: string
@@ -1311,9 +1324,6 @@ post:
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
     self.Task.ValidateSubTreeCanonicalPaths()
 
-context FolderTask::icon: string
-post:
-    result = self.Task.icon
 
 context FolderTask::AttachMeTo(references: JsonObject)
 post:

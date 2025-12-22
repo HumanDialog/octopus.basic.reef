@@ -20,7 +20,7 @@ const TK_EVENT          = 1
 class Task
 protected:
     Title(128):             string
-public:    
+public:
     Summary(196):	        string
     Tags(64):               string
     Index(16):              string
@@ -80,7 +80,7 @@ context Task::OnAfterCreate
 post:
     self.CreationDate.SetUTCDate()
     self.ModificationDate = self.CreationDate
-    
+
 
 context Task::Finish()
 post:
@@ -183,7 +183,7 @@ post:
         else if user.PinnedFolders.Notes.count > 0 then
             maxOrder = user.PinnedFolders.Notes.max(element.Order)
         else
-            maxOrder = user.PinnedFolders.Folders.max(element.Order)    
+            maxOrder = user.PinnedFolders.Folders.max(element.Order)
         end if
         end if
 
@@ -337,7 +337,7 @@ post:
             end if
         end if
     end if
-    
+
     result = canonicalPath.ToString()
 
 
@@ -367,7 +367,7 @@ post:
         changed = true
     else
 
-        if toFolder.IsPublic then 
+        if toFolder.IsPublic then
             if not fromFolder.IsPublic then
                 newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
                 prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
@@ -427,7 +427,7 @@ post:
     let reference: JsonObject
     let id: integer
     let typeName: string
-    
+
     let note: Note
     let upFile: UploadedFile
 
@@ -435,7 +435,7 @@ post:
         reference = references[i]
         id = reference.id
         typeName = reference.typeName
-        
+
         select case typeName
             case 'Note'
                 note = system.GetItem(id, typeName)
@@ -477,8 +477,8 @@ post:
     if order = 0 then
         order = self.MaxOrder + ORDER_STEP
     end if
-    
-    fileLink = self.Files.newElement( e | 
+
+    fileLink = self.Files.newElement( e |
         e.File = upFile
         e.LinkInfo = FLI_CANONICAL
         e.Order = order)
@@ -537,9 +537,9 @@ post:
 context Task::icon: string
 post:
     if self.State >= STATE_FINISHED then
-        result = 'TaskFinished'
+        result = 'square-check-big'
     else
-        result = 'Task'
+        result = 'square-pen'
     end if
 
 
@@ -550,15 +550,15 @@ post:
     let reference: JsonObject
     let id: integer
     let typeName: string
-    
+
     let folder: Folder
-    let list: TaskList 
+    let list: TaskList
 
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
         id = reference.id
         typeName = reference.typeName
-        
+
         select case typeName
             case 'Folder'
                 folder = system.GetItem(id, typeName)
@@ -574,12 +574,12 @@ post:
 
         end select
     )
-    
+
 
 context Task::CreateSubNote(title: string, optional order: integer=0, optional summary: string = ""): TaskNote
 post:
     let note: Note = user.CreatedNotes.newElement(element.Title = title and element.Summary = summary)
-    
+
     if order = 0 then
         order = self.MaxOrder + ORDER_STEP
     end if
@@ -588,7 +588,7 @@ post:
     result = self.Notes.newElement(element.Note = note and element.Order = order)
     result.SetLocationAsCanonical()
 
-    
+
 context Task::ReorderNotes(optional fromOrder: integer = 0): integer
 post:
     let order: integer = MIN_USER_TASK_ORDER in
