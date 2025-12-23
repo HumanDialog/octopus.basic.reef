@@ -121,7 +121,7 @@ post:
 context UploadedFile::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
     result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "File", self.href, flags)
-    
+
 
 -- to remove
 context UploadedFile::IsInBasket: boolean
@@ -133,7 +133,7 @@ context UploadedFile::CalculateCanonicalPath: string
 post:
     let parentPath: JsonObject
     let canonicalPath: JsonObject
-    
+
     let canonicalFolderLink: FolderFile
     let canonicalTaskLink:   TaskFile
     let canonicalNoteLink:   NoteFile
@@ -152,7 +152,7 @@ post:
             else
                 canonicalPath = []
             end if
-            canonicalPath = [..., 
+            canonicalPath = [...,
                 {
                     Name: parentFolder.Title,
                     Summary: parentFolder.Summary,
@@ -162,7 +162,7 @@ post:
         else
             canonicalPath = []
         end if
-    else 
+    else
         canonicalTaskLink = self.InTasks.select(element.IsCanonical).first
         if canonicalTaskLink <> null then
             parentTask = canonicalTaskLink.Task
@@ -174,7 +174,7 @@ post:
                 else
                     canonicalPath = []
                 end if
-                canonicalPath = [..., 
+                canonicalPath = [...,
                     {
                         Name: parentTask.Title,
                         Summary: parentTask.Summary,
@@ -235,7 +235,7 @@ post:
         changed = true
     else
 
-        if toFolder.IsPublic then 
+        if toFolder.IsPublic then
             if not fromFolder.IsPublic then
                 newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
                 prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
@@ -267,9 +267,16 @@ post:
         result = null
     end if
 
+
 context UploadedFile::href: string
 post:
     result = './UploadedFile/'+self.Id+'/Key/blob'
+
+
+context UploadedFile::icon: string
+post:
+    result = 'package'
+
 
 context UploadedFile::AttachMeTo(references: JsonObject)
 post:
@@ -278,16 +285,16 @@ post:
     let reference: JsonObject
     let id: integer
     let typeName: string
-    
+
     let folder: Folder
-    let note: Note 
-    let task: Task 
+    let note: Note
+    let task: Task
 
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
         id = reference.id
         typeName = reference.typeName
-        
+
         select case typeName
             case 'Folder'
                 folder = system.GetItem(id, typeName)
@@ -321,7 +328,7 @@ inv:
 context FolderFile::SetTitle(value: string)
 post:
     self.File.Title = value
-    
+
 
 context FolderFile::Summary: string
 post:
@@ -336,6 +343,12 @@ post:
 context FolderFile::href: string
 post:
     result = self.File.href
+
+
+context FolderFile::icon: string
+post:
+    result = 'package'
+
 
 context FolderFile::ModifiedBy: User
 post:
