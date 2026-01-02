@@ -219,6 +219,10 @@ context TaskNote::href: string
 post:
     result = self.Note.href
 
+context TaskNote::icon: string
+post:
+    result = self.Note.icon
+
 context TaskNote::SetLocationAsCanonical
 post:
     self.Note.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
@@ -278,6 +282,8 @@ post:
         self.Order = nextNoteOrder
     end if
     result = self
+
+
 
 context Task::CalculateCanonicalPath: string
 post:

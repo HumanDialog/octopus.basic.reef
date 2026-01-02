@@ -679,6 +679,10 @@ context NoteNote::href: string
 post:
     result = self.Note.href
 
+context NoteNote::icon: string
+post:
+    result = self.Note.icon
+
 context NoteNote::NotesCount: integer
 post:
     result = self.Note.NotesCount

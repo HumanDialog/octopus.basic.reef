@@ -428,6 +428,10 @@ context TaskFile::href: string
 post:
     result = self.File.href
 
+context TaskFile::icon: string
+post:
+    result = self.File.icon
+
 context TaskFile::SetLocationAsCanonical
 post:
     self.File.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
@@ -483,6 +487,10 @@ post:
 context NoteFile::href: string
 post:
     result = self.File.href
+
+context NoteFile::icon: string
+post:
+    result = self.File.icon
 
 context NoteFile::SetLocationAsCanonical
 post:
