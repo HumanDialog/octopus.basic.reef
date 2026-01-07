@@ -594,6 +594,18 @@ post:
     result = self.Notes.newElement(element.Note = note and element.Order = order)
     result.SetLocationAsCanonical()
 
+context Task::AddDescription(title: string, optional order: integer=0): TaskNote
+post:
+    let note: Note = user.CreatedNotes.newElement(element.Title = title)
+
+    if order = 0 then
+        order = self.MaxOrder + ORDER_STEP
+    end if
+
+    --result = self.Notes.newElement(element.Note = note and element.Order = order)
+    result = self.Notes.newElement(element.Note = note and element.Order = order and element.Role = NR_DESCRIPTION)
+    result.SetLocationAsCanonical()
+
 
 context Task::ReorderNotes(optional fromOrder: integer = 0): integer
 post:
@@ -617,3 +629,4 @@ post:
     let lastOrder: integer = 0
     lastOrder = self.ReorderNotes(lastOrder)
     lastOrder = self.ReorderFiles(lastOrder)
+

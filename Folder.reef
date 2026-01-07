@@ -1088,7 +1088,7 @@ post:
 
 context FolderFolder::SetTitle(value: string)
 post:
-    self.Folder.Title = value + '#'
+    self.Folder.Title = value
     self.Folder.ValidateSubTreeCanonicalPaths()
 
 
