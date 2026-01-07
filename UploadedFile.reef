@@ -120,7 +120,7 @@ post:
 
 context UploadedFile::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
-    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "File", self.href, flags)
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "file-archive", self.href, flags)
 
 
 -- to remove
@@ -275,7 +275,7 @@ post:
 
 context UploadedFile::icon: string
 post:
-    result = 'package'
+    result = 'file-archive'
 
 
 context UploadedFile::AttachMeTo(references: JsonObject)
@@ -347,7 +347,7 @@ post:
 
 context FolderFile::icon: string
 post:
-    result = 'package'
+    result = 'file-archive'
 
 
 context FolderFile::ModifiedBy: User

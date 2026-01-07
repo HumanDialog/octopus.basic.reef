@@ -485,7 +485,7 @@ post:
                         navPath:    noteLink.Note.ref,
                         Title:      noteLink.Note.Title,
                         Summary:    noteLink.Note.Summary,
-                        icon:       'Note',
+                        icon:       noteLink.Note.icon,
                         href:       noteLink.Note.href,
                         flags:      0
                     }]
@@ -499,7 +499,7 @@ post:
                         navPath:    taskLink.Task.ref,
                         Title:      taskLink.Task.Title,
                         Summary:    taskLink.Task.Summary,
-                        icon:       'Task',
+                        icon:       taskLink.Task.icon,
                         href:       taskLink.Task.href,
                         flags:      0
                     }]
@@ -513,7 +513,7 @@ post:
                         navPath:    fileLink.File.ref,
                         Title:      fileLink.File.Title,
                         Summary:    fileLink.File.Summary,
-                        icon:       'UploadedFile',
+                        icon:       fileLink.File.icon,
                         href:       fileLink.File.href,
                         flags:      0
                     }]
@@ -567,7 +567,7 @@ post:
                         navPath:    noteLink.Note.ref,
                         Title:      noteLink.Note.Title,
                         Summary:    noteLink.Note.Summary,
-                        icon:       'Note',
+                        icon:       noteLink.Note.icon,
                         href:       noteLink.Note.href,
                         flags:      EIF_CUT
                     }]
@@ -582,7 +582,7 @@ post:
                         navPath:    taskLink.Task.ref,
                         Title:      taskLink.Task.Title,
                         Summary:    taskLink.Task.Summary,
-                        icon:       'Task',
+                        icon:       taskLink.Task.icon,
                         href:       taskLink.Task.href,
                         flags:      EIF_CUT
                     }]
@@ -597,7 +597,7 @@ post:
                         navPath:    fileLink.File.ref,
                         Title:      fileLink.File.Title,
                         Summary:    fileLink.File.Summary,
-                        icon:       'UploadedFile',
+                        icon:       fileLink.File.icon,
                         href:       fileLink.File.href,
                         flags:      EIF_CUT
                     }]

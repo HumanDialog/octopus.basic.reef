@@ -530,7 +530,7 @@ post:
 
 context TaskList::CopyToBasket(optional flags: integer = 0): ElementReference 
 post:
-    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Name, self.Summary, "TaskList", self.href, flags)
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Name, self.Summary, "notebook", self.href, flags)
 
 
 context TaskList::CopyTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
