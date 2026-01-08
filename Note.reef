@@ -273,7 +273,7 @@ post:
 
 context Note::CopyToBasket(optional flags: integer=0): ElementReference
 post:
-    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, "Note", self.href, flags)
+    result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Title, self.Summary, self.icon, self.href, flags)
 
 
 -- to remove
@@ -678,6 +678,10 @@ post:
 context NoteNote::href: string
 post:
     result = self.Note.href
+
+context NoteNote::icon: string
+post:
+    result = self.Note.icon
 
 context NoteNote::NotesCount: integer
 post:

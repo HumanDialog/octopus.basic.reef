@@ -172,7 +172,7 @@ post:
             e.ElementInfo = EIF_BEGIN_GROUP
             e.Order = order
             e.Title = title
-            e.icon = "Multi")
+            e.icon = "clipboard-list")
 
 
 context Clipboard::EndGroup(): ElementReference

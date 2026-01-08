@@ -475,6 +475,13 @@ post:
     order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP
     self.Folders.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
 
+context User::ReorderMyTasks()
+post:
+    let order: integer = MIN_USER_TASK_ORDER in
+    self.MyTasks.orderedBy('UserOrder').forAll(element.UserOrder = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP
+    self.MyTasks.orderedBy('UserOrder').revForAll(element.UserOrder = order and order = order - ORDER_STEP)
+
 
 context Folder::ReorderSubFolders(optional fromOrder: integer = 0): integer
 post:
