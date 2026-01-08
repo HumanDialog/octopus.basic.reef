@@ -1040,7 +1040,8 @@ post:
         result = new JsonObject
         result.Parse(self.CanonicalPath)
     else
-        result = null
+        result = new JsonObject
+        result = []
     end if
 
 
