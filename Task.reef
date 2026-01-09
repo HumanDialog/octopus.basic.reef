@@ -156,7 +156,7 @@ post:
 context Task::MoveToList(list: TaskList, optional order: integer = 0)
 post:
     self.TaskList = list
-    self.ReduceStateToBase()
+    list.NormalizeTaskState(self)
     if order <> 0 then
         self.ListOrder = order
     end if

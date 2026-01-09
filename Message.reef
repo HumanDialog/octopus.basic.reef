@@ -194,6 +194,10 @@ context MessageChannel::Acc: integer
 post:
     result = self.acc
 
+context MessageChannel::icon: string
+post:
+    result = 'messages-square'
+
 
 context MessageChannel::GetUnreadMessagesNo: integer
 post:
@@ -218,6 +222,10 @@ post:
         end if
         result = result + e.User.Name
     )
+
+context MessageChannelUser::icon: string
+post:
+    result = 'messages-square'
 
 context MessageTask::href: string
 post:

@@ -518,7 +518,7 @@ post:
     let newTaskStates: string = template.TaskStates.ToString()
 
     if self.TaskStates <> newTaskStates then
-        self.Tasks.forAll(element.ReduceStateToBase())
+        self.Tasks.forAll(self.NormalizeTaskState(element))
     end if
 
     self.TaskStates = newTaskStates
@@ -526,6 +526,37 @@ post:
     self.ValidateSubTreeCanonicalPaths()
 
     result = self.href()
+
+
+context TaskList::NormalizeTaskState(task: Task): integer
+pre:
+    self.TaskStates.Len <> 0
+post:
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+
+    let statesNo: integer = states.count
+    
+    let columnState: integer
+    let bestState: integer
+
+    if statesNo > 0 then
+        bestState = states[0].state
+    else
+        bestState = 0
+    end if
+
+    set(0 .. statesNo-1).forAll(i | 
+        columnState = states[i].state
+
+        if task.State >= columnState then
+            bestState = columnState
+        end if
+
+    )
+
+    task.ChangeTaskState(bestState)
+    result = bestState
 
 
 context TaskList::CopyToBasket(optional flags: integer = 0): ElementReference 
