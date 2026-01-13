@@ -11,6 +11,8 @@ const STATE_FINISHED          = 7000  -- [7000 - 7999]
 const STATE_CLOSED            = 8000  -- [8000 - 8999]
 const STATE_ARCHIVED          = 9000  -- [9000 - 9999]
 
+--Common used
+
 --?enum state = [draft: 0, prepared: 1, accepted: 100, started: 101]
 const ORDER_STEP        = 64
 
@@ -629,4 +631,3 @@ post:
     let lastOrder: integer = 0
     lastOrder = self.ReorderNotes(lastOrder)
     lastOrder = self.ReorderFiles(lastOrder)
-

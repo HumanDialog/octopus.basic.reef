@@ -1302,6 +1302,9 @@ context FolderTask::icon: string
 post:
     result = self.Task.icon
 
+context FolderTask::ListName: string
+post:
+    result = self.Task.TaskList.Name
 
 context FolderTask::State: string
 post:
@@ -1310,6 +1313,10 @@ post:
 context FolderTask::IsPinned: boolean
 post:
     result = self.Task.IsPinned
+
+context FolderTask::DueDate: date
+post:
+    result = self.Task.DueDate
 
 context FolderTask::IsInBasket: boolean
 post:
