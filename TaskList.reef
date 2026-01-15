@@ -711,6 +711,14 @@ context UserTaskList::href: string
 post:
     result = self.List.href
 
+context UserTaskList::MoveTop: UserTaskList
+post:
+    let topList: UserTaskList = self.User.SubscribedLists.orderedBy("Order").first
+    if topList <> self then
+        self.Order = topList.Order - ORDER_STEP
+    end if
+    result = self
+
 context UserTaskList::MoveUp: UserTaskList
 post:
     let prevList: UserTaskList = self.User.SubscribedLists.orderedBy("Order").select(element.Order < self.Order).last

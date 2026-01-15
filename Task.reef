@@ -266,6 +266,14 @@ post:
     end if
     result = self
 
+context TaskNote::MoveTop: TaskNote
+post:
+    let topNote: TaskNote = self.Task.Notes.orderedBy("Order").first
+    if topNote <> self then
+        self.Order = topNote.Order - ORDER_STEP
+    end if
+    result = self
+
 context TaskNote::MoveUp: TaskNote
 post:
     let prevNote: TaskNote = self.Task.Notes.orderedBy("Order").select(element.Order < self.Order).last
