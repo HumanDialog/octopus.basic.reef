@@ -652,7 +652,7 @@ post:
 
 context TaskList::Subscribe: UserTaskList
 post:
-    self.SubscribeToUser(user)
+    result = self.SubscribeToUser(user)
 
 
 
