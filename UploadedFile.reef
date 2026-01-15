@@ -386,6 +386,13 @@ post:
     self.File.AttachMeTo(references)
 
 
+context FolderFile::MoveMeTo(references: JsonObject)
+post:
+    self.Folder = null
+    self.File.AttachMeTo(references)
+    self.delete
+
+
 context FolderFile::InTitle: string
 post:
     result = self.Folder.Title

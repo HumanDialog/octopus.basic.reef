@@ -652,15 +652,20 @@ post:
 
 context TaskList::Subscribe: UserTaskList
 post:
+    self.SubscribeToUser(user)
+
+
+
+admin context TaskList::SubscribeToUser(usr: User): UserTaskList
+post:
     let maxOrder: integer
     
-    result = user.SubscribedLists.select(element.List = self).first
+    result = usr.SubscribedLists.select(element.List = self).first
 
     if result = null then
-        maxOrder = user.SubscribedLists.max(element.Order) + ORDER_STEP
-        result = user.SubscribedLists.newElement(element.List = self and element.Order = maxOrder)
+        maxOrder = usr.SubscribedLists.max(element.Order) + ORDER_STEP
+        result = usr.SubscribedLists.newElement(element.List = self and element.Order = maxOrder)
     end if
-
 
 context TaskList::Unsubscribe: boolean
 post:

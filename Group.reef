@@ -154,7 +154,13 @@ post:
     list.Order = order
     list.Summary = summary
 
+    self.SubscribeTaskListToAll(list)
+
     result = list
+
+context Group::SubscribeTaskListToAll(tasklist: TaskList)
+post:
+    self.Members.forAll(tasklist.SubscribeToUser(element.User))
 
 context Group::GetTaskListTypes: JsonObject
 post:
@@ -295,3 +301,8 @@ post:
     end if
     result = self.Folders.newElement(element.Title = title and element.Order=order and element.Summary = summary)
     result.ValidateSubTreeCanonicalPaths()
+
+context Group::CreateForum(title: string, optional order: integer=0, optional summary: string = ""): Folder
+post:
+    result = self.CreateFolder(title, order, summary)
+    result.Kind = FK_DISCUSSION

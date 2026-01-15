@@ -77,10 +77,11 @@ post:
         case NK_DOCUMENT
             result = '/note/' + self.Id
         case NK_THREAD
-            result = '/thread/' + self.Id
+            result = '/note/' + self.Id
         case NK_POST
-            result = '/thread/' + self.InNotes.select(element.InNote.Kind=NK_THREAD).first.InNote.Id + '?res=' + self.Id
-
+            result = '/note/' + self.Id
+        case else
+            result = '/note/' + self.Id
     end select
 
 context Note::icon: string
@@ -89,7 +90,7 @@ post:
         case NK_DOCUMENT
             result = 'file-text'
         case NK_THREAD
-            result = 'messages-square'
+            result = 'message-square'
         case NK_POST
             result = 'message-square'
     end select
@@ -190,9 +191,9 @@ context Note::SetContent(val: string)
 post:
     self.Content = val
 
-    if self.Kind = NK_POST or self.Kind = NK_THREAD then
-        self.Summary = self.Content.textFromHTML(128, true)
-    end if
+    --if self.Kind = NK_POST or self.Kind = NK_THREAD then
+    --    self.Summary = self.Content.textFromHTML(128, true)
+    --end if
 
     self.UpdateMetaInfo()
 
@@ -213,7 +214,7 @@ post:
     --let n: Note = new Note
     n.Title = "Re: " + self.Title
     n.Content = content
-    n.Summary = content.textFromHTML(128, true)
+    --n.Summary = content.textFromHTML(128, true)
     n.Kind = NK_POST
 
     let maxOrder: integer = self.Notes.max(element.Order)
@@ -221,7 +222,7 @@ post:
 
     self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
-    self.UpdateLatestGroupActivity()
+    --self.UpdateLatestGroupActivity()
 
 
 context Note::AttachPost(note: Note, content: string): NoteNote
@@ -231,14 +232,14 @@ post:
     let maxOrder: integer = self.Notes.max(element.Order)
     note.Title = "Re: " + self.Title
     note.Content = content
-    note.Summary = content.textFromHTML(128, true)
+    --note.Summary = content.textFromHTML(128, true)
     note.Kind = NK_POST
 
     result = self.Notes.newElement(element.Note=note and element.Order=maxOrder+ORDER_STEP)
 
     self.MoveOnForumFolderTop()
     self.UpdateMetaInfo()
-    self.UpdateLatestGroupActivity()
+    --self.UpdateLatestGroupActivity()
 
 
 context Note::MoveOnForumFolderTop()

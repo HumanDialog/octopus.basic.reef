@@ -149,7 +149,7 @@ post:
         case FK_BASKET
             result = '/folder/' + self.Id
         case FK_DISCUSSION
-            result = '/forum/' + self.Id
+            result = '/folder/' + self.Id
         case else
             result = '/folder/' + self.Id
     end select
@@ -333,7 +333,9 @@ post:
     result = self.AttachFolderInt(subFolder, order)
 
 
-
+context Folder::CreateSubForum(title: string, optional summary: string = "", optional order: integer = 0, optional kind: integer = 0): FolderFolder
+post:
+    result = self.CreateSubFolder(title, summary, order, FK_DISCUSSION)
 
 
 context Folder::CreateNoteEx(properties: JsonObject) : FolderNote
@@ -346,6 +348,19 @@ post:
             n.Summary = properties.Summary) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
+    n.RecalculateCanonicalLinksAfterAttach(result)
+
+
+context Folder::CreateThread(title: string, optional summary: string = "", optional order: integer = 0): FolderNote
+pre Only logged in users may Create Notes:
+    user <> 0
+post:
+    let n: Note = user.CreatedNotes.newElement(n |
+            n.Title = title and
+            n.Summary = summary and
+            n.Kind = NK_THREAD) in
+
+    result = self.Notes.newElement( e | e.Note = n and e.Order = order)
     n.RecalculateCanonicalLinksAfterAttach(result)
 
 
@@ -877,12 +892,12 @@ post:
     --note.Summary = summary
     note.Content = content
     note.Tags = tags
-    note.Summary = note.Content.textFromHTML(128, true)
+    --note.Summary = note.Content.textFromHTML(128, true)
 
     let maxOrder: integer = self.MaxOrder
     let folderNote: FolderNote = self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
     note.RecalculateCanonicalLinksAfterAttach(folderNote)
-    note.UpdateLatestGroupActivity()
+    --note.UpdateLatestGroupActivity()
     result = note
 
 
@@ -1052,13 +1067,17 @@ post:
     let reference: JsonObject
     let id: integer
     let typeName: string
+    let flags: integer = 0
 
     let folder: Folder
+    let grp: Group
+    let usr: User
 
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
         id = reference.id
         typeName = reference.typeName
+        flags = reference.flags
 
         select case typeName
             case 'Folder'
@@ -1066,6 +1085,19 @@ post:
                 if folder <> null then
                     folder.AttachFolder(self)
                 end if
+
+            case 'Group'
+                grp = system.GetItem(id, typeName)
+                if grp <> null then
+                    grp.Folders.insert(self)
+                end if
+
+            case 'User'
+                usr = system.GetItem(id, typeName)
+                if usr <> null then
+                    usr.Folders.insert(self)
+                end if
+
 
         end select
     )
@@ -1164,6 +1196,13 @@ post:
     self.Folder.AttachMeTo(references)
 
 
+context FolderFolder::MoveMeTo(references: JsonObject)
+post:
+    self.InFolder = null
+    self.Folder.AttachMeTo(references)
+    self.delete
+
+
 context FolderFolder::InTitle: string
 post:
     result = self.InFolder.Title
@@ -1254,6 +1293,11 @@ context FolderNote::AttachMeTo(references: JsonObject)
 post:
     self.Note.AttachMeTo(references)
 
+context FolderNote::MoveMeTo(references: JsonObject)
+post:
+    self.Folder = null
+    self.Note.AttachMeTo(references)
+    self.delete
 
 context FolderNote::InTitle: string
 post:
@@ -1336,6 +1380,12 @@ post:
 context FolderTask::AttachMeTo(references: JsonObject)
 post:
     self.Task.AttachMeTo(references)
+
+context FolderTask::MoveMeTo(references: JsonObject)
+post:
+    self.Folder = null
+    self.Task.AttachMeTo(references)
+    self.delete
 
 context FolderTask::InTitle: string
 post:

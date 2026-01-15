@@ -162,6 +162,7 @@ post:
     if order <> 0 then
         self.ListOrder = order
     end if
+    self.ValidateSubTreeCanonicalPaths()
 
 context Task::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
@@ -561,6 +562,7 @@ post:
 
     let folder: Folder
     let list: TaskList
+    let usr: User
 
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
@@ -578,6 +580,12 @@ post:
                 list = system.GetItem(id, typeName)
                 if list <> null then
                     self.MoveToList(list)
+                end if
+
+            case 'User'
+                usr = system.GetItem(id, typeName)
+                if usr <> null then
+                    self.Actor = usr
                 end if
 
         end select
