@@ -527,7 +527,7 @@ post:
 
 context NoteFile::InIcon: string
 post:
-    result = 'Note'
+    result = self.Note.icon
 
 -- ==============================================================================
 

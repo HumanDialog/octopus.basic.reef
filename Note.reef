@@ -93,6 +93,8 @@ post:
             result = 'message-square'
         case NK_POST
             result = 'message-square'
+        case else
+            result = 'file-text'
     end select
 
 
@@ -720,4 +722,4 @@ post:
 
 context NoteNote::InIcon: string
 post:
-    result = "Note"
+    result = self.InNote.icon
