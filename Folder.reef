@@ -1358,6 +1358,10 @@ context FolderTask::IsPinned: boolean
 post:
     result = self.Task.IsPinned
 
+context FolderTask::SetDueDate(value: date)
+post:
+    self.Task.DueDate = value
+
 context FolderTask::DueDate: date
 post:
     result = self.Task.DueDate
