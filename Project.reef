@@ -6,20 +6,41 @@ class Project
     Summary(196):               string
     State:                      integer
     Status:                     integer
+    AccCode:                    integer
     StartDate:                  date
     EndDate:                    date
     Group:                      Group       <backNav: AllProjects>
     GroupId:                    integer
     Folders:                    Folder
     Lists(0..n):                TaskList
-    RootActivity:               Activity 
+    AllLists(0..n):             TaskList
+
+    RootActivity:               Activity
     PresentStage:               Activity
     PlannedStage:               Activity
     AllActivities(0..n):        Activity    <backNav: Project>
-end class    
+
+
+end class
 
 constraint Group::AllProjects
     element.GroupId = self.Id
-    
-constraint Group::ActiveProjects
-    element.GroupId = self.Id and element.Status = PS_ACTIVE    
+
+constraint Group::Projects
+    element.GroupId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint Group::ProjectTemplates
+    element.GroupId = self.Id and element.Status = STATUS_TEMPLATE
+
+constraint Group::ArchivedProjects
+    element.GroupId = self.Id and element.Status = STATUS_ARCHIVED
+
+constraint Group::DeletedProjects
+    element.GroupId = self.Id and element.Status = STATUS_DELETED
+
+
+constraint Project::AllLists
+    element.ProjectId = self.Id
+
+constraint Project::Lists
+    element.ProjectId = self.Id and element.Status = STATUS_ACTIVE

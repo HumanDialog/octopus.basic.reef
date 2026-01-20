@@ -7,6 +7,7 @@ class MessageChannel
     Title(128):             string
     Summary(196):           string
     Status:                 integer
+    AccCode:                integer
     Group(0..1):            Group <backNav: MessageChannels(0..n)>
     GroupId:                integer
     Users[0..n]:            MessageChannelUser <backNav: MessageChannel>
@@ -93,7 +94,7 @@ post:
 context Message::AttachClipboard(references: JsonObject): Message
 post:
     let referencesNo: integer = references.count
-    
+
     let reference: JsonObject
     let id: integer
     let typeName: string
@@ -107,12 +108,12 @@ post:
         reference = references[i]
         id = reference.id
         typeName = reference.typeName
-        
+
         select case typeName
             case 'Note'
                 note = system.GetItem(id, typeName)
                 if note <> null then
-                    self.Notes.newElement(element.Note=note and element.Title=note.Title)        
+                    self.Notes.newElement(element.Note=note and element.Title=note.Title)
                 end if
 
             case 'Task'

@@ -15,14 +15,26 @@ class Group
     AllMessageChannels(0..n):   MessageChannel  <backNav: Group>
     AllTags:                    string
     ListIndexPrefix:            string
-    ActiveProjects(0..n):       Project
-    AllProjects(0..n):          Project
+    Projects(0..n):             Project
+    AllProjects(0..n):          Project         <backNav: Group>
 
-    RelatedGroups(0..n):        GroupGroup   <backNav: FromGroup>
-    RelatedToGroups(0..n):      GroupGroup   <backNav: Group>
-    FolderFolder[0..n]:         FolderFolder <backNav: Group>
+    RelatedGroups(0..n):        GroupGroup      <backNav: FromGroup>
+    RelatedToGroups(0..n):      GroupGroup      <backNav: Group>
+    FolderFolder[0..n]:         FolderFolder    <backNav: Group>
     TaskIndexCounter:           integer
-    Clipboards<0..n>:           Clipboard    <backNav: Group>
+    Clipboards<0..n>:           Clipboard       <backNav: Group>
+
+    ListTemplates<0..n>:        TaskList
+    ArchivedLists<0..n>:        TaskList
+    DeletedLists<0..n>:         TaskList
+    HiddenLists<0..n>:          TaskList
+
+    ArchiveFolder:              Folder
+    TrashFolder:                Folder
+
+    ArchivedProjects<0..n>:     Project
+    ProjectTemplates<0..n>:     Project
+    DeletedProjects<0..n>:      Project
 end class
 
 class GroupGroup
@@ -68,12 +80,26 @@ post:
   end if
 
 
-constraint Group::Lists
-    element.GroupId = self.Id and element.Status = TLS_GROUP_ACTIVE_LIST
-
-
 constraint Group::AllLists
     element.GroupId = self.Id
+
+constraint Group::Lists
+    element.GroupId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint Group::ArchivedLists
+    element.GroupId = self.Id and element.Status = STATUS_ARCHIVED
+
+constraint Group::DeletedLists
+    element.GroupId = self.Id and element.Status = STATUS_DELETED
+
+constraint Group::HiddenLists
+    element.GroupId = self.Id and element.Status = STATUS_HIDDEN
+
+constraint Group::ListTemplates
+    element.GroupId = self.Id and element.Status = STATUS_TEMPLATE
+
+
+
 
 
 constraint Group::Folders
@@ -84,6 +110,13 @@ constraint Group::SharedFolders
 
 constraint Group::AllFolders
     element.GroupId = self.Id
+
+constraint Group::ArchiveFolder
+    element.GroupId = self.Id and element.Status = FS_GROUP_ARCHIVE_ROOT_FOLDER
+
+constraint Group::TrashFolder
+    element.GroupId = self.Id and element.Status = FS_GROUP_TRASH_ROOT_FOLDER
+
 
 constraint Group::MessageChannels
     element.GroupId = self.Id and element.Status = CS_GROUP_ROOT_CHANNEL
@@ -190,7 +223,11 @@ post:
             },
             {
                 name: "__; en: Ready; es: Listo; pl: Gotowe",
-                state: STATE_PLANNED
+                state: STATE_READY
+            },
+            {
+                name: "__; en: Today; es: Today; pl: Na dzisiaj",
+                state: STATE_READY_GO
             },
             {
                 name: "__; en: Under work; es: En proceso; pl: W trakcie",
@@ -198,7 +235,7 @@ post:
             },
             {
                 name: "__; en: To check; es: Para comprobar; pl: Do sprawdzenia",
-                state: 5000
+                state: STATE_VERIFY
             },
             {
                 name: "__; en: Finished; es: Terminado; pl: Zakończone",
@@ -207,6 +244,32 @@ post:
         ]
     }
 
+    let officeList:JsonObject = {
+        Name: 'Office',
+        Kind: TLK_KANBAN_PROCESS,
+        TaskStates: [
+            {
+                name: "__; en: Today; es: Today; pl: Na dzisiaj",
+                state: STATE_READY_GO
+            },
+            {
+                name: "__; en: Ready; es: Listo; pl: Gotowe",
+                state: STATE_READY
+            },
+            {
+                name: "__; en: Finished; es: Terminado; pl: Zakończone",
+                state: STATE_FINISHED
+            },
+            {
+                name: "__; en: To check; es: Para comprobar; pl: Do sprawdzenia",
+                state: STATE_VERIFY
+            },
+            {
+                name: "__; en: Preparing; es: Preparación; pl: W przygotowaniu",
+                state: STATE_IN_PREPARATION
+            }
+        ]
+    }
 
     let ideasList: JsonObject = {
         Name: '__; en: Ideas; es: Ideas; pl: Pomysły',
@@ -230,6 +293,7 @@ post:
     result = [
         checkList,
         simplaBoard,
+        officeList,
         sprintList,
         ideasList
     ]

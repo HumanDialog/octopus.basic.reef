@@ -26,7 +26,25 @@ class User
     UploadedFiles(0..n):    UploadedFile        <backNav: CreatedBy>
     Clipboards<0..n>:       Clipboard           <backNav: User>
     SubscribedLists[0..n]:  UserTaskList        <backNav: User>
+
+    ArchivedLists:          TaskList
+    HiddenLists:            TaskList
+    DeletedLists:           TaskList
+    ArchiveFolder:          Folder
+    TrashFolder:            Folder
 end class
+
+constraint User::MyLists
+    element.UserId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint User::ArchivedLists
+    element.UserId = self.Id and element.Status = STATUS_ARCHIVED
+
+constraint User::DeletedLists
+    element.UserId = self.Id and element.Status = STATUS_DELETED
+
+constraint User::HiddenLists
+    element.UserId = self.Id and element.Status = STATUS_HIDDEN
 
 
 constraint User::PinnedFolders
@@ -37,6 +55,14 @@ constraint User::SharedFolders
 
 constraint User::BasketFolder
     element.UserId = self.Id and element.Status = FS_BASKET_ROOT_FOLDER
+
+constraint User::ArchiveFolder
+    element.UserId = self.Id and element.Status = FS_USER_ARCHIVE_ROOT_FOLDER
+
+constraint User::TrashFolder
+    element.UserId = self.Id and element.Status = FS_USER_TRASH_ROOT_FOLDER
+
+
 
 constraint User::MyTasks
     element.ActorId = self.Id and element.Status = STATUS_ACTIVE
@@ -158,10 +184,10 @@ post:
 context User::GetSubscribedChannelsKickLabels: JsonObject
 post:
     result = []
-    --self.MessageChannels.forAll(ch | 
+    --self.MessageChannels.forAll(ch |
     --    result = [..., ch.MessageChannel.KickLabel])
 
-    self.AllMessageChannels.forAll(ch | 
+    self.AllMessageChannels.forAll(ch |
         result = [..., ch.MessageChannel.KickLabel])
 
 context User::GetUnreadMessagesNo: integer
@@ -174,7 +200,7 @@ post:
         UserOrder = self.MyTasks.max(element.UserOrder) + ORDER_STEP
     end if
 
-    result = self.CreatedTasks.newElement(t | 
+    result = self.CreatedTasks.newElement(t |
         t.Title = Title
         t.Summary = Summary
         t.UserOrder = UserOrder

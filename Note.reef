@@ -23,6 +23,7 @@ public:
     Kind:                   integer
     State:                  integer
     Status:                 integer
+    AccCode:                integer
     CreationDate:	        date
     ModificationDate:       date
     CreatedBy:              User

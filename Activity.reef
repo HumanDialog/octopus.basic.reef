@@ -5,12 +5,19 @@ const GWT_BEFORE_HIDEAREA = -1
 class Activity
     Title:									string
 
+private:
     StartDate:							date
     Duration:								timespan
     EndDate:								date
-    KindKey:								integer
+public:
+		DueDate:								date
+		Kind:										integer
+		State:									integer
+		Status:									integer
+
 		PercentageDone:					integer
     IsSummary:							boolean
+
     SummaryEndDate:					date
     LastReportingTime:			date
 		Calendar:								Calendar
@@ -21,13 +28,17 @@ class Activity
     Summary:            		Activity
     SubActivities<0..n>:		Activity <backNav: Summary>
 
-		Tasks<0..n>:						Task <backNav: Activity>
+		Lists<0..n>:						TaskList <backNav: Activity>
 		Notes[0..n]:            ActivityNote <backNav: Activity>
 end class
 
 class Calendar
 	Name:						string
 end class
+
+constraint Activity::Lists
+    element.ActivityId = self.Id and element.Status = STATUS_ACTIVE
+
 
 class ActivityNote
 	Title(128):					string
@@ -96,7 +107,7 @@ post:
 
 context Activity::AfterChangingTaskDates(prevStartDate: date, prevEndDate: date)
 post:
-	select case self.KindKey
+	select case self.Kind
 	case TK_SUMMARY
 		self.OnEndTrackingSummaryTask(prevStartDate)
 	case else
@@ -122,7 +133,7 @@ post:
 
 context Activity::ChangeStartDateAccordingToSummaryShift(newStartDate: date, prevStartDate: date, minStartDate: date, maxEndDate: date)
 post:
-	select case self.KindKey
+	select case self.Kind
 	case TK_SUMMARY
 		if self.SubActivities.first<> null then
 			let minSubTasksStartDate: date = 2100.12.31 in

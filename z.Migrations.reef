@@ -50,17 +50,17 @@ post:
 
     -- tasks recalclate canoncal paths
     result = result + "Recalculating Task canonical paths\n"
-    app.Groups.forAll(g :Group | 
+    app.Groups.forAll(g :Group |
         g.Lists.forAll(l: TaskList |
             l.Tasks.forAll(t: Task | t.ValidateSubTreeCanonicalPaths())
-        )    
+        )
     )
 
     -- tasks reorder attachements
     result = result + "Reordering Tasks attachements\n"
     system.allInstances("Task").forAll(element.ReorderAttachements())
-    
-    -- notes reorder attachements   
+
+    -- notes reorder attachements
     result = result + "Reordering Notes attachements\n"
     system.allInstances("Note").forAll(element.ReorderAttachements())
 
@@ -106,10 +106,10 @@ post:
             list.Kind = TLK_LIST
         else if list.Kind = 2 then
             list.Kind = TLK_CALENDAR
-        else 
+        else
             list.Kind = TLK_KANBAN_CHECKLIST
-        end if 
-        end if        
+        end if
+        end if
     )
 
 
@@ -121,7 +121,7 @@ post:
     system.allInstances("TaskList").forAll(list |
         list.MigrateTaskStatesFrom133to134() )
 
-    system.allInstances("Task").forAll( task | 
+    system.allInstances("Task").forAll( task |
         if task.State = 1000 then
             task.State = STATE_FINISHED
         else if task.State > 1000 then      -- fix when tasks were on kanban column with state greater than 1000
@@ -144,7 +144,7 @@ post:
         let stateName: string
         let newState: JsonObject
 
-        set(0 .. statesNo-1).forAll(i | 
+        set(0 .. statesNo-1).forAll(i |
             stateValue = prevStates[i].state
             if stateValue = 1000 then
                 stateValue = STATE_FINISHED
@@ -158,7 +158,7 @@ post:
                 state: stateValue,
                 name: stateName
             }
-            
+
             newStates = [..., newState]
         )
 
@@ -181,22 +181,26 @@ post:
 
     -- removing default Things to do list created on Group::OnAfterCreate
     g.Lists.removeAll
-    
+
     g.IsPublic = false
     g.Name = "Human Dialog"
     result = result + "Group " + g.Name + " created"
 
     -- Group::Members
-    system.allInstances("User").forAll(g.AddUser(element))  
+    system.allInstances("User").forAll(g.AddUser(element))
     result = result + "Users added: " + g.Members.count + "\n"
-    
+
     system.allInstances("TaskList").select(element.Archived = true).forAll(element.Status = TLS_GROUP_ARCHVIVED_LIST)
     system.allInstances("TaskList").forAll(element.Group = g)
     result = result + "Lists added: " + g.AllLists.count + "\n"
-    
+
     -- hardcoded because no such properties in App anymore
     g.AllTags = "#Error:bg-red-600 #Sample:bg-rose-600 #Svelte:bg-violet-600 #AWS:bg-orange-600 #cluster:bg-sky-600 #auth:bg-emerald-600 #Feature:bg-blue-600 #Model:bg-sky-600 #docs:bg-violet-600 #general:bg-blue-600 #Rvm:bg-fuchsia-600 #??:bg-rose-600 #blog:bg-lime-600 #Firma:bg-emerald-600"
     g.ListIndexPrefix = 'OCT'
     g.TaskIndexCounter = 314
-    
-    
+
+
+context App::MigrateTo2600: string
+post:
+    system.allInstances("TaskList").select(element.Archived = true).forAll(element.Status = STATUS_ARCHIVED)
+    system.allInstances("TaskList").select(element.Status = TLS_GROUP_ARCHVIVED_LIST).forAll(element.Status = STATUS_ARCHIVED)

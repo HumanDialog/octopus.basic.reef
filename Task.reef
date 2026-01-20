@@ -1,7 +1,15 @@
--- Genaral status of Tasks, TaskLists and Projects
-const STATUS_ACTIVE = 0     -- This is a data we usually work on
-const STATUS_ARCHIVED = 1
+----------------------------------------------------------------------------
+---- Genaral status of Tasks, TaskLists, Notes, Projects and other elements
+----------------------------------------------------------------------------
+const STATUS_ACTIVE     =  0     -- This is a data we usually work on
+const STATUS_ARCHIVED   =  1
+const STATUS_HIDDEN     =  2
+const STATUS_DELETED    =  3
 
+const STATUS_TEMPLATE   =  8
+----------------------------------------------------------------------------
+
+---- GENERAL TASK STATE RANGES ---------------------------------------------
 const STATE_UNSPECIFIED       = 0     -- [000-999]
 const STATE_IN_PREPARATION    = 1000  -- [1000-1999]
 const STATE_PLANNED           = 2000  -- [2000-2999]
@@ -11,6 +19,13 @@ const STATE_FINISHED          = 7000  -- [7000 - 7999]
 const STATE_CLOSED            = 8000  -- [8000 - 8999]
 const STATE_ARCHIVED          = 9000  -- [9000 - 9999]
 
+---- SPECIFIC TASK STATE SUBRANGES ----------------------------------------
+const STATE_READY_GO          = 3900
+const STATE_READY_GO_NOW      = 3950
+
+const STATE_VERIFY            = 6500
+
+---------------------------------------------------------------------------
 --Common used
 
 --?enum state = [draft: 0, prepared: 1, accepted: 100, started: 101]
@@ -24,17 +39,21 @@ protected:
     Title(128):             string
 public:
     Summary(196):	        string
-    Tags(64):               string
-    Index(16):              string
-    Kind:                   integer
-    State:                  integer
-    CreatedBy:              User <backNav: CreatedTasks>
-    Actor:                  User
-    DueDate:		        date
-    Effort:                 integer
-    Status:                 integer
+private:
     StartDate:              date
     EndDate:                date
+public:
+    DueDate:		        date
+    Kind:                   integer
+    State:                  integer
+    Tags(64):               string
+    Index(16):              string
+
+    CreatedBy:              User        <backNav: CreatedTasks>
+    Actor:                  User
+    Effort:                 integer
+    Status:                 integer
+    AccCode:                integer
 
     Steps[0..n]:	        TaskStep
     Description:	        string

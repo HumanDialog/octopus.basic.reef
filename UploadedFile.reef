@@ -25,10 +25,13 @@ end class
 class FolderFile
     Title(128):     string
     Order:          integer
+    Status:         integer
+    AccCode:        integer
     Pos(8):         string
     LinkInfo:       integer
-    Folder(0..1):   Folder  <backNav: Files[0..n]>
+    Folder(0..1):   Folder          <backNav: Files[0..n]>
     File(0..1):     UploadedFile    <backNav: InFolders[0..n]>
+    FolderId:       integer
 end class
 
 
@@ -50,7 +53,7 @@ end class
 
 class MessageFile
     Title(128):     string
-    Message(0..1):  Message     <backNav: Files>
+    Message(0..1):  Message             <backNav: Files>
     File(0..1):     UploadedFile        <backNav: InMessages>
 end class
 

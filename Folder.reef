@@ -12,6 +12,11 @@ const FS_USER_ROOT_SHARED_FOLDER    = 131
 const FS_GROUP_ROOT_SHARED_FOLDER   = 132
 const FS_USER_SHARED_FOLDER         = 141
 const FS_GROUP_SHARED_FOLDER        = 142
+const FS_USER_ARCHIVE_ROOT_FOLDER   = 151
+const FS_GROUP_ARCHIVE_ROOT_FOLDER  = 152
+const FS_USER_TRASH_ROOT_FOLDER     = 161
+const FS_GROUP_TRASH_ROOT_FOLDER    = 162
+
 const FS_LATEST_ELEMENTS    = 1001
 
 const FSX_IN_CALCULATION    = 100000
@@ -40,6 +45,7 @@ class Folder
     Owner:              User        <backNav: AllFolders>
     Kind:               integer
     Status:             integer
+    AccCode:            integer
     CanonicalPath(0):   string
     Folders[0..n]:      FolderFolder
     InFolders[0..n]:    FolderFolder
@@ -64,6 +70,8 @@ protected:
 public:
     Kind:               integer
     Order:              integer
+    Status:             integer
+    AccCode:            integer
     Pos(8):             string
     LinkInfo:           integer
     Group:              Group       <backNav: FolderFolder>
@@ -79,26 +87,42 @@ end class
 class FolderNote
     Title(128):     string
     Order:          integer
+    Status:         integer
+    AccCode:        integer
     Pos(8):         string
     LinkInfo:       integer
     Folder(0..1):   Folder  <backNav: Notes[0..n]>
     Note(0..1):     Note    <backNav: InFolders[0..n]>
     Role:           integer
+    FolderId:       integer
 end class
 
 
 class FolderTask
     Title(128):     string
     Order:          integer
+    Status:         integer
+    AccCode:        integer
     Pos(8):         string
     LinkInfo:       integer
     Folder(0..1):   Folder <backNav: Tasks[0..n]>
     Task(0..1):     Task   <backNav: InFolders[0..n]>
+    FolderId:       integer
 end class
 
 
 constraint Folder::Folders
     element.InFolderId = self.Id
+
+constraint Folder::Notes
+    element.FolderId = self.Id and element.Status = STATUS_TEMPLATE
+
+constraint Folder::Tasks
+    element.FolderId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint Folder::Files
+    element.FolderId = self.Id and element.Status = STATUS_ACTIVE
+
 
 constraint FolderFolder::Folder
     self.FolderId = element.Id

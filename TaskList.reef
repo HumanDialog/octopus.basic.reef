@@ -6,8 +6,7 @@ const TLK_DAY               = 10
 const TLK_WEEK              = 11
 const TLK_MONTH             = 12
 
-const TLS_GROUP_ACTIVE_LIST     = 0
-const TLS_GROUP_TEMPLATE_LIST   = 1
+
 const TLS_GROUP_ARCHVIVED_LIST  = 1000
 
 
@@ -16,6 +15,11 @@ protected:
     Name(128):              string
 public:
     Summary(196):           string
+private:
+    StartDate:              date
+    EndDate:                date
+public:
+    DueDate:                date
     Tasks(0..n):            Task
     AllTasks(0..n):         Task            <backNav: TaskList>
     Order:                  integer
@@ -24,13 +28,24 @@ public:
     IndexPrefix:            string
     Kind:                   integer
     Status:                 integer
+    AccCode:                integer
+    Options:                integer
+
     CanonicalPath(0):       string
     User:                   User            <backNav: MyLists>
     Group:                  Group
     InGroup:                Group
+    Activity:               Activity        <backNav: TaskList> --future 1-1
+    Project:                Project         <backNav: AllLists>
+    UserId:                 integer
     GroupId:                integer
+    ActivityId:             integer
+    ProjectId:              integer
 
     SubscribedBy(0..n):     UserTaskList     <backNav: List>
+
+    ArchivedTasks(0..n):    Task
+    HiddenTasks(0..n):      Task
 end class
 
 
@@ -46,6 +61,12 @@ end class
 
 constraint TaskList::Tasks
     element.TaskListId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint TaskList::ArchivedTasks
+    element.TaskListId = self.Id and element.Status = STATUS_ARCHIVED
+
+constraint TaskList::HiddenTasks
+    element.TaskListId = self.Id and element.Status = STATUS_HIDDEN
 
 
 
@@ -92,17 +113,17 @@ post:
     end select
 
 
-
+--#260
 context TaskList::FinishAll()
 post:
     self.Tasks.select(element.State <> STATE_FINISHED).forAll(element.Finish())
 
-
+--#260
 context TaskList::Archive()
 post:
     self.Tasks.forAll(element.Archive())
     self.Archived = true
-    self.Status = TLS_GROUP_ARCHVIVED_LIST
+    self.Status = STATUS_ARCHIVED
 
 context TaskList::CreateTaskC(t: string): Task
 post:
@@ -116,7 +137,7 @@ context TaskList::CreateTaskEx(properties: JsonObject): Task
 post:
     let task: Task = user.CreatedTasks.newElement in
     task.TaskList = self
-    
+
     task.Title = properties.Title
     task.Summary = properties.Summary
     task.Description = properties.Description
@@ -536,7 +557,7 @@ post:
     states.Parse(self.TaskStates)
 
     let statesNo: integer = states.count
-    
+
     let columnState: integer
     let bestState: integer
 
@@ -546,7 +567,7 @@ post:
         bestState = 0
     end if
 
-    set(0 .. statesNo-1).forAll(i | 
+    set(0 .. statesNo-1).forAll(i |
         columnState = states[i].state
 
         if task.State >= columnState then
@@ -559,21 +580,21 @@ post:
     result = bestState
 
 
-context TaskList::CopyToBasket(optional flags: integer = 0): ElementReference 
+context TaskList::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
     result = user.Clipboard.Push(self.Id, self.oclType, self.ref, self.Name, self.Summary, "notebook", self.href, flags)
 
 
-context TaskList::CopyTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
+context TaskList::CopyTaskToBasket(task: Task, optional flags: integer = 0): ElementReference
 post:
     result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, task.icon, task.href, flags)
 
 
-context TaskList::CutTaskToBasket(task: Task, optional flags: integer = 0): ElementReference 
+context TaskList::CutTaskToBasket(task: Task, optional flags: integer = 0): ElementReference
 post:
     result = user.Clipboard.Push(task.Id, task.oclType, task.ref, task.Title, task.Summary, task.icon, task.href, flags)
     task.TaskList = null
-    
+
 
 context TaskList::AttachClipboard(references: JsonObject): TaskList
 post:
@@ -587,7 +608,7 @@ post:
     let flags: integer
 
     let task: Task
-    
+
     set(0 .. referencesNo-1).forAll(i |
         reference = references[i]
         id = reference.id
@@ -600,7 +621,7 @@ post:
                 if task <> null then
                     if task.MoveToList(self, order) then
                         order = order + ORDER_STEP
-                    end if        
+                    end if
                 end if
         end select
     )
@@ -659,7 +680,7 @@ post:
 admin context TaskList::SubscribeToUser(usr: User): UserTaskList
 post:
     let maxOrder: integer
-    
+
     result = usr.SubscribedLists.select(element.List = self).first
 
     if result = null then
