@@ -115,7 +115,7 @@ constraint Folder::Folders
     element.InFolderId = self.Id
 
 constraint Folder::Notes
-    element.FolderId = self.Id and element.Status = STATUS_TEMPLATE
+    element.FolderId = self.Id and element.Status = STATUS_ACTIVE
 
 constraint Folder::Tasks
     element.FolderId = self.Id and element.Status = STATUS_ACTIVE
