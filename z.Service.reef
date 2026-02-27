@@ -47,3 +47,38 @@ context App::CorrectFoldersElementsOrder
 post:
   self.Groups.forAll(element.AllFolders.forAll(f | f.ReorderElements()))
   self.Users.forAll(element.AllFolders.forAll(f | f.ReorderElements()))
+
+context App::Upgrade602
+post:
+  self.ChectArchiveFolders
+
+admin
+context App::ChectArchiveFolders
+post:
+  self.Users.forAll(element.ChectArchiveFolders)
+  self.Groups.forAll(element.ChectArchiveFolders)
+
+
+context User::ChectArchiveFolders
+post:
+  if self.TrashFolder.isNull then
+    self.TrashFolder = new Folder
+    self.TrashFolder.Title = "Trash (" + self.Name + ")"
+  end if
+
+  if self.ArchiveFolder.isNull then
+    self.ArchiveFolder = new Folder
+    self.ArchiveFolder.Title = "Archive (" + self.Name + ")"
+  end if
+
+context Group::ChectArchiveFolders
+post:
+  if self.TrashFolder.isNull then
+    self.TrashFolder = new Folder
+    self.TrashFolder.Title = "Trash (" + self.Name + ")"
+  end if
+
+  if self.ArchiveFolder.isNull then
+    self.ArchiveFolder = new Folder
+    self.ArchiveFolder.Title = "Archive (" + self.Name + ")"
+  end if

@@ -30,7 +30,7 @@ access role GroupMember: Group Member
     acc Message = self.AccMember
 
     acc UploadedFile = self.AccMember
-    
+
     acc FolderFile = self.Folder.Acc
 
     acc TaskFile = self.Task.AccMember
@@ -162,6 +162,3 @@ post:
     end if
     end if
     end if
-
-
-    
