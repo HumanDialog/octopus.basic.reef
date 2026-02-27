@@ -9,6 +9,8 @@ const TLK_MONTH             = 12
 
 const TLS_GROUP_ARCHVIVED_LIST  = 1000
 
+const TLO_FINISHED_TASKS_HIDDEN = &h00000001
+
 
 class TaskList
 protected:
@@ -701,6 +703,21 @@ post:
 context TaskList::IsSubscribed: boolean
 post:
     result = user.SubscribedLists.exists(element.List = self)
+
+
+context TaskList::AreFinishedTasksHidden: boolean
+post:
+    result = (self.Options & TLO_FINISHED_TASKS_HIDDEN) <> 0
+
+
+context TaskList::SetFinishedTasksHidden(val: boolean)
+post:
+    if val = true then
+        self.Options = self.Options | TLO_FINISHED_TASKS_HIDDEN
+    else
+        self.Options = self.Options & (~TLO_FINISHED_TASKS_HIDDEN)
+    end if
+    
 
 -- =====================================================================================
 

@@ -561,3 +561,79 @@ post:
 
     msg = channel.Messages.newElement(element.Author = alice and element.Date=2025.04.11 and element.Date.Time="14:39"
             element.Text = "Sounds like a plan. Thanks for staying on top of this, Bob.")
+
+
+context Group::InitSample
+pre:
+    user <> null
+post:
+    self.AllTags = "#urgent #bug #feature #prototype"
+
+    self.CheckFolders()
+
+    self.AddGeneralMessageChannels()
+    
+    -- Add some data
+    let list: TaskList in
+    list = self.Lists.newElement(element.Order = 0)
+
+    let states: JsonObject = [
+            {
+                name: "__; en: Preparing; es: Preparación; pl: W przygotowaniu",
+                state: STATE_IN_PREPARATION
+            },
+            {
+                name: "__; en: Ready; es: Listo; pl: Gotowe",
+                state: STATE_READY
+            },
+            {
+                name: "__; en: Today; es: Today; pl: Na dzisiaj",
+                state: STATE_READY_GO
+            },
+            {
+                name: "__; en: Under work; es: En proceso; pl: W trakcie",
+                state: STATE_EXECUTING
+            },
+            {
+                name: "__; en: To check; es: Para comprobar; pl: Do sprawdzenia",
+                state: STATE_VERIFY
+            },
+            {
+                name: "__; en: Finished; es: Terminado; pl: Zakończone",
+                state: STATE_FINISHED
+            }
+        ]
+
+    list.TaskStates = states.ToString()
+    list.Kind = TLK_KANBAN_PROCESS
+    self.SubscribeTaskListToAll(list)
+
+    list.Name = "Design"
+    list.IndexPrefix = 'DGN'
+        list.CreateTask('Target Audience Definition', 'Identify the specific demographics and needs of the intended buyers', STATE_IN_PREPARATION, '#urgent', user)
+        list.CreateTask('Design Goals', 'Establish core objectives (e.g., performance, style, price range, features).', STATE_READY, '', user)
+        list.CreateTask('Concept Design', 'Create initial sketches and 3D models of the motorcycle.', STATE_READY, '#prototype', user)
+        list.CreateTask('Engineering Design', 'Develop detailed technical specifications, including frame, engine, and suspension.', STATE_EXECUTING, '#prototype');
+        list.CreateTask('Ergonomics Testing', 'Ensure the motorcycle provides a comfortable and functional ride for the target user.', STATE_VERIFY, '#prototype')
+        list.CreateTask('Prototype Development', "Build a working prototype to test the design and functionality", STATE_FINISHED, '#prototype')
+    list.ReorderTasks()
+
+    list = self.Lists.newElement(element.Order = 10)
+    list.Name = "Engineering"
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.IndexPrefix = 'ENG'
+        list.CreateTask('Performance Testing', 'Test the prototype for speed, handling, durability, and efficiency.', 0)
+        list.CreateTask('Safety Testing', 'Ensure compliance with safety regulations and conduct crash tests where necessary.', 0)
+        list.CreateTask('Environmental Compliance', 'Meet emissions standards and other environmental regulations.', 0)
+        list.CreateTask('Refinement', 'Address issues identified during testing, including mechanical, aesthetic, and ergonomic concerns.', 0)
+    list.ReorderTasks()
+
+    list = self.Lists.newElement(element.Order = 20)
+    list.Name = "Branding"
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.IndexPrefix = 'BRD'
+        list.CreateTask('Product Naming and Branding', 'Develop a name, logo, and identity for the new motorcycle.', 0)
+        list.CreateTask('Marketing Strategy', 'Plan campaigns, including online, print, and event-based marketing.', 0)
+        list.CreateTask('Customer Engagement', 'Organize focus groups or pre-launch surveys to gather feedback.', 0)
+        list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
+    list.ReorderTasks()
