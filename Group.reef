@@ -77,7 +77,10 @@ post:
       self.AddGeneralMessageChannel("__; en: Announcements; es: Anuncios; pl: Ogłoszenia")
       self.AddGeneralMessageChannel("__; en: General; es: General; pl: Ogólny")
       self.AddGeneralMessageChannel("__; en: Random; es: Varios; pl: Różne")
-  end if
+    end if
+
+    user.ValidateSubTreeCanonicalPaths()
+    self.ValidateSubTreeCanonicalPaths()
 
 
 constraint Group::AllLists
