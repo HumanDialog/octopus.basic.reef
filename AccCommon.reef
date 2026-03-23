@@ -1,0 +1,58 @@
+const ACC_DENIED = 0
+const ACC_READ   = 1
+const ACC_WRITE  = 2
+const ACC_READWRITE   = 3
+--> sys/login?u=alice;g=13;r=Guest
+
+
+
+
+----ACCCODES - COMMON CONSTANTS FOR ALL TYPES---------
+
+const ACC_USER              =    0
+const ACC_GROUP             =    1
+const ACC_USER_IN_GROUP     =    2
+const ACC_USER_SHARED       =   10
+const ACC_GROUP_SHARED      =   11
+const ACC_USER_IN_GROUP_SHARED      =   12
+
+const ACC_PUBLIC            =   90
+
+------------------------------------------------------
+
+
+context User::IsInGroup(g: Group): boolean
+post:
+
+    result = self.Groups.exists(element.GroupId = g.Id)
+
+
+context Task::InPersonalFolder: boolean
+post:
+    let userId: integer = user.Id
+    result = self.InFolders.exists(element.Folder.UserId = userId)
+
+context Task::InGroupFolder: boolean
+post:
+    let groupId: integer = group.Id
+    result = self.InFolders.exists(element.Folder.GroupId = groupId)
+
+context Note::InPersonalFolder: boolean
+post:
+    let userId: integer = user.Id
+    result = self.InFolders.exists(element.Folder.UserId = userId)
+
+context Note::InGroupFolder: boolean
+post:
+    let groupId: integer = group.Id
+    result = self.InFolders.exists(element.Folder.GroupId = groupId)
+
+context UploadedFile::InPersonalFolder: boolean
+post:
+    let userId: integer = user.Id
+    result = self.InFolders.exists(element.Folder.UserId = userId)
+
+context UploadedFile::InGroupFolder: boolean
+post:
+    let groupId: integer = group.Id
+    result = self.InFolders.exists(element.Folder.GroupId = groupId)

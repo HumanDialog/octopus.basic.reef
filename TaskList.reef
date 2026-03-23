@@ -57,6 +57,8 @@ class UserTaskList
     LinkInfo:               integer
     Order:                  integer
     Role:                   integer
+    ListId:                 integer
+    UserId:                 integer
 end class
 
 
@@ -70,6 +72,58 @@ constraint TaskList::ArchivedTasks
 constraint TaskList::HiddenTasks
     element.TaskListId = self.Id and element.Status = STATUS_HIDDEN
 
+constraint TaskList::Project
+    self.GroupId = element.GroupId and self.ProjectId = element.Id
+
+
+context TaskList::SetStartDate(startDate: date)
+post:
+    let delta: integer = startDate - self.StartDate
+
+    self.StartDate = startDate
+    if self.EndDate.NotNull then --.isNull nie działa. Nie można nazywać metod ocl keywordami
+        self.EndDate = self.EndDate + delta
+    end if
+    if self.EndDate.NotNull then
+        self.DueDate = self.DueDate + delta
+    end if
+
+    self.ShiftTasksDates(delta)
+
+context TaskList::ShiftTasksDates(delta: integer)
+post:
+    self.Tasks.forAll(t| t.ShiftDates(delta))
+
+context Task::ShiftDates(delta: integer)
+post:
+    if self.StartDate.NotNull then
+        self.StartDate = self.StartDate + delta
+    end if
+
+    if self.EndDate.NotNull then
+        self.EndDate = self.EndDate + delta
+    end if
+
+    if self.DueDate.NotNull then
+        self.DueDate = self.DueDate + delta
+    end if
+
+
+context TaskList::SetEndDate(endDate: date)
+post:
+    self.EndDate = endDate
+
+context TaskList::GetStartDate()
+post:
+    result = self.StartDate
+
+context TaskList::GetEndDate()
+post:
+    result = self.EndDate
+
+context TaskList::ResetStartDate
+post:
+    self.StartDate = 2026.01.01
 
 
 constraint TaskList::AllTasks
@@ -253,6 +307,27 @@ post:
         result = self.AddProcessColumn(pos, state, name)
     end if
     end if
+
+context TaskList::GetMinState()
+post:
+    let states: JsonObject = new JsonObject
+    states.Parse(self.TaskStates)
+    --result = states.min(element.state) BUM! - do sprawdzenia
+    let columnsNo: integer = states.count
+    let state: integer
+
+    let minState: integer = 100000
+    set(0 .. columnsNo-1).forAll(i |
+        state = states[i].state
+
+        if state < minState then
+            minState = state
+        end if
+    )
+
+     result = minState
+
+
 
 
 context TaskList::AddChecklistColumn(pos: integer, optional state: integer, optional name: string): JsonObject
@@ -717,7 +792,104 @@ post:
     else
         self.Options = self.Options & (~TLO_FINISHED_TASKS_HIDDEN)
     end if
-    
+
+--#export operations #api operations to tagi w c++. System nie jest jeszcze szczelny
+
+export -- en:Repeat list; pl:Powtóch listę
+context TaskList::RepeatList: TaskList
+pre Cannot repeat list not attached to group or user:
+    not (self.Group.isNull and self.User.isNull)
+post:
+    let copy: TaskList in
+    if self.Group then
+        copy = group.Lists.newElement()
+    else if self.User then
+        copy = user.MyLists.newElement()
+    end if
+    end if
+
+    copy.Repeat(self)
+    result = copy
+
+export -- en: Save as template; pl: Zapisz jako wzorzec
+context TaskList::SaveAsTemplate: TaskList
+post:
+    let copy: TaskList in
+    copy = group.ListTemplates.newElement()
+
+    copy.Repeat(self)
+    result = copy
+
+
+export -- en: New lost; pl: Nowa lista w kontekście list prywatnych
+context TaskList::CreatePrivateList: TaskList
+post:
+    let copy: TaskList in
+    copy = group.ListTemplates.newElement()
+
+    copy.Repeat(self)
+    result = copy
+
+export -- en: New lost; pl: Nowa lista w kontekście list grupy
+context TaskList::CreateGroupList: TaskList
+post:
+    let copy: TaskList in
+    copy = group.ListTemplates.newElement()
+
+    copy.Repeat(self)
+    result = copy
+
+
+
+
+context TaskList::Repeat(src: TaskList)
+post:
+    self.Name = src.Name + " (*)"
+    self.Summary = src.Summary
+    self.StartDate = src.StartDate
+    self.EndDate = src.EndDate
+    self.DueDate = src.DueDate
+
+    self.Order = src.Order
+    self.TaskStates = src.TaskStates
+    self.Archived = src.Archived
+    self.IndexPrefix = src.IndexPrefix
+    self.Kind = src.Kind
+    self.Status = src.Status
+    self.AccCode = src.AccCode
+    self.Options = src.Options
+    self.RepeatTasks(src)
+
+context TaskList::RepeatTasks(src: TaskList)
+post:
+    let initialState: integer = self.GetMinState()
+    src.AllTasks.forAll(self.RepeatTask(element, initialState))
+
+
+context TaskList::RepeatTask(src: Task, initialState: integer)
+post:
+    let task: Task = self.Tasks.newElement(element.Copy(src))
+    task.ResetState(initialState)
+
+
+context Task::ResetState(initialSate: integer)
+post:
+    self.State = initialSate
+
+
+
+--#export operations #api operations
+export
+context TaskList::SampleDates
+post:
+    self.StartDate.SetSystemDate
+    self.EndDate = self.StartDate + 1440 * 14
+    let d: date = self.StartDate
+    self.Tasks.forAll(element.StartDate = d and d = d + 1440)
+    self.Tasks.forAll(element.DueDate = d and d = d + 1440)
+
+
+
 
 -- =====================================================================================
 

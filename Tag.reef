@@ -1,0 +1,91 @@
+
+class Tag
+    Label(48):          string
+    Icon(48):           string
+    Color:              integer
+    Weight:             integer
+    ItemColor:          integer
+
+    Notes[0..n]:        TagNote <backNav: Tag>
+    Tasks[0..n]:        TagTask <backNav: Tag>
+    Files[0..n]:        TagFile <backNav: Tag>
+end class
+
+
+class TagNote
+    Label(48):          string
+    Color:              integer
+----Note fields------------------
+    Title(128):         string
+    Summary(196):	      string
+    ModifiedBy:         User
+    ModificationDate:   date
+    AccCode:            integer
+    Order:              integer
+    Tag:                Tag     <backNav: Notes>
+    Note:               Note    <backNav: Tagc[0..n]>
+end class
+
+
+class TagTask
+    Label(48):          string
+    Color:              integer
+----Task fields------------------
+    Title(128):         string
+    Summary(196):	    string
+    Actor:              User
+    DueDate:            date
+    Order:              integer
+    AccCode:            integer
+    Tag:                Tag       <backNav: Tasks>
+    Task:               Task      <backNav: Tagc[0..n]>
+end class
+
+
+class TagFile
+    Label(48):          string
+    Color:              integer
+----File fields------------------
+    Title(128):         string
+    Summary(196):	    string
+    ModificationDate:   date
+    Order:              integer
+    AccCode:            integer
+    Tag:                Tag       <backNav: Files>
+    File:               UploadedFile      <backNav: Tagc[0..n]>
+end class
+
+-------------------------------------------------
+--NEVER DO THIS
+--context TagNote
+--inv:
+ --   self.Label = ...
+ ------------------------------------------------
+context TagNote
+inv:
+    self.Title = self.Note.Title
+inv:
+    self.Summary = self.Note.Summary
+inv:
+    self.ModifiedBy = self.Note.ModifiedBy
+inv:
+    self.ModificationDate = self.Note.ModificationDate
+
+
+context TagTask
+inv:
+    self.Title = self.Task.Title
+inv:
+    self.Summary = self.Task.Summary
+inv:
+    self.Actor = self.Task.Actor
+inv:
+    self.DueDate = self.Task.DueDate
+
+
+context TagFile
+inv:
+    self.Title = self.File.Title
+inv:
+    self.Summary = self.File.Summary
+    self.ModificationDate = self.File.ModificationDate

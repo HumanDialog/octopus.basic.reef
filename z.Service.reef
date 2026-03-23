@@ -51,6 +51,9 @@ post:
 context App::Upgrade602
 post:
   self.ChectArchiveFolders
+  self.CheckGroupProjects
+
+
 
 admin
 context App::ChectArchiveFolders
@@ -81,4 +84,15 @@ post:
   if self.ArchiveFolder.isNull then
     self.ArchiveFolder = new Folder
     self.ArchiveFolder.Title = "Archive (" + self.Name + ")"
+  end if
+
+admin
+context App::CheckGroupProjects
+post:
+  self.Groups.forAll(element.CheckProjects)
+
+context Group::CheckProjects
+post:
+  if self.Projects.first = null then
+    self.Projects.newElement (element.Title = "Project P1")
   end if
