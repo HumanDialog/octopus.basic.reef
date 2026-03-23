@@ -44,8 +44,8 @@ class Folder
     User:               User        <backNav: Folders>
     Owner:              User        <backNav: AllFolders>
     Kind:               integer
-    Status:             integer
-    AccCode:            integer
+    Status:             integer     --Used to cache value which should be only in AccCode
+    AccCode:            integer     --Access Rights helper for accelerating calculation of acc rghts in different acc groups
     CanonicalPath(0):   string
     Folders[0..n]:      FolderFolder
     InFolders[0..n]:    FolderFolder

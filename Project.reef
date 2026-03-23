@@ -1,5 +1,3 @@
-const PS_ACTIVE     = 1
-const PS_ARCHIVED   = 100
 
 class Project
     Title(128):                 string
@@ -9,6 +7,7 @@ class Project
     AccCode:                    integer
     StartDate:                  date
     EndDate:                    date
+    Order:                      integer
     Group:                      Group       <backNav: AllProjects>
     GroupId:                    integer
     Folders:                    Folder
@@ -22,6 +21,22 @@ class Project
 
 
 end class
+
+context Project::Archive
+post:
+    self.Status = STATUS_ARCHIVED
+
+context Project::Delete
+post:
+    self.Status = STATUS_DELETED
+
+context Project::SaveAsTamplate
+post:
+    self.Status = STATUS_TEMPLATE
+
+context Project::href:string
+post:
+    result = "/project/" + self.Id
 
 constraint Group::AllProjects
     element.GroupId = self.Id
@@ -38,9 +53,8 @@ constraint Group::ArchivedProjects
 constraint Group::DeletedProjects
     element.GroupId = self.Id and element.Status = STATUS_DELETED
 
-
 constraint Project::AllLists
-    element.ProjectId = self.Id
+    element.GroupId = self.GroupId and element.ProjectId = self.Id
 
 constraint Project::Lists
-    element.ProjectId = self.Id and element.Status = STATUS_ACTIVE
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = STATUS_ACTIVE

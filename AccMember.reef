@@ -30,7 +30,7 @@ access role GroupMember: Group Member
     acc Message = self.AccMember
 
     acc UploadedFile = self.AccMember
-    
+
     acc FolderFile = self.Folder.Acc
 
     acc TaskFile = self.Task.AccMember
@@ -67,17 +67,23 @@ post:
         result = ACC_READWRITE
     else if self.Group then
         result = self.Group.acc
+    else if self.IsSubscribed then
+        result = ACC_READWRITE
+    end if
     end if
     end if
 
 context Task::AccMember: integer
 post:
-    if self.CreatedBy = user or self.Actor = user or self.TaskList.User = user or self.TaskList.Group = group then
+    if self.CreatedBy = user or self.Actor = user or self.TaskList.UserId = user.Id or self.TaskList.GroupId = group.Id then
             result = ACC_READWRITE
-    else if self.InPersonalFolder(user) then
+    else if self.InPersonalFolder then
             result = ACC_READWRITE
-    else if self.InGroupFolder(group) then
+    else if self.InGroupFolder then
             result = ACC_READWRITE
+    else if self.TaskList then
+        result = self.TaskList.acc
+    end if
     end if
     end if
     end if
@@ -117,9 +123,9 @@ post:
         result = ACC_READWRITE
     else if self.CreatedBy = user or self.ModifiedBy = user then
         result = ACC_READWRITE
-    else if self.InPersonalFolder(user) then
+    else if self.InPersonalFolder then
         result = ACC_READWRITE
-    else if self.InGroupFolder(group) then
+    else if self.InGroupFolder then
         result = ACC_READWRITE
     else
         result = self.InTasks.max(element.Task.AccMember)
@@ -152,9 +158,9 @@ context UploadedFile::AccMember: integer
 post:
     if self.CreatedBy = user or self.ModifiedBy = user then
         result = ACC_READWRITE
-    else if self.InPersonalFolder(user) then
+    else if self.InPersonalFolder then
         result = ACC_READWRITE
-    else if self.InGroupFolder(group) then
+    else if self.InGroupFolder then
         result = ACC_READWRITE
     else
         result = self.InTasks.max(element.Task.AccMember)
@@ -162,6 +168,3 @@ post:
     end if
     end if
     end if
-
-
-    

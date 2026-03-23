@@ -97,10 +97,59 @@ constraint Task::TaskList
     self.TaskListId = element.Id
 
 
+
+
 context Task::OnAfterCreate
 post:
     self.CreationDate.SetUTCDate()
     self.ModificationDate = self.CreationDate
+
+context Task::Copy(src: Task)
+post:
+    self.Title = src.Title
+    self.Summary = src.Summary
+    self.StartDate = src.StartDate
+    self.EndDate = src.EndDate
+    self.DueDate = src.DueDate
+    self.Kind = src.Kind
+    self.State = src.State
+    self.Index = src.Index
+    self.CreatedBy = src.CreatedBy
+    self.Actor = src.Actor
+    self.Effort = src.Effort
+    self.Status = src.Status
+    self.AccCode = src.AccCode
+    --self.Steps = src.	Warto skopiować
+    self.Description = src.Description
+    --self.Images = src.
+    --self.AttachedFiles = src.
+    --self.CanonicalPath = src.
+    --self.TaskList = src.
+    --self.InFolders = src.
+    --self.Notes = src. warto skopiowac
+   -- self.Files = src.
+    --self.InMessages = src.
+    self.ListOrder = src.ListOrder
+    self.UserOrder = src.UserOrder
+
+    --self.CreationDate = src.
+    --self.ModificationDate = src.
+
+context Task::SetStartDate(d: date)
+post:
+    self.StartDate = d
+
+context Task::GetStartDate: date
+post:
+    result = self.StartDate
+
+context Task::SetEndDate(d: date)
+post:
+    self.EndDate = d
+
+context Task::GetEndDate: date
+post:
+    result = self.EndDate
 
 
 context Task::Finish()
