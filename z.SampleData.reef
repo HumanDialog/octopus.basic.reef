@@ -466,6 +466,7 @@ post:
     self.CheckFolder("My Ideas")
     self.GetBasketFolder()
     self.GetPinnedFolders()
+    self.ChectArchiveFolders()
     self.ReorderFolders()
 
 context User::ReorderFolders()

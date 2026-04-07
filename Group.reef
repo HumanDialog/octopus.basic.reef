@@ -57,7 +57,7 @@ post:
     self.CreateList("__; en: Things to do; es: Cosas por hacer; pl: Rzeczy do zrobienia")
 
 
--- framework callbak invoked when Group is created.
+-- framework callback invoked when Group is created.
 -- variables 'user' and 'group' are  set. supervisor access rights.
 context Group::InitGroup()
 post:
@@ -66,6 +66,7 @@ post:
 
     -- folders
     user.VerifyFolders()
+    self.VerifySystemFolders()
 
     if self.Folders.first = 0 then
         self.NewFolder("__; en: Notes; es: Notas; pl: Notatki")
@@ -81,25 +82,25 @@ post:
 
     user.ValidateSubTreeCanonicalPaths()
     self.ValidateSubTreeCanonicalPaths()
-
+    
 
 constraint Group::AllLists
     element.GroupId = self.Id
 
 constraint Group::Lists
-    element.GroupId = self.Id and element.Status = STATUS_ACTIVE
+    element.GroupId = self.Id and element.Status = STATUS_ACTIVE and element.ProjectId = 0
 
 constraint Group::ArchivedLists
-    element.GroupId = self.Id and element.Status = STATUS_ARCHIVED
+    element.GroupId = self.Id and element.Status = STATUS_ARCHIVED and element.ProjectId = 0
 
 constraint Group::DeletedLists
-    element.GroupId = self.Id and element.Status = STATUS_DELETED
+    element.GroupId = self.Id and element.Status = STATUS_DELETED and element.ProjectId = 0
 
 constraint Group::HiddenLists
-    element.GroupId = self.Id and element.Status = STATUS_HIDDEN
+    element.GroupId = self.Id and element.Status = STATUS_HIDDEN and element.ProjectId = 0
 
 constraint Group::ListTemplates
-    element.GroupId = self.Id and element.Status = STATUS_TEMPLATE
+    element.GroupId = self.Id and element.Status = STATUS_TEMPLATE and element.ProjectId = 0
 
 
 
@@ -349,6 +350,9 @@ context Group::ValidateSubTreeCanonicalPaths()
 post:
     self.Folders.forAll(element.ValidateSubTreeCanonicalPaths())
     self.SharedFolders.ValidateSubTreeCanonicalPaths()
+    self.ArchiveFolder.ValidateSubTreeCanonicalPaths()
+    self.TrashFolder.ValidateSubTreeCanonicalPaths()
+
     self.Lists.forAll( element.ValidateSubTreeCanonicalPaths())
 
 
@@ -369,7 +373,58 @@ post:
     result = self.Folders.newElement(element.Title = title and element.Order=order and element.Summary = summary)
     result.ValidateSubTreeCanonicalPaths()
 
+
 context Group::CreateForum(title: string, optional order: integer=0, optional summary: string = ""): Folder
 post:
     result = self.CreateFolder(title, order, summary)
     result.Kind = FK_DISCUSSION
+
+
+context Group::EmptyListsTrash
+post:
+    self.DeletedLists.removeAll
+
+
+context Group::CreateProject(title: string, optional order: integer = 0, optional summary: string = ''): Project
+post:
+    let project: Project = self.Projects.newElement
+    project.Title = title
+    project.Order = order
+    project.Summary = summary
+
+    project.VerifyFolders()
+
+    result = project
+
+
+context Group::EmptyProjectsTrash
+post:
+    self.DeletedProjects.removeAll
+
+
+context Group::CreateListFromTemplate(template: TaskList, optional order: integer = 0): TaskList
+post:
+    if order = 0 then
+        order = self.Lists.max(element.Order) + ORDER_STEP
+    end if
+
+    result = self.Lists.newElement(element.Order=order)
+    result.Repeat(template)
+
+
+context Group::GetTrashFolder: Folder
+post:
+    if self.TrashFolder.isNull then
+        self.TrashFolder = self.AllFolders.newElement(e | e.Title = "__; en: Trash; es: Basura; pl: Kosz" and e.Status = FS_GROUP_TRASH_ROOT_FOLDER)
+    end if
+
+    result = self.TrashFolder
+
+
+context Group::GetArchiveFolder: Folder
+post:
+    if self.ArchiveFolder.isNull then
+        self.ArchiveFolder = self.AllFolders.newElement(e | e.Title = "__; en: Archive; es: Archivo; pl: Archiwum" and e.Status = FS_GROUP_ARCHIVE_ROOT_FOLDER)
+    end if
+
+    result = self.ArchiveFolder

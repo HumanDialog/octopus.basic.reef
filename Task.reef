@@ -90,6 +90,8 @@ class TaskNote
     LinkInfo:               integer
     Order:                  integer
     Role:                   integer
+    Status:                 integer
+    TaskId:                 integer
 end class
 
 
@@ -97,6 +99,12 @@ constraint Task::TaskList
     self.TaskListId = element.Id
 
 
+constraint Task::Notes
+    element.TaskId = self.Id and element.Status = STATUS_ACTIVE
+
+
+constraint Task::Files
+    element.TaskId = self.Id and element.Status = STATUS_ACTIVE
 
 
 context Task::OnAfterCreate
@@ -156,10 +164,6 @@ context Task::Finish()
 post:
     self.ChangeTaskState(STATE_FINISHED)
 
-
-context Task::Archive()
-post:
-    self.Status = STATUS_ARCHIVED
 
 context Task::MainPage: string
 post:
@@ -372,7 +376,7 @@ post:
     let canonicalFolderLink: FolderTask
     let parentFolder: Folder
 
-    if self.TaskList <> null then
+    if self.TaskList <> null and self.Status=STATUS_ACTIVE then
         parentPath = new JsonObject
         parentPath.Parse(self.TaskList.CanonicalPath)
         if parentPath.count > 0 then
@@ -388,7 +392,7 @@ post:
                 icon:       'TaskList'
             }]
     else
-        canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+        canonicalFolderLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
         if canonicalFolderLink <> null then
             parentFolder = canonicalFolderLink.Folder
             if not parentFolder.CanonicalPath.isEmpty then
@@ -410,7 +414,7 @@ post:
                 canonicalPath = []
             end if
         else
-            if self.Actor <> null then
+            if self.Actor <> null and self.Status=STATUS_ACTIVE then
                 canonicalPath = [
                     {
                         Name: '__; en: My tasks; es: Mis tareas; pl: Moje zadania',
@@ -442,7 +446,7 @@ post:
 context Task::RecalculateCanonicalLinksAfterAttach(newLink: FolderTask)
 post:
     let changed: boolean = false
-    let prevCanonicalLink: FolderTask = self.InFolders.select(element.IsCanonical).first
+    let prevCanonicalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
 
     let fromFolder: Folder = prevCanonicalLink.Folder
     let toFolder: Folder = newLink.Folder
@@ -715,3 +719,118 @@ post:
     let lastOrder: integer = 0
     lastOrder = self.ReorderNotes(lastOrder)
     lastOrder = self.ReorderFiles(lastOrder)
+
+
+context Task::GetTrashFolder: Folder
+post:
+    let project: Project
+    
+    let canonicalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if canonicalLink <> null then
+        result = canonicalLink.Folder.GetTrashFolder()
+    else
+        if self.TaskList <> null then
+            if self.TaskList.Project <> null then
+                result = self.TaskList.Project.GetTrashFolder()
+            else if self.TaskList.Group <> null then
+                result = self.TaskList.Group.GetTrashFolder()
+            else
+                result = user.GetTrashFolder()
+            end if
+            end if
+        else
+            result = user.GetTrashFolder()
+        end if
+    end if
+
+
+context Task::GetArchiveFolder: Folder
+post:
+    let project: Project
+    
+    let canonicalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if canonicalLink <> null then
+        result = canonicalLink.Folder.GetArchiveFolder()
+    else
+        if self.TaskList <> null then
+            if self.TaskList.Project <> null then
+                result = self.TaskList.Project.GetArchiveFolder()
+            else if self.TaskList.Group <> null then
+                result = self.TaskList.Group.GetArchiveFolder()
+            else
+                result = user.GetArchiveFolder()
+            end if
+            end if
+        else
+            result = user.GetArchiveFolder()
+        end if
+    end if
+
+
+context Task::MoveMeToTrash(): boolean
+pre:
+    self.Status = STATUS_ACTIVE
+post:
+    let trash: Folder = self.GetTrashFolder()
+    
+    self.Status = STATUS_DELETED
+    self.InFolders.forAll(element.Status = STATUS_DELETED)
+
+    let taskLink: FolderTask
+    let order: integer = trash.MaxOrder + ORDER_STEP
+    
+    if not trash.Tasks.exists(element.TaskId = self.Id) then
+        taskLink = trash.Tasks.newElement(e | e.Task=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+
+    --result = trash.AttachTask(self)      -- link.Status == STATUS_ACTIVE by default
+
+
+context Task::RestoreFromTrash(): boolean
+pre:
+    self.Status = STATUS_DELETED
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
+    result = true
+
+
+
+context Task::MoveMeToArchive(): boolean
+pre:
+    self.Status = STATUS_ACTIVE
+post:
+    let archive: Folder = self.GetArchiveFolder()
+
+    self.Status = STATUS_ARCHIVED
+    self.InFolders.forAll(element.Status = STATUS_ARCHIVED)
+
+    --result = archive.AttachTask(self)      -- link.Status == STATUS_ACTIVE by default
+    let taskLink: FolderTask
+    let order: integer = archive.MaxOrder + ORDER_STEP
+    
+    if not archive.Tasks.exists(element.TaskId = self.Id) then
+        taskLink = archive.Tasks.newElement(e | e.Task=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+    
+
+
+context Task::RestoreFromArchive(): boolean
+pre:
+    self.Status = STATUS_ARCHIVED
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
+    result = true

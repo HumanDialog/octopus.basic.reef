@@ -6,16 +6,25 @@ const FS_USER_ROOT_FOLDER           = 101
 const FS_GROUP_ROOT_FOLDER          = 102
 const FS_PINNED_ROOT_FOLDER         = 103
 const FS_BASKET_ROOT_FOLDER         = 104
+const FS_PROJECT_ROOT_FOLDER        = 105
 const FS_USER_FOLDER                = 111
 const FS_GROUP_FOLDER               = 112
+const FS_PROJECT_FOLDER             = 113
 const FS_USER_ROOT_SHARED_FOLDER    = 131
 const FS_GROUP_ROOT_SHARED_FOLDER   = 132
 const FS_USER_SHARED_FOLDER         = 141
 const FS_GROUP_SHARED_FOLDER        = 142
 const FS_USER_ARCHIVE_ROOT_FOLDER   = 151
 const FS_GROUP_ARCHIVE_ROOT_FOLDER  = 152
+const FS_PROJECT_ARCHIVE_ROOT_FOLDER = 153
+
 const FS_USER_TRASH_ROOT_FOLDER     = 161
 const FS_GROUP_TRASH_ROOT_FOLDER    = 162
+const FS_PROJECT_TRASH_ROOT_FOLDER  = 163
+const FS_USER_ROOT_DELETED_FOLDER   = 164
+const FS_GROUP_ROOT_DELETED_FOLDER  = 165
+const FS_USER_ROOT_ARCHIVED_FOLDER  = 166
+const FS_GROUP_ROOT_ARCHIVED_FOLDER = 167
 
 const FS_LATEST_ELEMENTS    = 1001
 
@@ -26,9 +35,6 @@ const FK_BASKET             = 1
 const FK_DISCUSSION         = 2
 const FK_TABLE              = 3
 const FK_DOCUMENT           = 4
-
-const FIN_PUBLIC_FOLDER     =  10000
-const FIN_GROUP_FOLDER     =    9000
 
 const FIN_PUBLIC     =  10000
 const FIN_GROUP      =   9000
@@ -61,6 +67,8 @@ class Folder
     CreationDate:	    date
     ModificationDate:   date
     CreatedBy:          User
+    Project:            Project
+    ProjectId:          integer
 end class
 
 
@@ -112,7 +120,7 @@ end class
 
 
 constraint Folder::Folders
-    element.InFolderId = self.Id
+    element.InFolderId = self.Id and element.Status = STATUS_ACTIVE
 
 constraint Folder::Notes
     element.FolderId = self.Id and element.Status = STATUS_ACTIVE
@@ -167,16 +175,35 @@ post:
 
 context Folder::href: string
 post:
-    select case self.Kind
-        case FK_FOLDER
-            result = '/folder/' + self.Id
-        case FK_BASKET
-            result = '/folder/' + self.Id
-        case FK_DISCUSSION
-            result = '/folder/' + self.Id
+    select case self.Status
+        case FS_USER_ARCHIVE_ROOT_FOLDER
+            result = '/folder/myarchive'
+        case FS_GROUP_ARCHIVE_ROOT_FOLDER
+            result = '/folder/archive'
+        case FS_USER_TRASH_ROOT_FOLDER
+            result = '/folder/mytrash'
+        case FS_GROUP_TRASH_ROOT_FOLDER
+            result = '/folder/trash'
+        case FS_PROJECT_ROOT_FOLDER
+            result = '/folder/project/' + self.ProjectId
+        case FS_PROJECT_ARCHIVE_ROOT_FOLDER
+            result = '/folder/projectarchive/' + self.ProjectId
+        case FS_PROJECT_TRASH_ROOT_FOLDER
+            result = '/folder/projecttrash/' + self.ProjectId
         case else
             result = '/folder/' + self.Id
     end select
+
+    --select case self.Kind
+    --    case FK_FOLDER
+    --        result = '/folder/' + self.Id
+    --    case FK_BASKET
+    --        result = '/folder/' + self.Id
+    --    case FK_DISCUSSION
+    --        result = '/folder/' + self.Id
+    --    case else
+    --        result = '/folder/' + self.Id
+    --end select
 
 
 context Folder::icon: string
@@ -214,6 +241,8 @@ post:
         result = FIN_GROUP
     case FS_PUBLIC_FOLDER
         result = FIN_PUBLIC
+    case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER
+        result = FIN_GROUP
     end select
 
 
@@ -264,6 +293,8 @@ post:
     case FS_USER_ROOT_FOLDER, FS_GROUP_ROOT_FOLDER, FS_PINNED_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER, FS_PUBLIC_ROOT_FOLDER
         --self.Status = self.Status + FSX_IN_CALCULATION 'Forbidden - breaks constraints
         self.Folders.forAll(element.Folder.RecalculateStatusRec)
+    case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
+        self.Folders.forAll(element.Folder.RecalculateStatusRec)
     case FS_PUBLIC_FOLDER,FS_USER_FOLDER, FS_USER_SHARED_FOLDER, FS_GROUP_SHARED_FOLDER
         self.Status = self.CalculateStatus + FSX_IN_CALCULATION
         self.Folders.forAll(element.Folder.RecalculateStatusRec)
@@ -302,15 +333,33 @@ post:
     select case self.Status
         case FS_USER_ROOT_FOLDER
             result = true
+        case FS_USER_ROOT_DELETED_FOLDER
+            result = true
+        case FS_USER_ROOT_ARCHIVED_FOLDER
+            result = true
         case FS_USER_ROOT_SHARED_FOLDER
             result = true
         case FS_GROUP_ROOT_FOLDER
+            result = true
+        case FS_GROUP_ROOT_DELETED_FOLDER
+            result = true
+        case FS_GROUP_ROOT_ARCHIVED_FOLDER
             result = true
         case FS_GROUP_SHARED_FOLDER
             result = true
         case FS_PINNED_ROOT_FOLDER
             result = true
         case FS_BASKET_ROOT_FOLDER
+            result = true
+        case FS_USER_TRASH_ROOT_FOLDER
+            result = true
+        case FS_USER_ARCHIVE_ROOT_FOLDER
+            result = true
+        case FS_GROUP_TRASH_ROOT_FOLDER
+            result = true
+        case FS_GROUP_ARCHIVE_ROOT_FOLDER
+            result = true
+        case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
             result = true
         case else
             result = false
@@ -967,10 +1016,31 @@ post:
 
     let canonicalLink: FolderFolder
     let parentFolder: Folder
-
+    
     select case self.Status
-        case FS_PUBLIC_ROOT_FOLDER
+        case FS_PUBLIC_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER
             canonicalPath = [ ]
+
+        case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
+            if self.Project <> null then
+                parentPath = new JsonObject
+                parentPath.Parse(self.Project.CanonicalPath)
+                if parentPath.count > 0 then
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+                canonicalPath = [...,
+                        {
+                            Name: self.Project.Title,
+                            Summary: self.Project.Summary,
+                            href: self.Project.href,    -- todo
+                            icon: self.Project.icon
+                        }
+                    ]
+            else
+                canonicalPath = [ ]
+            end if        
 
         case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER
             canonicalPath = [
@@ -990,7 +1060,7 @@ post:
             ]
 
         case else
-            canonicalLink = self.InFolders.select(element.IsCanonical).first
+            canonicalLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
             if canonicalLink <> null then
                 parentFolder = canonicalLink.InFolder
                 if not parentFolder.CanonicalPath.isEmpty then
@@ -1040,7 +1110,7 @@ post:
 context Folder::RecalculateCanonicalLinksAfterAttach(newLink: FolderFolder)
 post:
     let changed: boolean = false
-    let prevCanonicalLink: FolderFolder = self.InFolders.select(element.IsCanonical).first
+    let prevCanonicalLink: FolderFolder = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
 
     let fromFolder: Folder = prevCanonicalLink.InFolder
     let toFolder: Folder = newLink.InFolder
@@ -1131,6 +1201,304 @@ context Folder::ChangeKind(kind: integer): Folder
 post:
     self.Kind = kind
     result = self
+
+
+
+context Folder::MoveMeToTrash(): boolean
+post:
+    let trash: Folder = self.GetTrashFolder()
+    
+    self.InFolders.forAll(element.Status = STATUS_DELETED)
+
+    select case self.Status
+        case FS_USER_ROOT_FOLDER
+            self.Status = FS_USER_ROOT_DELETED_FOLDER
+
+        case FS_GROUP_ROOT_FOLDER
+            self.Status = FS_GROUP_ROOT_DELETED_FOLDER 
+    end select
+
+    --result = trash.AttachFolder(self)      -- link.Status == STATUS_ACTIVE by default
+    let order: integer = trash.MaxOrder + ORDER_STEP
+    
+    if not trash.Folders.exists(element.FolderId = self.Id) then
+        trash.Folders.newElement(e | e.Folder=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.RecalculateStatus()
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+
+
+context Folder::RestoreFromTrash(): boolean
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    
+    select case self.Status
+        case FS_USER_ROOT_DELETED_FOLDER
+            self.Status = FS_USER_ROOT_FOLDER
+
+        case FS_GROUP_ROOT_DELETED_FOLDER
+            self.Status = FS_GROUP_ROOT_FOLDER
+    end select
+
+    self.ValidateSubTreeCanonicalPaths()
+
+    result = true
+
+
+context Folder::MoveMeToArchive(): boolean
+post:
+    let archive: Folder = self.GetArchiveFolder()
+
+    self.InFolders.forAll(element.Status = STATUS_ARCHIVED)
+
+    select case self.Status
+        case FS_USER_ROOT_FOLDER
+            self.Status = FS_USER_ROOT_ARCHIVED_FOLDER
+
+        case FS_GROUP_ROOT_FOLDER
+            self.Status = FS_GROUP_ROOT_ARCHIVED_FOLDER 
+    end select
+
+    --result = archive.AttachFolder(self)      -- link.Status == STATUS_ACTIVE by default
+    let order: integer = archive.MaxOrder + ORDER_STEP
+    
+    if not archive.Folders.exists(element.FolderId = self.Id) then
+        archive.Folders.newElement(e | e.Folder=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.RecalculateStatus()
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+    
+
+
+context Folder::RestoreFromArchive(): boolean
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+
+    select case self.Status
+        case FS_USER_ROOT_ARCHIVED_FOLDER
+            self.Status = FS_USER_ROOT_FOLDER
+
+        case FS_GROUP_ROOT_ARCHIVED_FOLDER
+            self.Status =  FS_GROUP_ROOT_FOLDER
+    end select
+    
+    self.ValidateSubTreeCanonicalPaths()
+
+    result = true
+
+
+context Folder::MoveElementsToTrash(items: JsonObject): boolean
+post:
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+    let s: FolderFile
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i |
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = system.GetItem(itemId, typeName)
+                f.Folder.MoveMeToTrash()
+
+            case 'FolderNote'
+                n = system.GetItem(itemId, typeName)
+                n.Note.MoveMeToTrash()
+
+            case 'FolderTask'
+                t = system.GetItem(itemId, typeName)
+                t.Task.MoveMeToTrash()
+
+            case 'FolderFile'
+                s = system.GetItem(itemId, typeName)
+                s.File.MoveMeToTrash()
+        end select
+    )
+    result = true
+
+context Folder::RestoreElementsFromTrash(items: JsonObject): boolean
+pre:
+    self.Status = FS_USER_TRASH_ROOT_FOLDER or self.Status = FS_GROUP_TRASH_ROOT_FOLDER or self.Status = FS_PROJECT_TRASH_ROOT_FOLDER
+post:
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+    let s: FolderFile
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i |
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = system.GetItem(itemId, typeName)
+                f.Folder.RestoreFromTrash()
+
+            case 'FolderNote'
+                n = system.GetItem(itemId, typeName)
+                n.Note.RestoreFromTrash()
+
+            case 'FolderTask'
+                t = system.GetItem(itemId, typeName)
+                t.Task.RestoreFromTrash()
+
+            case 'FolderFile'
+                s = system.GetItem(itemId, typeName)
+                s.File.RestoreFromTrash()
+        end select
+    )
+    result = true
+
+
+context Folder::MoveElementsToArchive(items: JsonObject): boolean
+post:
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+    let s: FolderFile
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i |
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = system.GetItem(itemId, typeName)
+                f.Folder.MoveMeToArchive()
+
+            case 'FolderNote'
+                n = system.GetItem(itemId, typeName)
+                n.Note.MoveMeToArchive()
+
+            case 'FolderTask'
+                t = system.GetItem(itemId, typeName)
+                t.Task.MoveMeToArchive()
+
+            case 'FolderFile'
+                s = system.GetItem(itemId, typeName)
+                s.File.MoveMeToArchive()
+        end select
+    )
+    result = true
+
+context Folder::RestoreElementsFromArchive(items: JsonObject): boolean
+pre:
+    self.Status = FS_USER_ARCHIVE_ROOT_FOLDER or self.Status = FS_GROUP_ARCHIVE_ROOT_FOLDER or self.Status = FS_PROJECT_ARCHIVE_ROOT_FOLDER
+post:
+    let typeName: string
+    let itemId: integer
+
+    let t: FolderTask
+    let n: FolderNote
+    let f: FolderFolder
+    let s: FolderFile
+
+    let itemsNo: integer = items.count
+    set(0 .. itemsNo-1).forAll(i |
+        typeName = items[i].Type
+        itemId = items[i].Id
+
+        select case typeName
+            case 'FolderFolder'
+                f = system.GetItem(itemId, typeName)
+                f.Folder.RestoreFromArchive()
+
+            case 'FolderNote'
+                n = system.GetItem(itemId, typeName)
+                n.Note.RestoreFromArchive()
+
+            case 'FolderTask'
+                t = system.GetItem(itemId, typeName)
+                t.Task.RestoreFromArchive()
+
+            case 'FolderFile'
+                s = system.GetItem(itemId, typeName)
+                s.File.RestoreFromArchive()
+        end select
+    )
+    result = true
+
+context Folder::EmptyTrash
+pre:
+    self.Status = FS_GROUP_TRASH_ROOT_FOLDER or self.Status = FS_USER_TRASH_ROOT_FOLDER or self.Status = FS_PROJECT_TRASH_ROOT_FOLDER
+post:
+    self.Folders.forAll(element.Folder.DeletePermanently())
+    self.Tasks.forAll(element.Task.DeletePermanently())
+    self.Notes.forAll(element.Note.DeletePermanently())
+    self.Files.forAll(element.File.DeletePermanently())
+
+
+-- temporary
+context Folder::GetParentProject: Project
+post:
+    let project: Project = null
+
+    if self.Project <> null then
+        result = self.Project
+    else
+        self.InFolders.forAll(
+            if project = null then
+                project = element.InFolder.GetParentProject()
+            end if
+            )
+        result = project
+    end if
+
+    
+
+
+context Folder::GetTrashFolder: Folder
+post:
+    let project: Project
+    
+    if self.GroupId <> 0 then
+        project = self.GetParentProject()   -- tmp
+        if project <> null then
+            result = project.GetTrashFolder()
+        else
+            result = self.Group.GetTrashFolder()
+        end if
+    else
+        result = user.GetTrashFolder()
+    end if
+
+
+context Folder::GetArchiveFolder: Folder
+post:
+    let project: Project
+    
+    if self.GroupId <> 0 then
+        project = self.GetParentProject()   -- tmp
+        if project <> null then
+            result = project.GetArchiveFolder()
+        else
+            result = self.Group.GetArchiveFolder()
+        end if
+    else
+        result = user.GetArchiveFolder()
+    end if
 
 -- ==============================================================================
 

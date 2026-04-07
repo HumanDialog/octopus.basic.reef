@@ -36,6 +36,7 @@ access role GroupOwner: Group Leader
     acc NoteFile = self.Note.AccOwner
     acc NoteNote = self.Note.AccOwner
     acc UserTaskList = self.List.AccOwner
+    acc Project = self.AccOwner
 
 context User::AccOwner: integer
 post:
@@ -167,4 +168,11 @@ post:
         result = Max(result, self.InNotes.max(element.Note.AccOwner))
     end if
     end if
+    end if
+
+
+context Project::AccOwner: integer
+post:
+    if self.Group <> null then
+        result = self.Group.acc
     end if

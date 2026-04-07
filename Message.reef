@@ -35,12 +35,14 @@ class MessageNote
     Title(128):     string
     Message(0..1):  Message     <backNav: Notes>
     Note(0..1):     Note        <backNav: InMessages>
+    Status:         integer
 end class
 
 class MessageTask
     Title(128):     string
     Message(0..1):  Message     <backNav: Tasks>
     Task(0..1):     Task        <backNav: InMessages>
+    Status:         integer
 end class
 
 class MessageChannelUser

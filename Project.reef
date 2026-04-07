@@ -12,23 +12,36 @@ class Project
     GroupId:                    integer
     Folders:                    Folder
     Lists(0..n):                TaskList
-    AllLists(0..n):             TaskList
+    AllLists(0..n):             TaskList    <backNav: Project>
 
     RootActivity:               Activity
     PresentStage:               Activity
     PlannedStage:               Activity
     AllActivities(0..n):        Activity    <backNav: Project>
 
+    ArchivedLists<0..n>:        TaskList
+    HiddenLists<0..n>:          TaskList
+    DeletedLists<0..n>:         TaskList
 
+    ArchiveFolder:              Folder
+    TrashFolder:                Folder
 end class
 
-context Project::Archive
+context Project::MoveMeToArchive
 post:
     self.Status = STATUS_ARCHIVED
 
-context Project::Delete
+context Project::RestoreFromArchive
+post:
+    self.Status = STATUS_ACTIVE
+
+context Project::MoveMeToTrash
 post:
     self.Status = STATUS_DELETED
+
+context Project::RestoreFromTrash
+post:
+    self.Status = STATUS_ACTIVE
 
 context Project::SaveAsTamplate
 post:
@@ -37,6 +50,10 @@ post:
 context Project::href:string
 post:
     result = "/project/" + self.Id
+
+context Project::icon: string
+post:
+    result = 'building'
 
 constraint Group::AllProjects
     element.GroupId = self.Id
@@ -58,3 +75,109 @@ constraint Project::AllLists
 
 constraint Project::Lists
     element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = STATUS_ACTIVE
+
+constraint Project::ArchivedLists
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = STATUS_ARCHIVED
+
+constraint Project::DeletedLists
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = STATUS_DELETED
+
+constraint Project::HiddenLists
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = STATUS_HIDDEN
+
+constraint Project::Folders
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = FS_PROJECT_ROOT_FOLDER
+
+constraint Project::ArchiveFolder
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = FS_PROJECT_ARCHIVE_ROOT_FOLDER
+
+constraint Project::TrashFolder
+    element.GroupId = self.GroupId and element.ProjectId = self.Id and element.Status = FS_PROJECT_TRASH_ROOT_FOLDER
+
+
+context Project::CreateList(name: string, optional order: integer = 0, optional summary: string = ''): TaskList
+post:
+    let list: TaskList = self.Lists.newElement
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.TaskStates = group.GetChecklistDefaultColumns().ToString()
+    list.Name = name
+    list.Order = order
+    list.Summary = summary
+
+    result = list
+
+context Project::CreateListFromTemplate(template: TaskList, optional order: integer = 0): TaskList
+post:
+    if order = 0 then
+        order = self.Lists.max(element.Order) + ORDER_STEP
+    end if
+
+    result = self.Lists.newElement(element.Order=order)
+    result.Repeat(template)
+
+
+context Project::EmptyTrash
+post:
+    self.DeletedLists.removeAll
+    self.TrashFolder.EmptyTrash()
+
+
+context Project::GetFolder: Folder
+post:
+
+    if self.Folders.isNull then
+        self.Folders = group.AllFolders.newElement(e | e.Title = "__; en: Project folder; es: Carpeta del proyecto; pl: Folder projektu" and e.Status = FS_PROJECT_ROOT_FOLDER)
+    end if
+
+    result = self.Folders
+
+context Project::GetTrashFolder: Folder
+post:
+
+    if self.TrashFolder.isNull then
+        self.TrashFolder = group.AllFolders.newElement(e | e.Title = "__; en: Project trash; es: Basura del proyecto; pl: Kosz projektu" and e.Status = FS_PROJECT_TRASH_ROOT_FOLDER)
+    end if
+
+    result = self.TrashFolder
+
+
+context Project::GetArchiveFolder: Folder
+post:
+
+    if self.ArchiveFolder.isNull then
+        self.ArchiveFolder = group.AllFolders.newElement(e | e.Title = "__; en: Project archive; es: Archivo del proyecto; pl: Archiwum projektu" and e.Status = FS_PROJECT_ARCHIVE_ROOT_FOLDER)
+    end if
+
+    result = self.ArchiveFolder
+
+
+context Project::VerifyFolders
+post:
+  self.GetFolder.RecalculateStatusRec
+  self.GetFolder.CommitStatusRec
+  self.GetTrashFolder.RecalculateStatusRec
+  self.GetTrashFolder.CommitStatusRec
+  self.GetArchiveFolder.RecalculateStatusRec
+  self.GetArchiveFolder.CommitStatusRec
+  self.ValidateSubTreeCanonicalPaths()
+
+
+context Project::GetCanonicalPath: JsonObject
+post:
+    result =  [
+        {
+            Name: '__; en: Active projects; es: Proyectos en curso; pl: Aktywne projekty',
+            href: '/allprojects'
+        }
+    ]
+
+context Project::CanonicalPath: string
+post:
+    let canonicalPath: JsonObject =  self.GetCanonicalPath()
+    result = canonicalPath.ToString()
+
+context Project::ValidateSubTreeCanonicalPaths
+post:
+    self.Folders.ValidateSubTreeCanonicalPaths()
+    self.TrashFolder.ValidateSubTreeCanonicalPaths()
+    self.ArchiveFolder.ValidateSubTreeCanonicalPaths()

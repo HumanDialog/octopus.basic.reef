@@ -4,6 +4,7 @@ class UploadedFile
     Summary(196):           string
     Tags(64):               string
     Index(16):              string
+    Status:                 integer
 
     Key:                    string      <readOnly>
     MimeType:               string
@@ -41,6 +42,8 @@ class TaskFile
     LinkInfo:               integer
     Order:                  integer
     Role:                   integer
+    Status:                 integer
+    TaskId:                 integer
 end class
 
 class NoteFile
@@ -49,12 +52,15 @@ class NoteFile
     LinkInfo:               integer
     Order:                  integer
     Role:                   integer
+    Status:                 integer
+    NoteId:                 integer
 end class
 
 class MessageFile
     Title(128):     string
     Message(0..1):  Message             <backNav: Files>
     File(0..1):     UploadedFile        <backNav: InMessages>
+    Status:         integer
 end class
 
 
@@ -144,7 +150,7 @@ post:
     let parentTask: Task
     let parentNote: Note
 
-    canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+    canonicalFolderLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
     if canonicalFolderLink <> null then
         parentFolder = canonicalFolderLink.Folder
         if not parentFolder.CanonicalPath.isEmpty then
@@ -166,7 +172,7 @@ post:
             canonicalPath = []
         end if
     else
-        canonicalTaskLink = self.InTasks.select(element.IsCanonical).first
+        canonicalTaskLink = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
         if canonicalTaskLink <> null then
             parentTask = canonicalTaskLink.Task
             if not parentTask.CanonicalPath.isEmpty then
@@ -188,7 +194,7 @@ post:
                 canonicalPath = []
             end if
         else
-            canonicalNoteLink = self.InNotes.select(element.IsCanonical).first
+            canonicalNoteLink = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
             if canonicalNoteLink <> null then
                 parentNote = canonicalNoteLink.Note
                 if not parentNote.CanonicalPath.isEmpty then
@@ -228,7 +234,7 @@ post:
 context UploadedFile::RecalculateCanonicalLinksAfterAttach(newLink: FolderFile)
 post:
     let changed: boolean = false
-    let prevCanonicalLink: FolderFile = self.InFolders.select(element.IsCanonical).first
+    let prevCanonicalLink: FolderFile = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
 
     let fromFolder: Folder = prevCanonicalLink.Folder
     let toFolder: Folder = newLink.Folder
@@ -319,6 +325,134 @@ post:
 
         end select
     )
+
+
+context UploadedFile::GetTrashFolder: Folder
+post:
+    let project: Project
+    let folderFile: FolderFile
+    let taskFile: TaskFile
+    let noteFile: NoteFile
+
+    folderFile = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if folderFile <> null then
+        result = folderFile.Folder.GetTrashFolder()
+    else
+        taskFile = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if taskFile <> null then
+            result = taskFile.Task.GetTrashFolder()
+        else
+            noteFile = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if noteFile <> null then
+                result = noteFile.Note.GetTrashFolder()
+            else
+                result = user.GetTrashFolder()
+            end if
+        end if
+    end if
+
+
+context UploadedFile::GetArchiveFolder: Folder
+post:
+    let project: Project
+    let folderFile: FolderFile
+    let taskFile: TaskFile
+    let noteFile: NoteFile
+
+    folderFile = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if folderFile <> null then
+        result = folderFile.Folder.GetArchiveFolder()
+    else
+        taskFile = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if taskFile <> null then
+            result = taskFile.Task.GetArchiveFolder()
+        else
+            noteFile = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if noteFile <> null then
+                result = noteFile.Note.GetArchiveFolder()
+            else
+                result = user.GetArchiveFolder()
+            end if
+        end if
+    end if
+
+
+context UploadedFile::MoveMeToTrash(): boolean
+pre:
+    self.Status = STATUS_ACTIVE
+post:
+    let trash: Folder = self.GetTrashFolder()
+    
+    self.Status = STATUS_DELETED
+    self.InFolders.forAll(element.Status = STATUS_DELETED)
+    self.InTasks.forAll(element.Status = STATUS_DELETED)
+    self.InNotes.forAll(element.Status = STATUS_DELETED)
+    self.InMessages.forAll(element.Status = STATUS_DELETED)
+    
+    --result = trash.AttachFile(self)      -- link.Status == STATUS_ACTIVE by default
+    let order: integer = trash.MaxOrder + ORDER_STEP
+    
+    if not trash.Files.exists(element.FileId = self.Id) then
+        trash.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+
+
+context UploadedFile::RestoreFromTrash(): boolean
+pre:
+    self.Status = STATUS_DELETED
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    self.InTasks.forAll(element.Status = STATUS_ACTIVE)
+    self.InNotes.forAll(element.Status = STATUS_ACTIVE)
+    self.InMessages.forAll(element.Status = STATUS_ACTIVE)
+
+    self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
+    result = true
+
+
+context UploadedFile::MoveMeToArchive(): boolean
+pre:
+    self.Status = STATUS_ACTIVE
+post:
+    let archive: Folder = self.GetArchiveFolder()
+
+    self.Status = STATUS_ARCHIVED
+    self.InFolders.forAll(element.Status = STATUS_ARCHIVED)
+    self.InTasks.forAll(element.Status = STATUS_ARCHIVED)
+    self.InNotes.forAll(element.Status = STATUS_ARCHIVED)
+    self.InMessages.forAll(element.Status = STATUS_ARCHIVED)
+
+    --result = archive.AttachFile(self)      -- link.Status == STATUS_ACTIVE by default
+    let order: integer = archive.MaxOrder + ORDER_STEP
+    
+    if not archive.Files.exists(element.FileId = self.Id) then
+        archive.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+
+
+context UploadedFile::RestoreFromArchive(): boolean
+pre:
+    self.Status = STATUS_ARCHIVED
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    self.InTasks.forAll(element.Status = STATUS_ACTIVE)
+    self.InNotes.forAll(element.Status = STATUS_ACTIVE)
+    self.InMessages.forAll(element.Status = STATUS_ACTIVE)
+    self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
+    result = true
+
 
 
 -- ==============================================================================

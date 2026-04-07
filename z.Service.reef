@@ -11,13 +11,25 @@ post:
   self.Groups.forAll(g | g.VerifyFolders)
   self.Users.forAll(u | u.VerifyFolders)
 
-context Group::VerifyFolders
+
+context Group::VerifySystemFolders
 post:
   if self.SharedFolders.isNull then
     self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
   end if
   self.SharedFolders.RecalculateStatusRec
   self.SharedFolders.CommitStatusRec
+
+  self.GetTrashFolder.RecalculateStatusRec
+  self.GetTrashFolder.CommitStatusRec
+  self.GetArchiveFolder.RecalculateStatusRec
+  self.GetArchiveFolder.CommitStatusRec
+
+
+context Group::VerifyFolders
+post:
+
+  self.VerifySystemFolders()
 
   if self.Folders.first = 0 then
     self.NewFolder("Notes")
@@ -40,6 +52,10 @@ post:
   self.GetPinnedFolders.CommitStatusRec
   self.GetBasketFolder.RecalculateStatusRec
   self.GetBasketFolder.CommitStatusRec
+  self.GetTrashFolder.RecalculateStatusRec
+  self.GetTrashFolder.CommitStatusRec
+  self.GetArchiveFolder.RecalculateStatusRec
+  self.GetArchiveFolder.CommitStatusRec
   self.AllFolders.forAll(f | f.RecalculateStatusRec)
   self.AllFolders.forAll(f | f.CommitStatusRec)
 

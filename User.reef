@@ -27,9 +27,9 @@ class User
     Clipboards<0..n>:       Clipboard           <backNav: User>
     SubscribedLists[0..n]:  UserTaskList        <backNav: User>
 
-    ArchivedLists:          TaskList
-    HiddenLists:            TaskList
-    DeletedLists:           TaskList
+    ArchivedLists<0..n>:    TaskList
+    HiddenLists<0..n>:      TaskList
+    DeletedLists<0..n>:     TaskList
     ArchiveFolder:          Folder
     TrashFolder:            Folder
 end class
@@ -78,6 +78,18 @@ constraint User::MessageChannels
 
 constraint User::AllMessageChannels
     element.UserId = self.Id
+
+constraint User::ModifiedNotes
+    element.ModifiedById = self.Id and element.Status = STATUS_ACTIVE
+
+
+-- framework callback invoked when new User is created on inviting to group
+-- variables 'user' and 'group' are  set. supervisor access rights.
+context User::InitUser()
+post:
+    user.VerifyFolders()
+    user.ValidateSubTreeCanonicalPaths()
+
 
 context User::GetBasketFolder: Folder
 post:
@@ -211,6 +223,9 @@ post:
     self.Folders.forAll(element.ValidateSubTreeCanonicalPaths())
     self.SharedFolders.ValidateSubTreeCanonicalPaths()
 
+    self.ArchiveFolder.ValidateSubTreeCanonicalPaths()
+    self.TrashFolder.ValidateSubTreeCanonicalPaths()
+
     self.MyTasks.forAll(task: Task |
         if not task.InFolders.exists(element.IsCanonical) then
             if task.TaskList = null then
@@ -256,3 +271,36 @@ post:
 context User::AssignedTasksCount: integer
 post:
     result = self.MyTasks.count
+
+context User::EmptyListsTrash
+post:
+    self.DeletedLists.removeAll
+
+context User::CreateListFromTemplate(template: TaskList, optional order: integer = 0): TaskList
+post:
+    if order = 0 then
+        order = self.MyLists.max(element.Order) + ORDER_STEP
+    end if
+
+    result = self.MyLists.newElement(element.Order=order)
+    result.Repeat(template)
+
+
+context User::GetTrashFolder: Folder
+post:
+
+    if self.TrashFolder.isNull then
+        self.TrashFolder = self.AllFolders.newElement(e | e.Title = "__; en: My trash; es: Mi basura; pl: Mój kosz" and e.Status = FS_USER_TRASH_ROOT_FOLDER)
+    end if
+
+    result = self.TrashFolder
+
+
+context User::GetArchiveFolder: Folder
+post:
+
+    if self.ArchiveFolder.isNull then
+        self.ArchiveFolder = self.AllFolders.newElement(e | e.Title = "__; en: My archive; es: Mi archivo; pl: Moje archiwum" and e.Status = FS_USER_ARCHIVE_ROOT_FOLDER)
+    end if
+
+    result = self.ArchiveFolder

@@ -39,6 +39,8 @@ access role GroupMember: Group Member
 
     acc NoteNote = self.Note.AccMember
 
+    acc Project = self.AccMember
+
 
 context User::AccMember: integer
 post:
@@ -167,4 +169,11 @@ post:
         result = Max(result, self.InNotes.max(element.Note.AccMember))
     end if
     end if
+    end if
+
+
+context Project::AccMember: integer
+post:
+    if self.Group <> null then
+        result = self.Group.acc
     end if

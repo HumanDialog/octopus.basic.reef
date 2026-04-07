@@ -1,8 +1,27 @@
 
 context App::MigrateStructure(FromVersion: string): string
 post:
-    result = self.MigrateTo_144(FromVersion)
+    result = self.MigrateTo_26_4(FromVersion)
+    --result = self.MigrateTo_144(FromVersion)
     --result = self.MigrateTo_OLD(FromVersion)
+
+
+context App::MigrateTo_26_4(FromVersion: string): string
+post:
+    select case FromVersion
+        case "1.4.3"
+            result = result + self.MigrateFrom_143_to_144()
+            result = result + self.MigrateFrom_26_0_to_26_4()
+         case "1.4.2"
+            result = result + self.MigrateFrom_142_to_143()
+            result = result + self.MigrateFrom_143_to_144()
+            result = result + self.MigrateFrom_26_0_to_26_4()
+        case "26.0"
+            result = result + self.MigrateFrom_26_0_to_26_4()
+
+        case else
+            result = "Too old to migrate from " + FromVersion
+    end select
 
 
 context App::MigrateTo_144(FromVersion: string): string
@@ -42,6 +61,14 @@ post:
         case else
             result = "No special structure treatment when migrating from version " + FromVersion
     end select
+
+
+context App::MigrateFrom_26_0_to_26_4: string
+post:
+    result = "Migration from 26.0 to 26.4\n"
+    app.Groups.forAll(g: Group | g.VerifySystemFolders())
+    app.Users.forAll(u: User | u.VerifyFolders())
+    app.RecalculateCanonicalPaths()
 
 
 context App::MigrateFrom_143_to_144: string

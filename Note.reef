@@ -40,6 +40,9 @@ public:
     Files[0..n]:            NoteFile
     InNotes[0..n]:          NoteNote
     NotesCount:             integer
+
+    CreatedById:            integer
+    ModifiedById:           integer
 end class
 
 
@@ -52,6 +55,7 @@ class NoteNote
     InNoteId:               integer
     NoteId:                 integer
     Role:                   integer
+    Status:                 integer
 end class
 
 
@@ -66,7 +70,12 @@ post:
 
 
 constraint Note::Notes
-    element.InNoteId = self.Id
+    element.InNoteId = self.Id and element.Status = STATUS_ACTIVE
+
+
+constraint Note::Files
+    element.NoteId = self.Id and element.Status = STATUS_ACTIVE
+
 
 context Note
 inv:
@@ -321,7 +330,7 @@ post:
     let parentTask: Task
     let parentNote: Note
 
-    canonicalFolderLink = self.InFolders.select(element.IsCanonical).first
+    canonicalFolderLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
     if canonicalFolderLink <> null then
         parentFolder = canonicalFolderLink.Folder
         if not parentFolder.CanonicalPath.isEmpty then
@@ -343,7 +352,7 @@ post:
             canonicalPath = []
         end if
     else
-        canonicalTaskLink = self.InTasks.select(element.IsCanonical).first
+        canonicalTaskLink = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
         if canonicalTaskLink <> null then
             parentTask = canonicalTaskLink.Task
             if not parentTask.CanonicalPath.isEmpty then
@@ -365,7 +374,7 @@ post:
                 canonicalPath = []
             end if
         else
-            canonicalNoteLink = self.InNotes.select(element.IsCanonical).first
+            canonicalNoteLink = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
             if canonicalNoteLink <> null then
                 parentNote = canonicalNoteLink.InNote
                 if not parentNote.CanonicalPath.isEmpty then
@@ -411,7 +420,7 @@ post:
 context Note::RecalculateCanonicalLinksAfterAttach(newLink: FolderNote)
 post:
     let changed: boolean = false
-    let prevCanonicalLink: FolderNote = self.InFolders.select(element.IsCanonical).first
+    let prevCanonicalLink: FolderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
 
     let fromFolder: Folder = prevCanonicalLink.Folder
     let toFolder: Folder = newLink.Folder
@@ -653,6 +662,139 @@ post:
     let lastOrder: integer = 0
     lastOrder = self.ReorderNotes(lastOrder)
     lastOrder = self.ReorderFiles(lastOrder)
+
+
+context Note::GetTrashFolder: Folder
+post:
+    let project: Project
+    let folderNote: FolderNote
+    let taskNote: TaskNote
+    let noteNote: NoteNote
+
+    folderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if folderNote <> null then
+        result = folderNote.Folder.GetTrashFolder()
+    else
+        taskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if taskNote <> null then
+            result = taskNote.Task.GetTrashFolder()
+        else
+            noteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if noteNote <> null then
+                result = noteNote.InNote.GetTrashFolder()
+            else
+                result = user.GetTrashFolder()
+            end if
+        end if
+    end if
+
+
+context Note::GetArchiveFolder: Folder
+post:
+    let project: Project
+    let folderNote: FolderNote
+    let taskNote: TaskNote
+    let noteNote: NoteNote
+
+    folderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if folderNote <> null then
+        result = folderNote.Folder.GetArchiveFolder()
+    else
+        taskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if taskNote <> null then
+            result = taskNote.Task.GetArchiveFolder()
+        else
+            noteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if noteNote <> null then
+                result = noteNote.InNote.GetArchiveFolder()
+            else
+                result = user.GetArchiveFolder()
+            end if
+        end if
+    end if
+
+
+context Note::MoveMeToTrash(): boolean
+pre:
+    self.Status = STATUS_ACTIVE
+post:
+    let trash: Folder = self.GetTrashFolder()
+    
+    self.Status = STATUS_DELETED
+    self.InFolders.forAll(element.Status = STATUS_DELETED)
+    self.InTasks.forAll(element.Status = STATUS_DELETED)
+    self.InNotes.forAll(element.Status = STATUS_DELETED)
+    self.InMessages.forAll(element.Status = STATUS_DELETED)
+    
+
+    --result = trash.AttachNote(self)      -- link.Status == STATUS_ACTIVE by default
+    let noteLink: FolderNote
+    let order: integer = trash.MaxOrder + ORDER_STEP
+    
+    if not trash.Notes.exists(element.NoteId = self.Id) then
+        noteLink = trash.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+
+
+context Note::RestoreFromTrash(): boolean
+pre:
+    self.Status = STATUS_DELETED
+post:
+    -- usunięcie z koszy
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    
+    -- przywrócenie poprzednich pozycji
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    self.InTasks.forAll(element.Status = STATUS_ACTIVE)
+    self.InNotes.forAll(element.Status = STATUS_ACTIVE)
+    self.InMessages.forAll(element.Status = STATUS_ACTIVE)
+    
+    self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
+    result = true
+
+
+context Note::MoveMeToArchive(): boolean
+pre:
+    self.Status = STATUS_ACTIVE
+post:
+    let archive: Folder = self.GetArchiveFolder()
+
+    self.Status = STATUS_ARCHIVED
+    self.InFolders.forAll(element.Status = STATUS_ARCHIVED)
+    self.InTasks.forAll(element.Status = STATUS_ARCHIVED)
+    self.InNotes.forAll(element.Status = STATUS_ARCHIVED)
+
+    --result = archive.AttachNote(self)      -- link.Status == STATUS_ACTIVE by default
+    let noteLink: FolderNote
+    let order: integer = archive.MaxOrder + ORDER_STEP
+    
+    if not archive.Notes.exists(element.NoteId = self.Id) then
+        noteLink = archive.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        self.ValidateSubTreeCanonicalPaths()
+        result = true
+    else
+        result = false
+    end if
+
+
+context Note::RestoreFromArchive(): boolean
+pre:
+    self.Status = STATUS_ARCHIVED
+post:
+    self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
+    
+    self.InFolders.forAll(element.Status = STATUS_ACTIVE)
+    self.InTasks.forAll(element.Status = STATUS_ACTIVE)
+    self.InNotes.forAll(element.Status = STATUS_ACTIVE)
+
+    self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
+    result = true
 
 -- ----------------------------------------------------------------------------------------------------------------
 

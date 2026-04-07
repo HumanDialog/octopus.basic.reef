@@ -78,17 +78,24 @@ constraint TaskList::Project
 
 context TaskList::SetStartDate(startDate: date)
 post:
-    let delta: integer = startDate - self.StartDate
+    let delta: integer = 0
+    
+    if startDate.NotNull and self.StartDate.NotNull then
+        delta = startDate - self.StartDate
+    end if
 
     self.StartDate = startDate
-    if self.EndDate.NotNull then --.isNull nie działa. Nie można nazywać metod ocl keywordami
-        self.EndDate = self.EndDate + delta
-    end if
-    if self.EndDate.NotNull then
-        self.DueDate = self.DueDate + delta
-    end if
+    
+    if delta <> 0 then
+        if self.EndDate.NotNull then --.isNull nie działa. Nie można nazywać metod ocl keywordami
+            self.EndDate = self.EndDate + delta
+        end if
+        if self.EndDate.NotNull then
+            self.DueDate = self.DueDate + delta
+        end if
 
-    self.ShiftTasksDates(delta)
+        self.ShiftTasksDates(delta)
+    end if
 
 context TaskList::ShiftTasksDates(delta: integer)
 post:
@@ -175,11 +182,23 @@ post:
     self.Tasks.select(element.State <> STATE_FINISHED).forAll(element.Finish())
 
 --#260
-context TaskList::Archive()
+context TaskList::MoveMeToArchive()
 post:
-    self.Tasks.forAll(element.Archive())
-    self.Archived = true
+    --self.Tasks.forAll(element.Status = STATUS_ARCHIVED)
+    -- self.Archived = true
     self.Status = STATUS_ARCHIVED
+
+context TaskList::RestoreFromArchive
+post:
+    self.Status = STATUS_ACTIVE
+
+context TaskList::MoveMeToTrash()
+post:
+    self.Status = STATUS_DELETED
+
+context TaskList::RestoreFromTrash
+post:
+    self.Status = STATUS_ACTIVE
 
 context TaskList::CreateTaskC(t: string): Task
 post:
@@ -708,9 +727,26 @@ post:
 
 context TaskList::CalculateCanonicalPath: string
 post:
+    let parentPath: JsonObject
     let canonicalPath: JsonObject
 
-    if self.User <> null then
+
+    if self.Project <> null then
+        parentPath = new JsonObject
+        parentPath.Parse(self.Project.CanonicalPath)
+        if parentPath.count > 0 then
+            canonicalPath = [...parentPath]
+        else
+            canonicalPath = []
+        end if
+        canonicalPath = [...,
+            {
+                Name:       self.Project.Title,
+                Summary:    self.Project.Summary,
+                href:       self.Project.href,
+            }]
+            
+    else if self.User <> null then
         canonicalPath = [
             {
                 Name: '__; en: My lists; es: Mis listas; pl: Moje listy',
@@ -724,6 +760,7 @@ post:
                 href: '/alllists'
             }
         ]
+    end if
     end if
 
     result = canonicalPath.ToString()
@@ -815,8 +852,10 @@ export -- en: Save as template; pl: Zapisz jako wzorzec
 context TaskList::SaveAsTemplate: TaskList
 post:
     let copy: TaskList in
-    copy = group.ListTemplates.newElement()
+    copy = group.ListTemplates.newElement() 
 
+    copy.Order = group.ListTemplates.max(element.Order) + ORDER_STEP
+    
     copy.Repeat(self)
     result = copy
 
@@ -844,18 +883,18 @@ post:
 
 context TaskList::Repeat(src: TaskList)
 post:
-    self.Name = src.Name + " (*)"
+    self.Name = src.Name
     self.Summary = src.Summary
     self.StartDate = src.StartDate
     self.EndDate = src.EndDate
     self.DueDate = src.DueDate
 
-    self.Order = src.Order
+    --self.Order = src.Order
     self.TaskStates = src.TaskStates
     self.Archived = src.Archived
     self.IndexPrefix = src.IndexPrefix
     self.Kind = src.Kind
-    self.Status = src.Status
+    --self.Status = src.Status
     self.AccCode = src.AccCode
     self.Options = src.Options
     self.RepeatTasks(src)

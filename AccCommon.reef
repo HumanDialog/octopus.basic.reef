@@ -23,7 +23,6 @@ const ACC_PUBLIC            =   90
 
 context User::IsInGroup(g: Group): boolean
 post:
-
     result = self.Groups.exists(element.GroupId = g.Id)
 
 
