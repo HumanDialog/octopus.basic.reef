@@ -10,7 +10,8 @@ class User
     Bio:                    string
     Avatar:                 string
     MyTasks(0..n):          Task                <backNav: Actor(0..1)>
-    MyLists(0..n):          TaskList            <backNav: User>
+    AllLists(0..n):         TaskList            <backNav: User>
+    MyLists(0..n):          TaskList            
     Groups(0..n):           UserGroup           <backNav: User>
     Folders(0..n):          Folder              <backNav: User>
     AllFolders(0..n):       Folder              <backNav: Owner>
@@ -33,6 +34,9 @@ class User
     ArchiveFolder:          Folder
     TrashFolder:            Folder
 end class
+
+constraint User::AllLists
+    element.UserId = self.Id
 
 constraint User::MyLists
     element.UserId = self.Id and element.Status = STATUS_ACTIVE
@@ -235,6 +239,9 @@ post:
     )
 
     self.MyLists.forAll(element.ValidateSubTreeCanonicalPaths())
+    self.ArchivedLists.forAll(element.ValidateSubTreeCanonicalPaths())
+    self.HiddenLists.forAll(element.ValidateSubTreeCanonicalPaths())
+    self.DeletedLists.forAll(element.ValidateSubTreeCanonicalPaths())
 
 context User::Clipboard: Clipboard
 post:

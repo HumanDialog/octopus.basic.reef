@@ -1,4 +1,25 @@
 
+const TAG_COLOR_GRAY        = 0
+const TAG_COLOR_RED         = 1
+const TAG_COLOR_ORANGE      = 2
+const TAG_COLOR_AMBER       = 3
+const TAG_COLOR_YELLOW      = 4
+const TAG_COLOR_LIME        = 5
+const TAG_COLOR_GREEN       = 6
+const TAG_COLOR_INDIGO      = 7
+const TAG_COLOR_BLUE        = 8
+const TAG_COLOR_SKY         = 9
+const TAG_COLOR_CYAN        = 10
+const TAG_COLOR_TEAL        = 11
+const TAG_COLOR_EMERALD     = 12
+const TAG_COLOR_VIOLET      = 13
+const TAG_COLOR_PURPLE      = 14
+const TAG_COLOR_FUCHSIA     = 15
+const TAG_COLOR_PINK        = 16
+const TAG_COLOR_ROSE        = 17
+const TAG_COLOR_SLATE       = 18
+
+
 class Tag
     Label(48):          string
     Icon(48):           string
@@ -9,6 +30,9 @@ class Tag
     Notes[0..n]:        TagNote <backNav: Tag>
     Tasks[0..n]:        TagTask <backNav: Tag>
     Files[0..n]:        TagFile <backNav: Tag>
+
+    --Group:              Group   <backNav: Tags[0..n]>
+    --GroupId:            integer
 end class
 
 
@@ -67,8 +91,6 @@ inv:
 inv:
     self.Summary = self.Note.Summary
 inv:
-    self.ModifiedBy = self.Note.ModifiedBy
-inv:
     self.ModificationDate = self.Note.ModificationDate
 
 
@@ -77,8 +99,6 @@ inv:
     self.Title = self.Task.Title
 inv:
     self.Summary = self.Task.Summary
-inv:
-    self.Actor = self.Task.Actor
 inv:
     self.DueDate = self.Task.DueDate
 

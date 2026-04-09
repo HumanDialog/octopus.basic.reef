@@ -34,7 +34,7 @@ public:
     Options:                integer
 
     CanonicalPath(0):       string
-    User:                   User            <backNav: MyLists>
+    User:                   User            <backNav: AllLists>
     Group:                  Group
     InGroup:                Group
     Activity:               Activity        <backNav: TaskList> --future 1-1
@@ -187,18 +187,22 @@ post:
     --self.Tasks.forAll(element.Status = STATUS_ARCHIVED)
     -- self.Archived = true
     self.Status = STATUS_ARCHIVED
+    self.ValidateSubTreeCanonicalPaths()
 
 context TaskList::RestoreFromArchive
 post:
     self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
 
 context TaskList::MoveMeToTrash()
 post:
     self.Status = STATUS_DELETED
+    self.ValidateSubTreeCanonicalPaths()
 
 context TaskList::RestoreFromTrash
 post:
     self.Status = STATUS_ACTIVE
+    self.ValidateSubTreeCanonicalPaths()
 
 context TaskList::CreateTaskC(t: string): Task
 post:
@@ -739,27 +743,95 @@ post:
         else
             canonicalPath = []
         end if
+
         canonicalPath = [...,
-            {
-                Name:       self.Project.Title,
-                Summary:    self.Project.Summary,
-                href:       self.Project.href,
-            }]
+        {
+            Name:       self.Project.Title,
+            Summary:    self.Project.Summary,
+            href:       self.Project.href,
+        }]
+
+        select case self.Status
+            case STATUS_ARCHIVED
+                canonicalPath = [...,
+                {
+                    Name: '__; en: Project archive; es: Archivo del proyecto; pl: Archiwum projektu',
+                    href: '/projectarchive/' + self.ProjectId
+                }]
+
+            case STATUS_DELETED
+                canonicalPath = [...,
+                {
+                    Name: '__; en: Project trash; es: Basura del proyecto; pl: Kosz projektu',
+                    href: '/projecttrash/' + self.ProjectId
+                }]
+
+        end select
+
+        
             
     else if self.User <> null then
-        canonicalPath = [
-            {
-                Name: '__; en: My lists; es: Mis listas; pl: Moje listy',
-                href: '/mylists'
-            }
-        ]
+        select case self.Status
+            case STATUS_ACTIVE
+                canonicalPath = [
+                    {
+                        Name: '__; en: My lists; es: Mis listas; pl: Moje listy',
+                        href: '/mylists'
+                    }
+                ]
+
+            case STATUS_ARCHIVED
+                canonicalPath = [
+                    {
+                        Name: '__; en: My archived lists; es: Mis listas archivadas; pl: Moje zarchiwizowane listy',
+                        href: '/myarchivedlists'
+                    }
+                ]
+
+            case STATUS_DELETED
+                canonicalPath = [
+                    {
+                        Name: '__; en: My deleted lists; es: Mis listas eliminadas; pl: Moje usunięte listy',
+                        href: '/mydeletedlists'
+                    }
+                ]
+                
+        end select
+        
     else
-        canonicalPath = [
-            {
-                Name: '__; en: Common lists; es: Listas comunes; pl: Wspólne listy',
-                href: '/alllists'
-            }
-        ]
+        select case self.Status
+            case STATUS_ACTIVE
+                canonicalPath = [
+                    {
+                        Name: '__; en: Common lists; es: Listas comunes; pl: Wspólne listy',
+                        href: '/alllists'
+                    }
+                ]
+
+            case STATUS_ARCHIVED
+                canonicalPath = [
+                    {
+                        Name: '__; en: Archived lists; es: Listas comunes; pl: Zarchiwizowane listy',
+                        href: '/archivedlists'
+                    }
+                ]
+
+            case STATUS_DELETED
+                canonicalPath = [
+                    {
+                        Name: '__; en: Deleted lists; es: Listas eliminadas; pl: Usunięte listy',
+                        href: '/deletedlists'
+                    }
+                ]
+
+            case STATUS_TEMPLATE
+                canonicalPath = [
+                    {
+                        Name: '__; en: List templates; es: Plantillas de listas; pl: Szablony list',
+                        href: '/listtemplates'
+                    }
+                ]
+        end select
     end if
     end if
 
@@ -833,23 +905,33 @@ post:
 --#export operations #api operations to tagi w c++. System nie jest jeszcze szczelny
 
 export -- en:Repeat list; pl:Powtóch listę
-context TaskList::RepeatList: TaskList
+context TaskList::RepeatList: string
 pre Cannot repeat list not attached to group or user:
     not (self.Group.isNull and self.User.isNull)
 post:
+    
     let copy: TaskList in
-    if self.Group then
-        copy = group.Lists.newElement()
-    else if self.User then
-        copy = user.MyLists.newElement()
+    let order: integer = 0 in
+
+    if self.Project <> null then
+        order = self.Project.Lists.max(element.Order) + ORDER_STEP 
+        copy = self.Project.Lists.newElement(element.Order = order)
+    else if self.Group <> null then
+        order = group.Lists.max(element.Order) + ORDER_STEP 
+        copy = group.Lists.newElement(element.Order = order)
+    else if self.User <> null then
+        order = user.MyLists.max(element.Order) + ORDER_STEP 
+        copy = user.MyLists.newElement(element.Order = order)
+    end if
     end if
     end if
 
     copy.Repeat(self)
-    result = copy
+    copy.ValidateSubTreeCanonicalPaths()
+    result = copy.href()
 
 export -- en: Save as template; pl: Zapisz jako wzorzec
-context TaskList::SaveAsTemplate: TaskList
+context TaskList::SaveAsTemplate: string
 post:
     let copy: TaskList in
     copy = group.ListTemplates.newElement() 
@@ -857,7 +939,8 @@ post:
     copy.Order = group.ListTemplates.max(element.Order) + ORDER_STEP
     
     copy.Repeat(self)
-    result = copy
+    copy.ValidateSubTreeCanonicalPaths()
+    result = copy.href()
 
 
 export -- en: New lost; pl: Nowa lista w kontekście list prywatnych

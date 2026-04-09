@@ -638,3 +638,16 @@ post:
         list.CreateTask('Customer Engagement', 'Organize focus groups or pre-launch surveys to gather feedback.', 0)
         list.CreateTask('Dealer Partnerships', 'Establish relationships with dealerships or distributors for sales.', 0)
     list.ReorderTasks()
+
+
+
+--context Group::CreateSampleTags
+--pre:
+--    self.Tags.count = 0
+--post:
+--    self.Tags.newElement(t: Tag | t.Label = 'bug' and t.Color = TAG_COLOR_AMBER)
+--    self.Tags.newElement(t: Tag | t.Label = 'question' and t.Color = TAG_COLOR_LIME)
+--    self.Tags.newElement(t: Tag | t.Label = 'feature request' and t.Color = TAG_COLOR_SLATE)
+--    self.Tags.newElement(t: Tag | t.Label = 'improvement request' and t.Color = TAG_COLOR_CYAN)
+--    self.Tags.newElement(t: Tag | t.Label = 'release' and t.Color = TAG_COLOR_VIOLET)
+

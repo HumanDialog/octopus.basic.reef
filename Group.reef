@@ -35,6 +35,8 @@ class Group
     ArchivedProjects<0..n>:     Project
     ProjectTemplates<0..n>:     Project
     DeletedProjects<0..n>:      Project
+
+    --Tags[0..n]:                 Tag             <backNav: Group>
 end class
 
 class GroupGroup
@@ -192,6 +194,17 @@ post:
     list.Summary = summary
 
     self.SubscribeTaskListToAll(list)
+
+    result = list
+
+context Group::CreateTemplateList(name: string, optional order: integer = 0, optional summary: string = ''): TaskList
+post:
+    let list: TaskList = self.ListTemplates.newElement
+    list.Kind = TLK_KANBAN_CHECKLIST
+    list.TaskStates = self.GetChecklistDefaultColumns().ToString()
+    list.Name = name
+    list.Order = order
+    list.Summary = summary
 
     result = list
 
@@ -353,7 +366,7 @@ post:
     self.ArchiveFolder.ValidateSubTreeCanonicalPaths()
     self.TrashFolder.ValidateSubTreeCanonicalPaths()
 
-    self.Lists.forAll( element.ValidateSubTreeCanonicalPaths())
+    self.AllLists.forAll( element.ValidateSubTreeCanonicalPaths())
 
 
 context Group::Clipboard: Clipboard

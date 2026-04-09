@@ -834,3 +834,38 @@ post:
     self.Status = STATUS_ACTIVE
     self.ValidateSubTreeCanonicalPaths()
     result = true
+
+
+--context Task::AddTag(tag: Tag): TagTask
+--pre:
+--    not self.Tagc.exists(element.Tag = tag)
+--post:
+--    result = tag.Tasks.newElement(element.Task = self)
+--
+--
+--context Task::RemoveTag(tagLink: TagTask)
+--pre:
+--    tagLink.Task = self
+--post:
+--    tagLink.delete
+--
+--
+--context Task::CreateTag(label: string, color: integer) : TagTask
+--pre:
+--    not group.Tags.exists(element.Label = label)
+--post:
+--    let tag: Tag = group.Tags.newElement(t: Tag | t.Label=label and t.Color=color)
+--    result = self.AddTag(tag)
+--
+--
+--context Task::AddSampleTags
+--post:
+--    let tag: Tag in
+--    tag = group.Tags.select(element.Label = 'bug').first
+--    self.AddTag(tag)
+--
+--    tag = group.Tags.select(element.Label = 'question').first
+--    self.AddTag(tag)
+--
+--    tag = group.Tags.select(element.Label = 'improvement request').first
+--    self.AddTag(tag)
