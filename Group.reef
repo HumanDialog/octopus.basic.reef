@@ -84,25 +84,25 @@ post:
 
     user.ValidateSubTreeCanonicalPaths()
     self.ValidateSubTreeCanonicalPaths()
-    
+
 
 constraint Group::AllLists
     element.GroupId = self.Id
 
 constraint Group::Lists
-    element.GroupId = self.Id and element.Status = STATUS_ACTIVE and element.ProjectId = 0
+    element.GroupId = self.Id and element.Status = STATUS_ACTIVE
 
 constraint Group::ArchivedLists
-    element.GroupId = self.Id and element.Status = STATUS_ARCHIVED and element.ProjectId = 0
+    element.GroupId = self.Id and element.Status = STATUS_ARCHIVED
 
 constraint Group::DeletedLists
-    element.GroupId = self.Id and element.Status = STATUS_DELETED and element.ProjectId = 0
+    element.GroupId = self.Id and element.Status = STATUS_DELETED
 
 constraint Group::HiddenLists
-    element.GroupId = self.Id and element.Status = STATUS_HIDDEN and element.ProjectId = 0
+    element.GroupId = self.Id and element.Status = STATUS_HIDDEN
 
 constraint Group::ListTemplates
-    element.GroupId = self.Id and element.Status = STATUS_TEMPLATE and element.ProjectId = 0
+    element.GroupId = self.Id and element.Status = STATUS_TEMPLATE
 
 
 
