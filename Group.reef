@@ -442,6 +442,14 @@ post:
 
     result = self.ArchiveFolder
 
+context Group::GetSharedFolders: Folder
+post:
+    if self.SharedFolders.isNull then
+        self.SharedFolders = self.AllFolders.newElement(e | e.Title = "__; en: Shared; es: Compartido; pl: Udostępnione" and e.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+    end if
+    result = self.SharedFolders
+
+
 context Group::AddSharedFolder(folder: Folder) : FolderFolder
 post:
     result = null       -- todo
