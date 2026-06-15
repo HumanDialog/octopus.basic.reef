@@ -55,10 +55,13 @@ context Group::AccMember: integer
 post:
     if group = self then
         result = ACC_READWRITE
+    else if user.IsInGroup(self) then
+        result = ACC_READWRITE
     else if self.IsPublic then
         result = ACC_READ
     else if self.Name = "Guests" then
         result = ACC_READ
+    end if
     end if
     end if
     end if

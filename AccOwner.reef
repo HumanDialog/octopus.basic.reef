@@ -51,10 +51,13 @@ context Group::AccOwner: integer
 post:
     if group = self then
         result = ACC_READWRITE
+    else if user.IsInGroup(self) then
+        result = ACC_READWRITE
     else if self.IsPublic then
         result = ACC_READWRITE
     else if self.Name = "Guests" then
         result = ACC_READWRITE
+    end if
     end if
     end if
     end if

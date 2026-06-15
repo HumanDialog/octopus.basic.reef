@@ -441,3 +441,23 @@ post:
     end if
 
     result = self.ArchiveFolder
+
+context Group::AddSharedFolder(folder: Folder) : FolderFolder
+post:
+    result = null       -- todo
+
+context Group::AddSharedFolderLink(link: FolderFolder) : FolderFolder
+post:
+    result = null       -- todo
+
+context Group::AddSharedTask(link: FolderTask) : FolderTask
+post:
+    result = null       -- todo
+
+context Group::AddSharedNote(link: FolderNote) : FolderNote
+post:
+    result = null       -- todo
+
+context Group::AddSharedFile(link: FolderFile) : FolderFile
+post:
+    result = null       -- todo
