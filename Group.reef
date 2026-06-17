@@ -208,6 +208,38 @@ post:
 
     result = list
 
+context Group::CreateTemplateListFromType(name: string, summary: string, listType: JsonObject, optional order: integer = 0) : TaskList
+post:
+    let list: TaskList = self.ListTemplates.newElement
+
+    if name.IsEmpty then
+        name = listType.Name
+    end if
+
+    if order = 0 then
+        order = self.ListTemplates.max(element.Order) + ORDER_STEP
+    end if
+
+    list.Name = name
+    list.Summary = summary
+    list.Order = order
+
+    list.Kind = listType.Kind
+    list.TaskStates = listType.TaskStates.ToString()
+
+    result = list
+
+context Group::CreatePredefinedListTemplates()
+post:
+    let listTypes: JsonObject = self.GetTaskListTypes()
+    let listType: JsonObject
+
+    let no: integer = listTypes.count
+    set(0 .. no-1).forAll(i | 
+        listType = listTypes[i]
+        self.CreateTemplateListFromType('', '', listType, (i+1)*ORDER_STEP)
+    )
+
 context Group::SubscribeTaskListToAll(tasklist: TaskList)
 post:
     self.Members.forAll(tasklist.SubscribeToUser(element.User))
