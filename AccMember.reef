@@ -94,82 +94,35 @@ post:
     end if
 
 
+
 context Folder::AccMember: integer
 post:
-    let parent: Folder
-    if self.Owner = user then --must be checked before
+    if self.Owner = user then
         result = ACC_READWRITE
+    else if self.IsGroupFolder and self.Group = group then
+        result = ACC_READWRITE
+    else if self.IsPublic then
+        result = ACC_READWRITE
+    else
+        if self.IsSharedGroupFolder then
+            if self.InFolders.exists(element.GroupId = group.Id) then
+                result = ACC_READWRITE
+            end if
+        else if self.IsSharedUserFolder then
+            if self.InFolders.exists(element.GroupId = group.Id) then
+                result = ACC_READWRITE
+            end if
+        end if
     end if
-
-    select case self.Status
-        case FS_USER_ROOT_SHARED_FOLDER, FS_USER_ROOT_FOLDER, FS_USER_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER
-            if self.Owner = user then
-                result = ACC_READWRITE
-            end if
-        case FS_USER_SHARED_FOLDER
-            if  self.InFolders.exists (element.GroupId = group.Id) then
-                result = ACC_READWRITE
-            end if
-        case FS_USER_SHARED_SUB_FOLDER
-            parent = self.GetParentSharedUserFolder
-            if  parent.InFolders.exists (element.GroupId = group.Id) then
-                result = ACC_READWRITE
-            end if
-
-        case FS_GROUP_ROOT_SHARED_FOLDER, FS_GROUP_ROOT_FOLDER, FS_GROUP_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER
-            if self.Group = group then
-                result = ACC_READWRITE
-            end if
-        case FS_GROUP_SHARED_FOLDER
-            if  self.InFolders.exists (element.GroupId = group.Id) then
-                result = ACC_READWRITE
-            end if
-        case FS_GROUP_SHARED_SUB_FOLDER
-            parent = self.GetParentSharedGroupFolder
-            if  parent.InFolders.exists (element.GroupId = group.Id) then
-                result = ACC_READWRITE
-            end if
-        case FS_PUBLIC_FOLDER
-            result = ACC_READWRITE
-        case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER
-            if self.Group = group then
-                result = ACC_READWRITE
-            end if
-    end select
-
-
-
+    end if
+    end if
+    end if
 
 context Folder::Acc
 post:
   result = self.acc
 
-
--- Przebieg wzorcowy. Zaraz trzeba sprawdzić statusy
 context Note::AccMember: integer
-post:
-    if self.Status = NS_PUBLIC then
-        result = ACC_READWRITE
-    else if self.CreatedBy = user or self.ModifiedBy = user then
-        result = ACC_READWRITE
-        end if
-    end if
-
-    if result < ACC_READWRITE then
-        result = Max(result, self.InFolders.max(element.Folder.acc))
-    end if
-
-    if result < ACC_READWRITE then
-        result = Max(result, self.InTasks.max(element.Task.acc))
-    end if
-
-    if result < ACC_READWRITE then
-        result = Max(result, self.InNotes.max(element.Note.acc))
-    end if
-
-
-
-context Note::AccMemberX: integer
 post:
     if self.Status = NS_PUBLIC then
         result = ACC_READWRITE
@@ -180,7 +133,7 @@ post:
     else if self.InGroupFolder then
         result = ACC_READWRITE
     else
-        result = self.InTasks.max(element.Task.acc)
+        result = self.InTasks.max(element.Task.AccMember)
         result = Max(result, self.InNotes.max(element.Note.AccMember))
     end if
     end if

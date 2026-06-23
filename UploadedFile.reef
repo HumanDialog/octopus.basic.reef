@@ -231,6 +231,11 @@ post:
     self.CanonicalPath = self.CalculateCanonicalPath()
 
 
+context UploadedFile::RecalculateLocationInfo(newLink: FolderFile)
+post:
+    self.RecalculateCanonicalLinksAfterAttach(newLink)
+    --self.RecalculateAccCode
+
 context UploadedFile::RecalculateCanonicalLinksAfterAttach(newLink: FolderFile)
 post:
     let changed: boolean = false
@@ -382,16 +387,16 @@ pre:
     self.Status = STATUS_ACTIVE
 post:
     let trash: Folder = self.GetTrashFolder()
-    
+
     self.Status = STATUS_DELETED
     self.InFolders.forAll(element.Status = STATUS_DELETED)
     self.InTasks.forAll(element.Status = STATUS_DELETED)
     self.InNotes.forAll(element.Status = STATUS_DELETED)
     self.InMessages.forAll(element.Status = STATUS_DELETED)
-    
+
     --result = trash.AttachFile(self)      -- link.Status == STATUS_ACTIVE by default
     let order: integer = trash.MaxOrder + ORDER_STEP
-    
+
     if not trash.Files.exists(element.FileId = self.Id) then
         trash.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
         self.ValidateSubTreeCanonicalPaths()
@@ -430,7 +435,7 @@ post:
 
     --result = archive.AttachFile(self)      -- link.Status == STATUS_ACTIVE by default
     let order: integer = archive.MaxOrder + ORDER_STEP
-    
+
     if not archive.Files.exists(element.FileId = self.Id) then
         archive.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
         self.ValidateSubTreeCanonicalPaths()

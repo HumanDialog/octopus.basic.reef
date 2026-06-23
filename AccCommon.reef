@@ -160,12 +160,13 @@ context Folder::CalculateAccCode: integer
 post:
     self.InFolders.select(element.InFolder.AccCode = ACC_UNKNOWN).forAll(element.InFolder.CalculateAccCodeRec)
     result = self.InFolders.max(element.InFolder.AccCode)
-    if result = 0 then result = 123 end if
+
 
 context Folder::CalculateAccRootCodes
 post:
     self.CalculateElementsAccCodes
     self.Folders.forAll(element.Folder.CalculateAccCodeRec)
+
 
 context Folder::CalculateAccCodeRec
 post:
@@ -174,18 +175,14 @@ post:
         self.AccCode = self.CalculateAccCode
         self.CalculateElementsAccCodes
         self.Folders.forAll(element.Folder.CalculateAccCodeRec)
-
     end if
 
+
+---- No subfolders ----------------------------------------------
 context Folder::CalculateElementsAccCodes
 post:
-        self.Notes.forAll(element.Note.CalculateAccCodeRec)
-        self.Tasks.forAll(element.Task.CalculateAccCodeRec)
-        ---- debug
-        --self.Notes.forAll(element.Note.AccCode=265)
-        --self.Notes.forAll(element.Note.Title = element.Note.Title + '*')
-        --self.AccCode = 265
-        ----
+    self.Notes.forAll(element.Note.CalculateAccCodeRec)
+    self.Tasks.forAll(element.Task.CalculateAccCodeRec)
 
 
 context Note::ResetAccCodesRec
@@ -243,6 +240,24 @@ post:
 
 
 ------------------------------------------------------------------------------------------------------
+----  Folder::ResetSubAccCodes
+context Folder::RecalculateAccCode
+post:
+    self.AccCode = ACC_CALCULATING ---force
+    self.ResetAccCodesRec
+    self.CalculateAccCodeRec
+
+context Note::RecalculateAccCode
+post:
+    self.AccCode = ACC_CALCULATING ---force
+    self.ResetAccCodesRec
+    self.CalculateAccCodeRec
+
+context Task::RecalculateAccCode
+post:
+    self.AccCode = ACC_CALCULATING ---force
+    self.ResetAccCodesRec
+    self.CalculateAccCodeRec
 
 ---------------------------user/Name---------------------------
 

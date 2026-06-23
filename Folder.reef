@@ -494,7 +494,7 @@ post:
             n.Summary = properties.Summary) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
-    n.RecalculateCanonicalLinksAfterAttach(result)
+    n.RecalculateLocationInfo(result)
 
 
 context Folder::CreateThread(title: string, optional summary: string = "", optional order: integer = 0): FolderNote
@@ -507,7 +507,7 @@ post:
             n.Kind = NK_THREAD) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = order)
-    n.RecalculateCanonicalLinksAfterAttach(result)
+    n.RecalculateLocationInfo(result)
 
 
 context Folder::CreateTaskEx(properties: JsonObject) : FolderTask
@@ -519,7 +519,7 @@ post:
             t.Summary = properties.Summary) in
 
     result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
-    t.RecalculateCanonicalLinksAfterAttach(result)
+    t.RecalculateLocationInfo(result)
 
 
 context Folder::CreateFile(title: string, mimeType: string, size: integer, optional order: integer=0) : FolderFile
@@ -538,7 +538,7 @@ post:
     end if
 
     fileLink = self.Files.newElement( e | e.File = upFile and e.Order = order)
-    upFile.RecalculateCanonicalLinksAfterAttach(fileLink)
+    upFile.RecalculateLocationInfo(fileLink)
     result = fileLink
 
 
@@ -797,7 +797,7 @@ post:
     let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder and ff.Order = order)
 
     subFolder.RecalculateStatus()
-    subFolder.RecalculateCanonicalLinksAfterAttach(link)
+    subFolder.RecalculateLocationInfo(link)
 
     result = link
 
@@ -816,7 +816,7 @@ post:
         end if
 
         folderNote = self.Notes.newElement(e | e.Note=note and e.Order=order)
-        note.RecalculateCanonicalLinksAfterAttach(folderNote)
+        note.RecalculateLocationInfo(folderNote)
         result = true
     else
         result = false
@@ -831,7 +831,7 @@ post:
         end if
 
         folderTask = self.Tasks.newElement(e | e.Task=task and e.Order=order)
-        task.RecalculateCanonicalLinksAfterAttach(folderTask)
+        task.RecalculateLocationInfo(folderTask)
         result = true
     else
         result = false
@@ -847,7 +847,7 @@ post:
         end if
 
         folderFile = self.Files.newElement(e | e.File=upFile and e.Order=order)
-        upFile.RecalculateCanonicalLinksAfterAttach(folderFile)
+        upFile.RecalculateLocationInfo(folderFile)
         result = true
     else
         result = false
@@ -950,7 +950,9 @@ context Folder::DettachNote(noteLink: FolderNote)
 pre:
     noteLink.Folder.Id = self.Id
 post:
+    let note: Note = noteLink.Note
     noteLink.delete
+    note.RecalculateAccCode
 
 context Folder::DeletePermanentlyNote(noteLink: FolderNote)
 post:
@@ -1046,7 +1048,7 @@ post:
 
     let maxOrder: integer = self.MaxOrder
     let folderNote: FolderNote = self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
-    note.RecalculateCanonicalLinksAfterAttach(folderNote)
+    note.RecalculateLocationInfo(folderNote)
     --note.UpdateLatestGroupActivity()
     result = note
 
@@ -1183,8 +1185,12 @@ post:
         link.Task.ValidateSubTreeCanonicalPaths()
     )
 
-context Folder::
+context Folder::RecalculateLocationInfo(newLink: FolderFolder)
+post:
+    self.RecalculateCanonicalLinksAfterAttach(newLink)
+    self.RecalculateAccCode
 
+---- Powinno być bez argumentów
 context Folder::RecalculateCanonicalLinksAfterAttach(newLink: FolderFolder)
 post:
     let changed: boolean = false
