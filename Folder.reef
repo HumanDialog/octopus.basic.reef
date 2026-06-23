@@ -1183,6 +1183,7 @@ post:
         link.Task.ValidateSubTreeCanonicalPaths()
     )
 
+context Folder::
 
 context Folder::RecalculateCanonicalLinksAfterAttach(newLink: FolderFolder)
 post:
