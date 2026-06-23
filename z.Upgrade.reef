@@ -27,6 +27,8 @@ post:
    end if
    self.Lists.forAll(element.Verify)
 
+   self.CreatePredefinedListTemplates()
+
 context TaskList::Verify
 post:
   if self.TaskStates = "" then

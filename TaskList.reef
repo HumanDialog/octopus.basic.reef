@@ -649,6 +649,20 @@ post:
     result = self.href()
 
 
+context TaskList::ChangeListTemplate(template: TaskList) : string
+post:
+    self.Kind = template.Kind
+    let newTaskStates: string = template.TaskStates
+
+    if self.TaskStates <> newTaskStates then
+        self.TaskStates = newTaskStates
+        self.Tasks.forAll(self.NormalizeTaskState(element))
+    end if
+
+    self.ValidateSubTreeCanonicalPaths()
+
+    result = self.href()
+
 context TaskList::NormalizeTaskState(task: Task): integer
 pre:
     self.TaskStates.Len <> 0
