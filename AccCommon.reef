@@ -2,23 +2,264 @@ const ACC_DENIED = 0
 const ACC_READ   = 1
 const ACC_WRITE  = 2
 const ACC_READWRITE   = 3
---> sys/login?u=alice;g=13;r=Guest
+-->sys/login?u=a;g=12                       Alice & Bob
+--> sys/login?u=a;r=GroupMember;g=15        Publishing Company
 
 
 
 
-----ACCCODES - COMMON CONSTANTS FOR ALL TYPES---------
+----ACC CODES - COMMON CONSTANTS FOR ALL TYPES---------
 
-const ACC_USER              =    0
-const ACC_GROUP             =    1
-const ACC_USER_IN_GROUP     =    2
-const ACC_USER_SHARED       =   10
-const ACC_GROUP_SHARED      =   11
-const ACC_USER_IN_GROUP_SHARED      =   12
+const ACC_UNKNOWN           =   0000
+const ACC_CALCULATING       =   0001
 
-const ACC_PUBLIC            =   90
+const ACC_USER              =   1000
+const ACC_USER_SHARED       =   2000
 
-------------------------------------------------------
+const ACC_EXT_USER_SHARED   =   2500 --Future: Oznaczanie, że widzi to użytkownik z innej grupy
+
+const ACC_GROUP             =   3000
+const ACC_GROUP_SHARED      =   7000
+
+const ACC_PUBLIC            =   9000
+
+
+
+
+----  ACCESS CODE  -----------------------------------------------------------------------------------
+
+context App::RAC
+post:
+    self.RecalculateAccCodes
+
+admin
+context App::RecalculateAccCodes
+post:
+    self.VerifyRootAccStructure
+    self.SetupRootAccCodes
+    self.ResetSubRootAccCodes
+    self.CalculateAccCodeRec
+
+
+
+
+context App::VerifyRootAccStructure
+post:
+    self.PublicFolders.forAll(element.InFolders.removeAll)
+    self.Groups.forAll(element.VerifyRootAccStructure)
+    self.Users.forAll(element.VerifyRootAccStructure)
+
+context App::SetupRootAccCodes
+post:
+    self.PublicFolders.forAll(element.AccCode = ACC_PUBLIC)
+    self.Groups.forAll(element.SetupRootAccCodes)
+    self.Users.forAll(element.SetupRootAccCodes)
+
+context App::ResetSubRootAccCodes
+post:
+    self.PublicFolders.forAll(element.ResetSubAccCodes)
+    self.Groups.forAll(element.ResetSubRootAccCodes)
+    self.Users.forAll(element.ResetSubRootAccCodes)
+
+context App::CalculateAccCodeRec
+post:
+    self.PublicFolders.forAll(element.Folders.forAll(element.Folder.CalculateAccCodeRec))
+    self.Groups.forAll(element.CalculateAccCodeRec)
+    self.Users.forAll(element.CalculateAccCodeRec)
+
+context Group::VerifyRootAccStructure
+post:
+    self.Folders.forAll(element.InFolders.removeAll)
+    self.SharedFolders.InFolders.removeAll
+    self.ArchiveFolder.InFolders.removeAll
+    self.TrashFolder.InFolders.removeAll
+
+context Group::SetupRootAccCodes
+post:
+    self.Folders.forAll(element.AccCode = ACC_GROUP)
+    self.SharedFolders.AccCode = ACC_GROUP_SHARED
+    self.ArchiveFolder.AccCode = ACC_GROUP
+    self.TrashFolder.AccCode = ACC_GROUP
+    self.AllLists.forAll(element.AccCode = ACC_GROUP)
+
+context Group::ResetSubRootAccCodes
+post:
+    self.Folders.forAll(element.ResetSubAccCodes)
+    self.SharedFolders.ResetSubAccCodes
+    self.ArchiveFolder.ResetSubAccCodes
+    self.TrashFolder.ResetSubAccCodes
+    self.AllLists.forAll(element.AllTasks.forAll(element.ResetAccCodesRec))
+
+context Group::CalculateAccCodeRec
+post:
+    self.Folders.forAll(element.CalculateAccRootCodes)
+    self.SharedFolders.CalculateAccRootCodes
+    self.ArchiveFolder.CalculateAccRootCodes
+    self.TrashFolder.CalculateAccRootCodes
+    self.AllLists.forAll(element.AllTasks.forAll(element.CalculateAccCodeRec))
+
+context User::VerifyRootAccStructure
+post:
+    self.Folders.forAll(element.InFolders.removeAll)
+    self.SharedFolders.AccCode = ACC_USER_SHARED
+    self.PinnedFolders.AccCode = ACC_USER
+    self.BasketFolder.AccCode = ACC_USER
+    self.ArchiveFolder.AccCode = ACC_USER
+    self.TrashFolder.AccCode = ACC_USER
+
+context User::SetupRootAccCodes
+post:
+    self.Folders.forAll(element.AccCode = ACC_USER)
+    self.SharedFolders.AccCode = ACC_USER_SHARED
+    self.PinnedFolders.AccCode = ACC_USER
+    self.BasketFolder.AccCode = ACC_USER
+    self.ArchiveFolder.AccCode = ACC_USER
+    self.TrashFolder.AccCode = ACC_USER
+    self.AllLists.forAll(element.AccCode = ACC_GROUP)
+
+context User::ResetSubRootAccCodes
+post:
+    self.Folders.forAll(element.ResetSubAccCodes)
+    self.SharedFolders.ResetSubAccCodes
+    self.PinnedFolders.ResetSubAccCodes
+    self.BasketFolder.ResetSubAccCodes
+    self.ArchiveFolder.ResetSubAccCodes
+    self.TrashFolder.ResetSubAccCodes
+    self.AllLists.forAll(element.AllTasks.forAll(element.ResetAccCodesRec))
+
+context User::CalculateAccCodeRec
+post:
+    self.Folders.forAll(element.CalculateAccRootCodes)
+    self.SharedFolders.CalculateAccRootCodes
+    self.PinnedFolders.CalculateAccRootCodes
+    self.BasketFolder.CalculateAccRootCodes
+    self.ArchiveFolder.CalculateAccRootCodes
+    self.TrashFolder.CalculateAccRootCodes
+    self.AllLists.forAll(element.AllTasks.forAll(element.CalculateAccCodeRec))
+
+
+----Only for roots
+context Folder::ResetSubAccCodes
+post:
+    self.Notes.forAll(element.Note.ResetAccCodesRec)
+    self.Tasks.forAll(element.Task.ResetAccCodesRec)
+    self.Folders.forAll(element.Folder.ResetAccCodesRec)
+
+
+context Folder::ResetAccCodesRec
+post:
+    if self.AccCode <> ACC_UNKNOWN then
+        self.AccCode = ACC_UNKNOWN
+        self.Folders.forAll(element.Folder.ResetAccCodesRec)
+        self.Notes.forAll(element.Note.ResetAccCodesRec)
+        self.Tasks.forAll(element.Task.ResetAccCodesRec)
+    end if
+
+
+context Folder::CalculateAccCode: integer
+post:
+    self.InFolders.select(element.InFolder.AccCode = ACC_UNKNOWN).forAll(element.InFolder.CalculateAccCodeRec)
+    result = self.InFolders.max(element.InFolder.AccCode)
+
+
+context Folder::CalculateAccRootCodes
+post:
+    self.CalculateElementsAccCodes
+    self.Folders.forAll(element.Folder.CalculateAccCodeRec)
+
+
+context Folder::CalculateAccCodeRec
+post:
+    if self.AccCode = ACC_UNKNOWN then
+        self.AccCode = ACC_CALCULATING
+        self.AccCode = self.CalculateAccCode
+        self.CalculateElementsAccCodes
+        self.Folders.forAll(element.Folder.CalculateAccCodeRec)
+    end if
+
+
+---- No subfolders ----------------------------------------------
+context Folder::CalculateElementsAccCodes
+post:
+    self.Notes.forAll(element.Note.CalculateAccCodeRec)
+    self.Tasks.forAll(element.Task.CalculateAccCodeRec)
+
+
+context Note::ResetAccCodesRec
+post:
+    if self.AccCode <> ACC_UNKNOWN then
+        self.AccCode = ACC_UNKNOWN
+        self.Notes.forAll(element.Note.ResetAccCodesRec)
+    end if
+
+context Note::CalculateAccCode: integer
+post:
+
+    self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
+    self.InNotes.forAll(element.InNote.CalculateAccCodeRec)
+    let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
+    let inNotesCode: integer = self.InNotes.max(element.InNote.AccCode)
+
+    result = Max(inFoldersCode, inNotesCode)
+
+
+
+
+context Note::CalculateAccCodeRec
+post:
+    if self.AccCode = ACC_UNKNOWN then
+        self.AccCode = ACC_CALCULATING
+        self.AccCode = self.CalculateAccCode
+        self.Notes.forAll(element.Note.CalculateAccCodeRec)
+    end if
+
+context Task::ResetAccCodesRec
+post:
+    if self.AccCode <> ACC_UNKNOWN then
+        self.AccCode = ACC_UNKNOWN
+        self.Notes.forAll(element.Note.ResetAccCodesRec)
+    end if
+
+context Task::CalculateAccCode
+post:
+
+    self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
+    let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
+    let taskListCode: integer = self.TaskList.AccCode
+
+    result = Max(inFoldersCode, taskListCode)
+
+
+context Task::CalculateAccCodeRec
+post:
+    if self.AccCode = ACC_UNKNOWN then
+        self.AccCode = ACC_CALCULATING
+        self.AccCode = self.CalculateAccCode
+        self.Notes.forAll(element.Note.CalculateAccCodeRec)
+    end if
+
+
+------------------------------------------------------------------------------------------------------
+----  Folder::ResetSubAccCodes
+context Folder::RecalculateAccCode
+post:
+    self.AccCode = ACC_CALCULATING ---force
+    self.ResetAccCodesRec
+    self.CalculateAccCodeRec
+
+context Note::RecalculateAccCode
+post:
+    self.AccCode = ACC_CALCULATING ---force
+    self.ResetAccCodesRec
+    self.CalculateAccCodeRec
+
+context Task::RecalculateAccCode
+post:
+    self.AccCode = ACC_CALCULATING ---force
+    self.ResetAccCodesRec
+    self.CalculateAccCodeRec
+
+---------------------------user/Name---------------------------
 
 
 context User::IsInGroup(g: Group): boolean

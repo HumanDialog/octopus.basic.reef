@@ -417,6 +417,12 @@ post:
     )
 
 
+context Note::RecalculateLocationInfo(newLink: FolderNote)
+post:
+    self.RecalculateCanonicalLinksAfterAttach(newLink)
+    self.RecalculateAccCode
+
+
 context Note::RecalculateCanonicalLinksAfterAttach(newLink: FolderNote)
 post:
     let changed: boolean = false
@@ -719,18 +725,18 @@ pre:
     self.Status = STATUS_ACTIVE
 post:
     let trash: Folder = self.GetTrashFolder()
-    
+
     self.Status = STATUS_DELETED
     self.InFolders.forAll(element.Status = STATUS_DELETED)
     self.InTasks.forAll(element.Status = STATUS_DELETED)
     self.InNotes.forAll(element.Status = STATUS_DELETED)
     self.InMessages.forAll(element.Status = STATUS_DELETED)
-    
+
 
     --result = trash.AttachNote(self)      -- link.Status == STATUS_ACTIVE by default
     let noteLink: FolderNote
     let order: integer = trash.MaxOrder + ORDER_STEP
-    
+
     if not trash.Notes.exists(element.NoteId = self.Id) then
         noteLink = trash.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
         self.ValidateSubTreeCanonicalPaths()
@@ -746,13 +752,13 @@ pre:
 post:
     -- usunięcie z koszy
     self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
-    
+
     -- przywrócenie poprzednich pozycji
     self.InFolders.forAll(element.Status = STATUS_ACTIVE)
     self.InTasks.forAll(element.Status = STATUS_ACTIVE)
     self.InNotes.forAll(element.Status = STATUS_ACTIVE)
     self.InMessages.forAll(element.Status = STATUS_ACTIVE)
-    
+
     self.Status = STATUS_ACTIVE
     self.ValidateSubTreeCanonicalPaths()
     result = true
@@ -772,7 +778,7 @@ post:
     --result = archive.AttachNote(self)      -- link.Status == STATUS_ACTIVE by default
     let noteLink: FolderNote
     let order: integer = archive.MaxOrder + ORDER_STEP
-    
+
     if not archive.Notes.exists(element.NoteId = self.Id) then
         noteLink = archive.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
         self.ValidateSubTreeCanonicalPaths()
@@ -787,7 +793,7 @@ pre:
     self.Status = STATUS_ARCHIVED
 post:
     self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
-    
+
     self.InFolders.forAll(element.Status = STATUS_ACTIVE)
     self.InTasks.forAll(element.Status = STATUS_ACTIVE)
     self.InNotes.forAll(element.Status = STATUS_ACTIVE)

@@ -443,6 +443,12 @@ post:
     )
 
 
+context Task::RecalculateLocationInfo(newLink: FolderTask)
+post:
+    self.RecalculateCanonicalLinksAfterAttach(newLink)
+    self.RecalculateAccCode
+
+
 context Task::RecalculateCanonicalLinksAfterAttach(newLink: FolderTask)
 post:
     let changed: boolean = false
@@ -724,7 +730,7 @@ post:
 context Task::GetTrashFolder: Folder
 post:
     let project: Project
-    
+
     let canonicalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
     if canonicalLink <> null then
         result = canonicalLink.Folder.GetTrashFolder()
@@ -747,7 +753,7 @@ post:
 context Task::GetArchiveFolder: Folder
 post:
     let project: Project
-    
+
     let canonicalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
     if canonicalLink <> null then
         result = canonicalLink.Folder.GetArchiveFolder()
@@ -772,13 +778,13 @@ pre:
     self.Status = STATUS_ACTIVE
 post:
     let trash: Folder = self.GetTrashFolder()
-    
+
     self.Status = STATUS_DELETED
     self.InFolders.forAll(element.Status = STATUS_DELETED)
 
     let taskLink: FolderTask
     let order: integer = trash.MaxOrder + ORDER_STEP
-    
+
     if not trash.Tasks.exists(element.TaskId = self.Id) then
         taskLink = trash.Tasks.newElement(e | e.Task=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
         self.ValidateSubTreeCanonicalPaths()
@@ -814,7 +820,7 @@ post:
     --result = archive.AttachTask(self)      -- link.Status == STATUS_ACTIVE by default
     let taskLink: FolderTask
     let order: integer = archive.MaxOrder + ORDER_STEP
-    
+
     if not archive.Tasks.exists(element.TaskId = self.Id) then
         taskLink = archive.Tasks.newElement(e | e.Task=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
         self.ValidateSubTreeCanonicalPaths()
@@ -822,7 +828,7 @@ post:
     else
         result = false
     end if
-    
+
 
 
 context Task::RestoreFromArchive(): boolean

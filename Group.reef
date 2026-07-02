@@ -474,6 +474,7 @@ post:
 
     result = self.ArchiveFolder
 
+admin
 context Group::GetSharedFolders: Folder
 post:
     if self.SharedFolders.isNull then
@@ -481,9 +482,21 @@ post:
     end if
     result = self.SharedFolders
 
-
+-- Bad api call
 context Group::AddSharedFolder(folder: Folder) : FolderFolder
 post:
+    -- Converted to the right one
+    group.ShareFolder(self, folder)
+
+context Group::ShareFolder(secondGroup: Group, folder: Folder)
+pre Can not share folder:
+    folder.CanShare
+post:
+    let sharedRoot: Folder = self.GetSharedFolders
+    let secondRoot: Folder = secondGroup.GetSharedFolders
+    sharedRoot.AttachFolder(folder)
+    secondRoot.AttachFolder(folder)
+    --folder.MarkAsSharedFolder
     result = null       -- todo
 
 context Group::AddSharedFolderLink(link: FolderFolder) : FolderFolder
