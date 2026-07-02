@@ -166,7 +166,7 @@ context Project::GetCanonicalPath: JsonObject
 post:
     result =  [
         {
-            Name: '__; en: Active projects; es: Proyectos en curso; pl: Aktywne projekty',
+            Name: '__; en: Projects; es: Proyectos; pl: Projekty',
             href: '/allprojects'
         }
     ]
