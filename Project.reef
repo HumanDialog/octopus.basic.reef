@@ -104,6 +104,7 @@ post:
     list.Name = name
     list.Order = order
     list.Summary = summary
+    list.ValidateSubTreeCanonicalPaths()
 
     result = list
 
@@ -115,6 +116,7 @@ post:
 
     result = self.Lists.newElement(element.Order=order)
     result.Repeat(template)
+    result.ValidateSubTreeCanonicalPaths()
 
 
 context Project::EmptyTrash
@@ -164,7 +166,7 @@ context Project::GetCanonicalPath: JsonObject
 post:
     result =  [
         {
-            Name: '__; en: Active projects; es: Proyectos en curso; pl: Aktywne projekty',
+            Name: '__; en: Projects; es: Proyectos; pl: Projekty',
             href: '/allprojects'
         }
     ]

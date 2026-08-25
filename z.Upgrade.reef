@@ -254,3 +254,16 @@ post:
     end while
 
     end if
+
+context App::ReCreateSharedFolders() : string
+post:
+  self.ReCreateSharedFoldersA()
+
+admin context App::ReCreateSharedFoldersA() : string
+post:
+  self.Groups.forAll(element.SharedFolders.delete)
+  self.Groups.forAll(element.GetSharedFolders())
+
+  self.Users.forAll(element.SharedFolders.delete)
+  self.Users.forAll(element.GetSharedFolders())
+  result = "Done"
