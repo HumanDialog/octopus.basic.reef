@@ -31,6 +31,7 @@ class Group
 
     ArchiveFolder:              Folder
     TrashFolder:                Folder
+    ThreadsRoot:                Folder
 
     ArchivedProjects<0..n>:     Project
     ProjectTemplates<0..n>:     Project

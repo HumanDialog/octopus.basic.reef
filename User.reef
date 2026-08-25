@@ -28,6 +28,11 @@ class User
     Clipboards<0..n>:       Clipboard           <backNav: User>
     SubscribedLists[0..n]:  UserTaskList        <backNav: User>
 
+    MyWorkingPosts[0..n]:   EditingPost         <backNav: User>
+    MySentPosts:            Folder
+    MyFeed:                 Folder 
+    
+
     ArchivedLists<0..n>:    TaskList
     HiddenLists<0..n>:      TaskList
     DeletedLists<0..n>:     TaskList

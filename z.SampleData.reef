@@ -651,3 +651,56 @@ post:
 --    self.Tags.newElement(t: Tag | t.Label = 'improvement request' and t.Color = TAG_COLOR_CYAN)
 --    self.Tags.newElement(t: Tag | t.Label = 'release' and t.Color = TAG_COLOR_VIOLET)
 
+
+context Folder::MakeSampleFeed(): string
+post:
+    let postNo: integer = 1
+
+    let folderNote: FolderNote in
+    folderNote = self.CreateThread('Gdzie na najlepszy ramen we Wrocławiu?', '', postNo*64)
+    folderNote.Note.Content = '<p>Po przetestowaniu chyba każdego lokalu w centrum, Ramen People nadal trzyma pierwsze miejsce. Bulton tonkotsu gęsty, idealnie skomponowane dodatki i własnej roboty makaron.</p><p>Czy ktoś ma alternatywę, która może z nimi konkurować w okolicach Nadodrza?</p>'
+    folderNote.Note.AddPost('<p>Sprawdź koniecznie Yatta Ramen na Biskupinie, zupełnie inny klimat, ale bulion mają potężny.</p>')
+    folderNote.Note.AddPost('<p>Dla mnie Chingu Vegan Ramen bije wszystko na głowę, nawet jeśli jadasz mięso!</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('', '', postNo*64)
+    folderNote.Note.Content = '<p>Szybki lunch na Rynku to często pułapka turystyczna, ale Bernard przy Ratuszu po raz kolejny dał radę. Czeskie knedle i kaczka w punkt, a czas oczekiwania w szczycie to zaledwie 12 minut. Polecam na szybkie spotkania biznesowe.</p>'
+    folderNote.Note.AddPost('<p>Ceny mocno skoczyły ostatnio, ale jakość faktycznie trzymają.</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('Wielkie rozczarowanie w modnym bistro na Psim Polu - recenzja bez cenzury', '', postNo*64)
+    folderNote.Note.Content = '<p>Czekałam na wizytę w nowo otwartym lokalu przy rynku Psiego Pola ponad dwa tygodnie, rezerwując stolik z dużym wyprzedzeniem ze względu na ogromny szum w social mediach. Niestety, rzeczywistość brutalnie zweryfikowała marketing.</p><p>Zaczęło się od 40-minutowego oczekiwania na samo menu i napoje, mimo że lokal był zapełniony tylko w połowie.</p><p>Kiedy dania główne w końcu trafiły na stół, stek z polędwicy wołowej, zamówiony jako medium-rare, był przeciągnięty do well-done i zimny w środku.</p><p>Dodatki - pieczone warzywa korzeniowe - były kompletnie niedoprawione, a sos pieprzowy smakował jak gotowiec z proszku.</p><p>Obsługa na zgłoszoną uwagę zareagowała wzruszeniem ramion, twierdząc, że „kuchnia ma dzisiaj gorszy dzień”.</p><p>Rachunek na 350 zł za dwie osoby pozostawił ogromny niesmak. Zdecydowanie nie polecam, chyba że zależy wam wyłącznie na ładnych zdjęciach wnętrza na Instagram, bo jedzenie i serwis leżą po całości.</p><p>Omijajcie szerokim łukiem.</p>'
+    folderNote.Note.AddPost('<p>Miałem dokładnie to samo w zeszły weekend! Szkoda kasy.</p>')
+    folderNote.Note.AddPost('<p>Dobrze wiedzieć, właśnie miałam tam rezerwować stolik na urodziny. Anuluję.</p>')
+    folderNote.Note.AddPost('<p>Pani Magdo, bardzo przepraszamy za tę sytuację. Zapraszamy do kontaktu w wiadomości prywatnej.</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('', '', postNo*64)
+    folderNote.Note.Content = '<p>Wrocławska pizza neapolitańska: Iggy Pizza czy Oliwa i Ogień? Muszę podjąć decyzję na dzisiejszy wieczór, rzucajcie argumenty w komentarzach! 🍕</p>'
+    folderNote.Note.AddPost('<p>Tylko Iggy za ten wystrój i ciasto z wybitnymi rantami.</p>')
+    folderNote.Note.AddPost('<p>Oliwa i Ogień ma lepsze składy i mniej hałasu, bierz Oliwę.</p>')
+    folderNote.Note.AddPost('<p>Dorzuć do porównania VaffaNapoli, wtedy wybór staje się trudny.</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('Śniadania na Nadodrzu: Cafe Bema', '', postNo*64)
+    folderNote.Note.Content = '<p>Szakszuka idealna na leniwą niedzielę. Kawa specialty z lokalnej palarni, chleb na zakwasie i genialny, luźny klimat. Minus to brak możliwości rezerwacji stolików rano, więc warto być przed 10:00.</p>'
+    folderNote.Note.AddPost('<p>Ich tosty francuskie z chałki to absolutny hit.</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('', '', postNo*64)
+    folderNote.Note.Content = '<p>Czy tylko ja uważam, że jakość burgerów w Pasibusie spadła w porównaniu do czasów, gdy zaczynali jako mały food truck pod Arkadami?</p><p>Sosy stały się dziwnie słodkie, a bułki często bywają rozmoczone.</p>'
+    folderNote.Note.AddPost('<p>Niestety syndrom skali. Jak weszli do galerii handlowych, to straciło ten pierwotny urok.</p>')
+    folderNote.Note.AddPost('<p>Zgadzam się w 100%, teraz wolę MoaBurger albo Soczewkę.</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('Ukryty skarb na Ołtaszynie', '', postNo*64)
+    folderNote.Note.Content = '<p>Jeśli szukacie autentycznej kuchni gruzińskiej z dala od centrum, sprawdźcie Chinkalnię na Zwycięskiej. Chaczapuri po adżarsku ma idealnie płynne żółtko i masę sera, a chinkali są pełne aromatycznego bulionu. Ceny bardzo przystępne!</p>'
+    folderNote.Note.AddPost('<p>Potwierdzam, ale dojazd w godzinach szczytu przez Zwycięską to droga przez mękę.</p>')
+
+    postNo = postNo + 1
+    folderNote = self.CreateThread('', '', postNo*64)
+    folderNote.Note.Content = '<p>Szybkie pytanie o street food: gdzie zjem najlepszego kebaba kraftowego nocą po imprezie w okolicach Niepolda/Rynku?</p>'
+    folderNote.Note.AddPost('<p>Kura Warzyw na Drobnera, warto przejść ten kawałek przez most.</p>')
+    folderNote.Note.AddPost('<p>Kebz na Nowowiejskiej, żaden inny.</p>')
+
+    result = "" + postNo + " posts generated."

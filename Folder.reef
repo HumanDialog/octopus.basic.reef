@@ -40,6 +40,7 @@ const FK_BASKET             = 1
 const FK_DISCUSSION         = 2
 const FK_TABLE              = 3
 const FK_DOCUMENT           = 4
+const FK_FEED               = 5
 
 const FIN_PUBLIC        =  10000
 const FIN_GROUP_SHARED  =   9010
@@ -200,7 +201,12 @@ post:
         case FS_PROJECT_TRASH_ROOT_FOLDER
             result = '/folder/projecttrash/' + self.ProjectId
         case else
-            result = '/folder/' + self.Id
+            select case self.Kind
+                case FK_FEED
+                    result = '/feed/' + self.Id
+                case else
+                    result = '/folder/' + self.Id
+            end select
     end select
 
     --select case self.Kind
@@ -223,6 +229,8 @@ post:
         case FK_BASKET
             result = 'clipboard-pen-line'
         case FK_DISCUSSION
+            result = 'messages-square'
+        case FK_FEED
             result = 'messages-square'
         case else
             result = 'folder'
@@ -1819,6 +1827,14 @@ post:
 context FolderNote::InIcon: string
 post:
     result = self.Folder.icon
+
+context FolderNote::Content: string
+post:
+    result = self.Note.Content
+
+context FolderNote::Kind: string
+post:
+    result = self.Note.Kind
 
 -- ==============================================================================
 
