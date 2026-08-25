@@ -3,61 +3,6 @@ post:
   system.allInstances("MessageChannel").select(element.Status = 0).removeAll
 
 
-context App::VerifyFolders
-post:
-  self.PublicFolders.forAll(f | f.RecalculateStatusRec)
-  self.PublicFolders.forAll(f | f.CommitStatusRec)
-
-  self.Groups.forAll(g | g.VerifyFolders)
-  self.Users.forAll(u | u.VerifyFolders)
-
-
-context Group::VerifySystemFolders
-post:
-  if self.SharedFolders.isNull then
-    self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
-  end if
-  self.SharedFolders.RecalculateStatusRec
-  self.SharedFolders.CommitStatusRec
-
-  self.GetTrashFolder.RecalculateStatusRec
-  self.GetTrashFolder.CommitStatusRec
-  self.GetArchiveFolder.RecalculateStatusRec
-  self.GetArchiveFolder.CommitStatusRec
-
-
-context Group::VerifyFolders
-post:
-
-  self.VerifySystemFolders()
-
-  if self.Folders.first = 0 then
-    self.NewFolder("Notes")
-    self.NewFolder("Projects")
-  end if
-
-  if self.Folders.select(element.Kind = FK_DISCUSSION).first = 0 then
-    self.CreateSimpleDiscussionsStructure
-  end if
-
-  self.AllFolders.forAll(f | f.RecalculateStatusRec)
-  self.AllFolders.forAll(f | f.CommitStatusRec)
-
-
-context User::VerifyFolders
-post:
-  self.GetSharedFolders.RecalculateStatusRec
-  self.GetSharedFolders.CommitStatusRec
-  self.GetPinnedFolders.RecalculateStatusRec
-  self.GetPinnedFolders.CommitStatusRec
-  self.GetBasketFolder.RecalculateStatusRec
-  self.GetBasketFolder.CommitStatusRec
-  self.GetTrashFolder.RecalculateStatusRec
-  self.GetTrashFolder.CommitStatusRec
-  self.GetArchiveFolder.RecalculateStatusRec
-  self.GetArchiveFolder.CommitStatusRec
-  self.AllFolders.forAll(f | f.RecalculateStatusRec)
-  self.AllFolders.forAll(f | f.CommitStatusRec)
 
 context App::CorrectFoldersElementsOrder
 post:
@@ -66,19 +11,19 @@ post:
 
 context App::Upgrade602
 post:
-  self.ChectArchiveFolders
+  self.CheckArchiveFolders
   self.CheckGroupProjects
 
 
 
 admin
-context App::ChectArchiveFolders
+context App::CheckArchiveFolders
 post:
-  self.Users.forAll(element.ChectArchiveFolders)
-  self.Groups.forAll(element.ChectArchiveFolders)
+  self.Users.forAll(element.CheckArchiveFolders)
+  self.Groups.forAll(element.CheckArchiveFolders)
 
 
-context User::ChectArchiveFolders
+context User::CheckArchiveFolders
 post:
   if self.TrashFolder.isNull then
     self.TrashFolder = new Folder
@@ -90,7 +35,7 @@ post:
     self.ArchiveFolder.Title = "Archive (" + self.Name + ")"
   end if
 
-context Group::ChectArchiveFolders
+context Group::CheckArchiveFolders
 post:
   if self.TrashFolder.isNull then
     self.TrashFolder = new Folder

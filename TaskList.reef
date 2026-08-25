@@ -31,6 +31,7 @@ public:
     Kind:                   integer
     Status:                 integer
     AccCode:                integer
+    ServiceCode:            integer     --Extra field for recursive and service calls. No data storage.
     Options:                integer
 
     CanonicalPath(0):       string
@@ -79,13 +80,13 @@ constraint TaskList::Project
 context TaskList::SetStartDate(startDate: date)
 post:
     let delta: integer = 0
-    
+
     if startDate.NotNull and self.StartDate.NotNull then
         delta = startDate - self.StartDate
     end if
 
     self.StartDate = startDate
-    
+
     if delta <> 0 then
         if self.EndDate.NotNull then --.isNull nie działa. Nie można nazywać metod ocl keywordami
             self.EndDate = self.EndDate + delta
@@ -187,22 +188,22 @@ post:
     --self.Tasks.forAll(element.Status = STATUS_ARCHIVED)
     -- self.Archived = true
     self.Status = STATUS_ARCHIVED
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
 
 context TaskList::RestoreFromArchive
 post:
     self.Status = STATUS_ACTIVE
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
 
 context TaskList::MoveMeToTrash()
 post:
     self.Status = STATUS_DELETED
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
 
 context TaskList::RestoreFromTrash
 post:
     self.Status = STATUS_ACTIVE
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
 
 context TaskList::CreateTaskC(t: string): Task
 post:
@@ -782,8 +783,8 @@ post:
 
         end select
 
-        
-            
+
+
     else if self.User <> null then
         select case self.Status
             case STATUS_ACTIVE
@@ -809,9 +810,9 @@ post:
                         href: '/mydeletedlists'
                     }
                 ]
-                
+
         end select
-        
+
     else
         select case self.Status
             case STATUS_ACTIVE
@@ -923,37 +924,37 @@ context TaskList::RepeatList: string
 pre Cannot repeat list not attached to group or user:
     not (self.Group.isNull and self.User.isNull)
 post:
-    
+
     let copy: TaskList in
     let order: integer = 0 in
 
     if self.Project <> null then
-        order = self.Project.Lists.max(element.Order) + ORDER_STEP 
+        order = self.Project.Lists.max(element.Order) + ORDER_STEP
         copy = self.Project.Lists.newElement(element.Order = order)
     else if self.Group <> null then
-        order = group.Lists.max(element.Order) + ORDER_STEP 
+        order = group.Lists.max(element.Order) + ORDER_STEP
         copy = group.Lists.newElement(element.Order = order)
     else if self.User <> null then
-        order = user.MyLists.max(element.Order) + ORDER_STEP 
+        order = user.MyLists.max(element.Order) + ORDER_STEP
         copy = user.MyLists.newElement(element.Order = order)
     end if
     end if
     end if
 
     copy.Repeat(self)
-    copy.ValidateSubTreeCanonicalPaths()
+    copy.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
     result = copy.href()
 
 export -- en: Save as template; pl: Zapisz jako wzorzec
 context TaskList::SaveAsTemplate: string
 post:
     let copy: TaskList in
-    copy = group.ListTemplates.newElement() 
+    copy = group.ListTemplates.newElement()
 
     copy.Order = group.ListTemplates.max(element.Order) + ORDER_STEP
-    
+
     copy.Repeat(self)
-    copy.ValidateSubTreeCanonicalPaths()
+    copy.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
     result = copy.href()
 
 
@@ -976,7 +977,9 @@ post:
     result = copy
 
 
-
+context TaskList::RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
+post:
+   self.ValidateSubTreeCanonicalPaths
 
 context TaskList::Repeat(src: TaskList)
 post:

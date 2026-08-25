@@ -33,6 +33,7 @@ class User
     DeletedLists<0..n>:     TaskList
     ArchiveFolder:          Folder
     TrashFolder:            Folder
+    Files(0..n):            UploadedFile
 end class
 
 constraint User::AllLists
@@ -269,7 +270,7 @@ post:
         order = self.Folders.max(element.Order) + ORDER_STEP
     end if
     result = self.Folders.newElement(element.Title = title and element.Order=order and element.Summary = summary)
-    result.ValidateSubTreeCanonicalPaths()
+    result.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
 
 context User::ModifiedNotesCount: integer
 post:

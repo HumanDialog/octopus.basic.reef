@@ -1,3 +1,23 @@
+---STEP 1 FOR CREATING SAMPLE DATA -----------------------------------------
+context App::iu
+post:
+    self.InitUsers
+
+--STEP 2
+---sys/login
+
+--STEP 3
+context App::is
+post:
+    self.InitSample
+
+context App::ra --remove all service
+post:
+    system.allInstances("Folder").removeAll
+    system.allInstances("Note").removeAll
+    system.allInstances("Task").removeAll
+    system.allInstances("TaskList").removeAll
+
 
 
 context App::ClearData
@@ -194,9 +214,7 @@ post:
     list.ReorderTasks()
 
 
-context App::iu
-post:
-    self.InitUsers
+
 
 context App::InitUsers
 post:
@@ -218,9 +236,7 @@ post:
     motorcycleCompany.AddUser(bob)
 
 
-context App::is
-post:
-    self.InitSample
+
 
 context App::InitSample
 pre Before app/InitSample call app/InitUsers and login.:
@@ -367,42 +383,14 @@ post:
     self.Members.newElement(element.User = u)
 
 
-context Group::CheckFolder(Title: string)
-post:
-    if not self.Folders.select(e | e.Title = Title).exists then
-        let f: Folder = self.Folders.newElement() in
-        f.Title = Title
-        f.CreateSubFolders(3)
-        f.CreateTasks(5)
-        f.CreateNotes(4)
-        f.ReorderElements()
-    end if
 
 context Group::NewFolder(t: string)
 post:
     self.Folders.newElement(e | e.Title = t)
 
-context Group::CheckFolderEx(Title: string)
-post:
-    if not self.Folders.select(e | e.Title = Title).exists then
-        let f: Folder = self.Folders.newElement(e | e.Title = Title) in
-        f.CreateSubFolders(3)
-        f.CreateTasks(5)
-        f.CreateNotes(4)
-        f.ReorderElements()
-    end if
 
-context Group::CheckFolders
-post:
-    self.CheckFolder("Notes")
-    self.CheckFolder("Projects")
-    self.CheckFolder("Ideas")
 
-context Group::CheckFoldersEx
-post:
-    self.CheckFolderEx("Notes")
-    self.CheckFolderEx("Projects")
-    self.CheckFolderEx("Ideas")
+
 
 
 context Group::DeleteAllFolders
@@ -410,53 +398,71 @@ post:
     self.AllFolders.removeAll
 
 
-context User::CheckFolder(Title: string)
+
+
+
+
+
+context Group::CheckFolders
 post:
-    if not self.Folders.select(e | e.Title = Title).exists then
+    self.CheckFolder("Notes")
+    self.CheckFolder("Projects")
+    self.CheckFolder("Ideas")
+
+context Group::CheckFolder(t: string)
+post:
+    if not self.Folders.select(e | e.Title = t).exists then
         let f: Folder = self.Folders.newElement() in
-        f.Title = Title
-        f.CreateSubFolders(3)
-        f.CreateTasks(3)
-        f.CreateNotes(3)
+        f.Title = t
+        f.AccCode = ACC_GROUP
+        f.RecalculateLocationInfo
+        self.CreateSubFolders(f, 2)
+        self.CreateTasks(f, 5)
+        self.CreateNotes(f, 4)
         f.ReorderElements()
     end if
 
-context User::CheckFolderEx(Title: string)
+context Group::CreateSubFolders(f: Folder, no: integer)
 post:
-    if not self.Folders.select(e | e.Title = Title).exists then
-        let f: Folder = self.Folders.newElement(e | e.Title = Title) in
-        f.CreateSubFolders(3)
-        f.CreateTasks(3)
-        f.CreateNotes(3)
-        f.ReorderElements()
-    end if
+    set(1 .. no).forAll(i | self.CreateSubFolder(f, f.Title + " F" + i))
 
 
-context Folder::CreateSubFolders(no: integer)
+context Group::CreateSubFolder(f: Folder, title: string): FolderFolder
+pre Only logged in users may Create subFolders:
+    user <> 0
 post:
-    set(1 .. no).forAll(i | self.CreateSubFolder(self.Title + " F" + i))
+    let subFolder: Folder = user.AllFolders.newElement(subFolder |
+                subFolder.Title = title
+                subFolder.Group = self) in
 
+    result = f.AttachFolderInt(subFolder)
+    --subFolder.RecalculateLocationInfo
 
-
-
-context Folder::CreateNotes(no: integer)
+context Group::CreateTasks(f: Folder, no: integer)
 post:
-    set(1 .. no).forAll(i | self.CreateNote(self.Title + " Note " + i))
+    set(1 .. no).forAll(i | self.CreateTask(f, f.Title + " Task " + i))
 
-context Folder::CreateNote(Title: string)
-post:
-    let note: Note = user.CreatedNotes.newElement(note | note.Title = Title) in
-
-    self.Notes.newElement(nn | nn.Note = note)
-
-context Folder::CreateTasks(no: integer)
-post:
-    set(1 .. no).forAll(i | self.CreateTask(self.Title + " Task " + i))
-
-context Folder::CreateTask(Title: string)
+context Group::CreateTask(f: Folder, Title: string)
 post:
     let task: Task = user.CreatedTasks.newElement(task | task.Title = Title) in
-    self.Tasks.newElement(tt | tt.Task = task)
+    task.Group = self
+    f.Tasks.newElement(tt | tt.Task = task)
+    task.RecalculateLocationInfo
+
+context Group::CreateNotes(f: Folder, no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateNote(f, f.Title + " Note " + i))
+
+context Group::CreateNote(f: Folder, Title: string)
+post:
+    let note: Note = user.CreatedNotes.newElement(note | note.Title = Title) in
+    note.Group = self
+    f.Notes.newElement(nn | nn.Note = note)
+    note.RecalculateLocationInfo
+
+
+
+
 
 
 context User::CheckFolders
@@ -466,8 +472,60 @@ post:
     self.CheckFolder("My Ideas")
     self.GetBasketFolder()
     self.GetPinnedFolders()
-    self.ChectArchiveFolders()
+    self.CheckArchiveFolders()
     self.ReorderFolders()
+
+context User::CheckFolder(Title: string)
+post:
+    if not self.Folders.select(e | e.Title = Title).exists then
+        let f: Folder = self.Folders.newElement() in
+        f.Title = Title
+        f.RecalculateLocationInfo
+        self.CreateSubFolders(f, 3)
+        self.CreateTasks(f, 3)
+        self.CreateNotes(f, 3)
+        f.ReorderElements()
+    end if
+
+context User::CreateSubFolders(f: Folder, no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateSubFolder(f, f.Title + " F" + i))
+
+
+context User::CreateSubFolder(f: Folder, title: string): FolderFolder
+pre Only logged in users may Create subFolders:
+    user <> 0
+post:
+    let subFolder: Folder = self.AllFolders.newElement(subFolder |
+                subFolder.Title = title
+                subFolder.Group = group) in
+
+    result = f.AttachFolderInt(subFolder)
+    --subFolder.RecalculateLocationInfo
+
+
+context User::CreateTasks(f: Folder, no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateTask(f, f.Title + " Task " + i))
+
+context User::CreateTask(f: Folder, Title: string)
+post:
+    let task: Task = self.CreatedTasks.newElement(task | task.Title = Title) in
+    task.Group = group
+    f.Tasks.newElement(tt | tt.Task = task)
+    task.RecalculateLocationInfo
+
+context User::CreateNotes(f: Folder, no: integer)
+post:
+    set(1 .. no).forAll(i | self.CreateNote(f, f.Title + " Note " + i))
+
+context User::CreateNote(f: Folder, Title: string)
+post:
+    let note: Note = self.CreatedNotes.newElement(note | note.Title = Title) in
+    note.Group = group
+    f.Notes.newElement(nn | nn.Note = note)
+    note.RecalculateLocationInfo
+
 
 context User::ReorderFolders()
 post:
@@ -491,7 +549,7 @@ post:
     order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + fromOrder
     result = order
     self.Folders.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
-    
+
 
 
 context Folder::ReorderNotes(optional fromOrder: integer = 0): integer
@@ -573,7 +631,7 @@ post:
     self.CheckFolders()
 
     self.AddGeneralMessageChannels()
-    
+
     -- Add some data
     let list: TaskList in
     list = self.Lists.newElement(element.Order = 0)
@@ -650,4 +708,3 @@ post:
 --    self.Tags.newElement(t: Tag | t.Label = 'feature request' and t.Color = TAG_COLOR_SLATE)
 --    self.Tags.newElement(t: Tag | t.Label = 'improvement request' and t.Color = TAG_COLOR_CYAN)
 --    self.Tags.newElement(t: Tag | t.Label = 'release' and t.Color = TAG_COLOR_VIOLET)
-

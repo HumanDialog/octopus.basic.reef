@@ -31,10 +31,15 @@ class Group
 
     ArchiveFolder:              Folder
     TrashFolder:                Folder
+    Notes(0..n):                Note            <backNav: Group>
+    Tasks(0..n):                Task            <backNav: Group>
+
 
     ArchivedProjects<0..n>:     Project
     ProjectTemplates<0..n>:     Project
     DeletedProjects<0..n>:      Project
+
+    Files(0..n):                UploadedFile
 
     --Tags[0..n]:                 Tag             <backNav: Group>
 end class
@@ -67,7 +72,7 @@ post:
     self.VerifyTaskLists()
 
     -- folders
-    user.VerifyFolders()
+    user.VerifyFolders() --cli
     self.VerifySystemFolders()
 
     if self.Folders.first = 0 then
@@ -82,8 +87,8 @@ post:
       self.AddGeneralMessageChannel("__; en: Random; es: Varios; pl: Różne")
     end if
 
-    user.ValidateSubTreeCanonicalPaths()
-    self.ValidateSubTreeCanonicalPaths()
+    user.ValidateSubTreeCanonicalPaths() --cli
+    self.ValidateSubTreeCanonicalPaths() --cli
 
 
 constraint Group::AllLists
@@ -235,7 +240,7 @@ post:
     let listType: JsonObject
 
     let no: integer = listTypes.count
-    set(0 .. no-1).forAll(i | 
+    set(0 .. no-1).forAll(i |
         listType = listTypes[i]
         self.CreateTemplateListFromType('', '', listType, (i+1)*ORDER_STEP)
     )
@@ -416,7 +421,7 @@ post:
         order = self.Folders.max(element.Order) + ORDER_STEP
     end if
     result = self.Folders.newElement(element.Title = title and element.Order=order and element.Summary = summary)
-    result.ValidateSubTreeCanonicalPaths()
+    result.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
 
 
 context Group::CreateForum(title: string, optional order: integer=0, optional summary: string = ""): Folder
@@ -478,12 +483,12 @@ admin
 context Group::GetSharedFolders: Folder
 post:
     if self.SharedFolders.isNull then
-        self.SharedFolders = self.AllFolders.newElement(e | e.Title = "__; en: Shared; es: Compartido; pl: Udostępnione" and e.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+        self.SharedFolders = self.AllFolders.newElement(e | e.Title = "__; en: " + self.Name + " Shared Folders; es: " + self.Name + " Compartido; pl: " + self.Name + " Udostępnione Foldery" and e.Status = FS_GROUP_ROOT_SHARED_FOLDER)
     end if
     result = self.SharedFolders
 
 -- Bad api call
-context Group::AddSharedFolder(folder: Folder) : FolderFolder
+context Group::AddSharedFolder(folder: Folder)
 post:
     -- Converted to the right one
     group.ShareFolder(self, folder)
@@ -496,12 +501,13 @@ post:
     let secondRoot: Folder = secondGroup.GetSharedFolders
     sharedRoot.AttachFolder(folder)
     secondRoot.AttachFolder(folder)
-    --folder.MarkAsSharedFolder
-    result = null       -- todo
+   -- folder.RecalculateLocationInfo --already done
 
-context Group::AddSharedFolderLink(link: FolderFolder) : FolderFolder
+
+context Group::AddSharedFolderLink(link: FolderFolder)
 post:
-    result = null       -- todo
+    group.ShareFolder(self, link.Folder)
+
 
 context Group::AddSharedTask(link: FolderTask) : FolderTask
 post:

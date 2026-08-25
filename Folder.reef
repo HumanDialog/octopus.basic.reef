@@ -61,6 +61,7 @@ class Folder
     Kind:               integer
     Status:             integer     --Used to cache value which should be only in AccCode
     AccCode:            integer     --Access Rights helper for accelerating calculation of acc rghts in different acc groups
+    ServiceCode:        integer     --Extra field for recursive and service calls. No data storage.
     CanonicalPath(0):   string
     Folders[0..n]:      FolderFolder
     InFolders[0..n]:    FolderFolder
@@ -178,8 +179,8 @@ context Folder::OnAfterCreate
 post:
     self.CreationDate.SetUTCDate()
     self.CreatedBy = user
-
     self.ModificationDate = self.CreationDate
+    self.AccCode = ACC_USER
 
 
 context Folder::href: string
@@ -219,7 +220,11 @@ context Folder::icon: string
 post:
     select case self.Kind
         case FK_FOLDER
-            result = 'folder'
+            if self.AccCode = ACC_GROUP_SHARED then
+                result = 'folder-open-dot'
+            else
+                result = 'folder'
+            end if
         case FK_BASKET
             result = 'clipboard-pen-line'
         case FK_DISCUSSION
@@ -278,37 +283,7 @@ post:
 
 
 
-context Folder::CalculateStatus: integer
-post:
-    let level: integer in
 
-    if self.IsRoot then
-        result = self.Status
-    else
-        let maxAccLevel: integer = self.InFolders.iterate(e; acclevel: integer |
-            level = e.InFolder.GetSubfolderStatusLevel
-            if level > acclevel then acclevel = level end if)
-
-        select case maxAccLevel
-        case FIN_PUBLIC
-            result = FS_PUBLIC_FOLDER
-        case FIN_GROUP_SHARED
-            result = FS_GROUP_SHARED_FOLDER
-        case FIN_GROUP_SUBSHARED
-            result = FS_GROUP_SHARED_SUB_FOLDER
-        case FIN_GROUP
-            result = FS_GROUP_FOLDER
-
-        case FIN_USER_SHARED
-            result = FS_USER_SHARED_FOLDER
-        case FIN_USER_SUBSHARED
-            result = FS_USER_SHARED_SUB_FOLDER
-
-        case FIN_USER
-            result = FS_USER_FOLDER
-
-        end select
-    end if
 
 context Folder::CalculateAccessLevel: integer
 post:
@@ -330,12 +305,7 @@ post:
     end select
 
 
-context Folder::RecalculateStatus
-post:
-    self.Status = self.CalculateStatus
-    if self.Group = 0 and self.Status = FS_GROUP_FOLDER then
-        self.Group = group
-    end if
+
 
 context App::st(i: integer): string
 post:
@@ -348,25 +318,8 @@ post:
         result = "Dużo"
     end select
 
-context Folder::RecalculateStatusRec
-post:
-    select case self.Status
-    case FS_USER_ROOT_FOLDER, FS_GROUP_ROOT_FOLDER, FS_PINNED_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER, FS_PUBLIC_ROOT_FOLDER
-        --self.Status = self.Status + FSX_IN_CALCULATION 'Forbidden - breaks constraints
-        self.Folders.forAll(element.Folder.RecalculateStatusRec)
-    case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
-        self.Folders.forAll(element.Folder.RecalculateStatusRec)
-    case FS_PUBLIC_FOLDER,FS_USER_FOLDER, FS_USER_SHARED_FOLDER, FS_GROUP_SHARED_FOLDER
-        self.Status = self.CalculateStatus + FSX_IN_CALCULATION
-        self.Folders.forAll(element.Folder.RecalculateStatusRec)
-    end select
+context Folder::R
 
-context Folder::CommitStatusRec
-post:
-    if self.Status > FSX_IN_CALCULATION then
-        self.Status = self.Status - FSX_IN_CALCULATION
-        self.Folders.forAll(element.Folder.CommitStatusRec)
-    end if
 
 
 
@@ -418,7 +371,7 @@ post:
             result = true
         case FS_GROUP_ROOT_ARCHIVED_FOLDER
             result = true
-        case FS_GROUP_SHARED_FOLDER
+        case FS_GROUP_ROOT_SHARED_FOLDER
             result = true
         case FS_PINNED_ROOT_FOLDER
             result = true
@@ -494,7 +447,7 @@ post:
             n.Summary = properties.Summary) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
-    n.RecalculateLocationInfo(result)
+    n.RecalculateLocationInfo
 
 
 context Folder::CreateThread(title: string, optional summary: string = "", optional order: integer = 0): FolderNote
@@ -507,7 +460,7 @@ post:
             n.Kind = NK_THREAD) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = order)
-    n.RecalculateLocationInfo(result)
+    n.RecalculateLocationInfo()
 
 
 context Folder::CreateTaskEx(properties: JsonObject) : FolderTask
@@ -519,7 +472,7 @@ post:
             t.Summary = properties.Summary) in
 
     result = self.Tasks.newElement( e | e.Task = t and e.Order = properties.Order)
-    t.RecalculateLocationInfo(result)
+    t.RecalculateLocationInfo()
 
 
 context Folder::CreateFile(title: string, mimeType: string, size: integer, optional order: integer=0) : FolderFile
@@ -538,7 +491,7 @@ post:
     end if
 
     fileLink = self.Files.newElement( e | e.File = upFile and e.Order = order)
-    upFile.RecalculateLocationInfo(fileLink)
+    upFile.RecalculateLocationInfo()
     result = fileLink
 
 
@@ -792,12 +745,12 @@ post:
         result = false
     end if
 
-context Folder::AttachFolderInt(subFolder: Folder, order: integer): FolderFolder
+context Folder::AttachFolderInt(subFolder: Folder, optional order: integer = 0): FolderFolder
 post:
     let link: FolderFolder = self.Folders.newElement(ff | ff.Folder = subFolder and ff.Order = order)
 
-    subFolder.RecalculateStatus()
-    subFolder.RecalculateLocationInfo(link)
+
+    subFolder.RecalculateLocationInfo()
 
     result = link
 
@@ -816,7 +769,7 @@ post:
         end if
 
         folderNote = self.Notes.newElement(e | e.Note=note and e.Order=order)
-        note.RecalculateLocationInfo(folderNote)
+        note.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -831,7 +784,7 @@ post:
         end if
 
         folderTask = self.Tasks.newElement(e | e.Task=task and e.Order=order)
-        task.RecalculateLocationInfo(folderTask)
+        task.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -847,7 +800,7 @@ post:
         end if
 
         folderFile = self.Files.newElement(e | e.File=upFile and e.Order=order)
-        upFile.RecalculateLocationInfo(folderFile)
+        upFile.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -1048,7 +1001,7 @@ post:
 
     let maxOrder: integer = self.MaxOrder
     let folderNote: FolderNote = self.Notes.newElement(e | e.Note = note and e.Order = maxOrder+ORDER_STEP)
-    note.RecalculateLocationInfo(folderNote)
+    note.RecalculateLocationInfo()
     --note.UpdateLatestGroupActivity()
     result = note
 
@@ -1088,110 +1041,24 @@ post:
     )
 
 
-context Folder::CalculateCanonicalPath: string
+
+
+
+context Folder::RecalculateLocationInfo
 post:
-    let parentPath: JsonObject
-    let canonicalPath: JsonObject
-
-    let canonicalLink: FolderFolder
-    let parentFolder: Folder
-
-    select case self.Status
-        case FS_PUBLIC_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER
-            canonicalPath = [ ]
-
-        case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
-            if self.Project <> null then
-                parentPath = new JsonObject
-                parentPath.Parse(self.Project.CanonicalPath)
-                if parentPath.count > 0 then
-                    canonicalPath = [...parentPath]
-                else
-                    canonicalPath = []
-                end if
-                canonicalPath = [...,
-                        {
-                            Name: self.Project.Title,
-                            Summary: self.Project.Summary,
-                            href: self.Project.href,    -- todo
-                            icon: self.Project.icon
-                        }
-                    ]
-            else
-                canonicalPath = [ ]
-            end if
-
-        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER
-            canonicalPath = [
-                {
-                    Name: '__; en: Common folders; es: Carpetas comunes; pl: Wspólne foldery',
-                    href: '/group-folders'
-                }
-            ]
-
-
-        case FS_USER_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER
-            canonicalPath = [
-                {
-                    Name: '__; en: My Folders; es: Mis carpetas; pl: Moje foldery',
-                    href: '/myfolders'
-                }
-            ]
-
-        case else
-            canonicalLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
-            if canonicalLink <> null then
-                parentFolder = canonicalLink.InFolder
-                if not parentFolder.CanonicalPath.isEmpty then
-                    parentPath = new JsonObject
-                    parentPath.Parse(parentFolder.CanonicalPath)
-                    if parentPath.count > 0 then
-                        canonicalPath = [...parentPath]
-                    else
-                        canonicalPath = []
-                    end if
-
-                    canonicalPath = [...,
-                        {
-                            Name: parentFolder.Title,
-                            Summary: parentFolder.Summary,
-                            href: parentFolder.href,
-                            icon: parentFolder.icon
-                        }
-                    ]
-                else
-                    canonicalPath = []
-                end if
-            else
-                canonicalPath = []
-            end if
-    end select
-
-    result = canonicalPath.ToString()
-
-context Folder::ValidateSubTreeCanonicalPaths
-post:
-    self.CanonicalPath = self.CalculateCanonicalPath()
-
-    self.Folders.select(element.IsCanonical).forAll(link: FolderFolder |
-        link.Folder.ValidateSubTreeCanonicalPaths()
-    )
-
-    self.Notes.select(element.IsCanonical).forAll(link: FolderNote |
-        link.Note.ValidateSubTreeCanonicalPaths()
-    )
-
-    self.Tasks.select(element.IsCanonical).forAll(link: FolderTask |
-        link.Task.ValidateSubTreeCanonicalPaths()
-    )
-
-context Folder::RecalculateLocationInfo(newLink: FolderFolder)
-post:
-    self.RecalculateCanonicalLinksAfterAttach(newLink)
+    --self.RecalculateCanonicalLinksAfterAttach(newLink)
+    self.RecalculateStatus
     self.RecalculateAccCode
+    self.RecalculateCanonicalPath
+
+
+
+--cp
+
+
 
 ---- Powinno być bez argumentów
-context Folder::RecalculateCanonicalLinksAfterAttach(newLink: FolderFolder)
+context Folder::ObsoleteRecalculateCanonicalLinksAfterAttach(newLink: FolderFolder)
 post:
     let changed: boolean = false
     let prevCanonicalLink: FolderFolder = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
@@ -1223,7 +1090,7 @@ post:
     end if
 
     if changed = true then
-        self.ValidateSubTreeCanonicalPaths()
+        self.ValidateSubTreeCanonicalPaths() --internal
     end if
 
 
@@ -1307,8 +1174,8 @@ post:
 
     if not trash.Folders.exists(element.FolderId = self.Id) then
         trash.Folders.newElement(e | e.Folder=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.RecalculateStatus()
-        self.ValidateSubTreeCanonicalPaths()
+        --sx
+        self.RecalculateLocationInfo --self.ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false
@@ -1328,7 +1195,7 @@ post:
             self.Status = FS_GROUP_ROOT_FOLDER
     end select
 
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --self.ValidateSubTreeCanonicalPaths()
 
     result = true
 
@@ -1352,8 +1219,7 @@ post:
 
     if not archive.Folders.exists(element.FolderId = self.Id) then
         archive.Folders.newElement(e | e.Folder=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.RecalculateStatus()
-        self.ValidateSubTreeCanonicalPaths()
+        self.RecalculateLocationInfo --self.ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false
@@ -1374,7 +1240,7 @@ post:
             self.Status =  FS_GROUP_ROOT_FOLDER
     end select
 
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --self.ValidateSubTreeCanonicalPaths()
 
     result = true
 
@@ -1524,6 +1390,7 @@ post:
     )
     result = true
 
+
 context Folder::EmptyTrash
 pre:
     self.Status = FS_GROUP_TRASH_ROOT_FOLDER or self.Status = FS_USER_TRASH_ROOT_FOLDER or self.Status = FS_PROJECT_TRASH_ROOT_FOLDER
@@ -1533,31 +1400,14 @@ post:
     self.Notes.forAll(element.Note.DeletePermanently())
     self.Files.forAll(element.File.DeletePermanently())
 
+
 context Folder::GetParentFolder: Folder
 post:
     result = self.InFolders.select(element.IsCanonical).first.InFolder
 
-context Folder
 
-context Folder::GetParentSharedGroupFolder: Folder
-post:
-    let parent: Folder = self.GetParentFolder
-    select case parent.Status
-    case FS_GROUP_SHARED_SUB_FOLDER
-        result = parent.GetParentSharedUserFolder
-    case FS_GROUP_SHARED_FOLDER
-        result = parent
-    end select
 
-context Folder::GetParentSharedUserFolder: Folder
-post:
-    let parent: Folder = self.GetParentFolder
-    select case parent.Status
-    case FS_USER_SHARED_SUB_FOLDER
-        result = parent.GetParentSharedUserFolder
-    case FS_USER_SHARED_FOLDER
-        result = parent
-    end select
+
 
 -- temporary
 context Folder::GetParentProject: Project
@@ -1623,7 +1473,7 @@ post:
 context FolderFolder::SetTitle(value: string)
 post:
     self.Folder.Title = value
-    self.Folder.ValidateSubTreeCanonicalPaths()
+    self.Folder.ValidateSubTreeCanonicalPaths() --OK
 
 
 context FolderFolder::Summary: string
@@ -1689,8 +1539,16 @@ context FolderFolder::IsNotCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) = 0
 
+context FolderFolder::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
 
-context FolderFolder::SetLocationAsCanonical
+context FolderFolder::ResetCanonical
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
+
+
+
+context FolderFolder::SetLocationAsCanonical --cli do weryfikacji
 post:
     self.Folder.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
@@ -1783,8 +1641,25 @@ context FolderNote::IsCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) <> 0
 
+context FolderNote::IsNotCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) = 0
 
-context FolderNote::SetLocationAsCanonical
+context FolderNote::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context FolderNote::ResetCanonical
+post:
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
+
+
+
+context TaskNote::ResetCanonical
+post:
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
+
+context FolderNote::SetLocationAsCanonical --cli co to
 post:
     self.Note.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
     self.Note.InNotes.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
@@ -1879,7 +1754,19 @@ context FolderTask::IsCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) <> 0
 
-context FolderTask::SetLocationAsCanonical
+context FolderTask::IsNotCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) = 0
+
+context FolderTask::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context FolderTask::ResetCanonical
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
+
+
+context FolderTask::SetLocationAsCanonical --cli coto
 post:
     self.Task.InFolders.select(element.IsCanonical).forAll(element.LinkInfo = element.LinkInfo & (~FLI_CANONICAL))
     self.LinkInfo = self.LinkInfo | FLI_CANONICAL
