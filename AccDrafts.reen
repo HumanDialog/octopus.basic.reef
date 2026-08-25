@@ -11,11 +11,11 @@ post:
                 result = ACC_READWRITE
             end if
         case FS_USER_SHARED_FOLDER
-            if  self.InFolders.exists (element.GroupId = group.Id) then
+            if  self.InFolders.exists (element.UserId = user.Id) then
                 result = ACC_READWRITE
             end if
         case FS_USER_SHARED_SUB_FOLDER
-            parent = self.GetParentSharedUserFolder
+            parent = self.GetUserSharedParentFolder
             if  parent.InFolders.exists (element.GroupId = group.Id) then
                 result = ACC_READWRITE
             end if
@@ -29,7 +29,7 @@ post:
                 result = ACC_READWRITE
             end if
         case FS_GROUP_SHARED_SUB_FOLDER
-            parent = self.GetParentSharedGroupFolder
+            parent = self.GetGroupSharedParentFolder
             if  parent.InFolders.exists (element.GroupId = group.Id) then
                 result = ACC_READWRITE
             end if

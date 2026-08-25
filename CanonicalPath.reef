@@ -1,0 +1,253 @@
+
+
+context Folder::RecalculateCanonicalPath
+post:
+    if self.IsRoot then --This happens only after creation
+        self.CanonicalPath = self.CalculateCanonicalPath()
+    else
+        let bestCanonicalLink: FolderFolder = self.InFolders.select(element.Status = STATUS_ACTIVE).iterate(e; best: FolderFolder |
+                    if e.InFolder.AccCode > best.InFolder.AccCode then
+                        best = e
+                    end if
+                )
+
+        if bestCanonicalLink <> 0 then
+            let currentCanonicalLink: FolderFolder = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if currentCanonicalLink.isNull then
+                bestCanonicalLink.SetCanonical
+                self.ValidateSubTreeCanonicalPaths()
+            else
+                if bestCanonicalLink.InFolder.AccCode > currentCanonicalLink.InFolder.AccCode then
+                  currentCanonicalLink.ResetCanonical
+                  bestCanonicalLink.SetCanonical
+                  self.ValidateSubTreeCanonicalPaths()
+                end if
+            end if
+        else
+          -- usterka w danych - lost folder
+        end if
+    end if
+
+context Folder::ValidateSubTreeCanonicalPaths
+post:
+    self.CanonicalPath = self.CalculateCanonicalPath()
+
+    self.Folders.select(element.IsCanonical).forAll(link: FolderFolder |
+        link.Folder.ValidateSubTreeCanonicalPaths()
+    )
+
+    self.Notes.select(element.IsCanonical).forAll(link: FolderNote |
+        link.Note.ValidateSubTreeCanonicalPaths()
+    )
+
+    self.Tasks.select(element.IsCanonical).forAll(link: FolderTask |
+        link.Task.ValidateSubTreeCanonicalPaths()
+    )
+
+context Folder::CalculateCanonicalPath: string
+post:
+    let parentPath: JsonObject
+    let canonicalPath: JsonObject
+
+    let canonicalLink: FolderFolder
+    let parentFolder: Folder
+
+    select case self.Status
+        case FS_PUBLIC_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER
+            canonicalPath = [ ]
+
+        case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
+            if self.Project <> null then
+                parentPath = new JsonObject
+                parentPath.Parse(self.Project.CanonicalPath)
+                if parentPath.count > 0 then
+                    canonicalPath = [...parentPath]
+                else
+                    canonicalPath = []
+                end if
+                canonicalPath = [...,
+                        {
+                            Name: self.Project.Title,
+                            Summary: self.Project.Summary,
+                            href: self.Project.href,    -- todo
+                            icon: self.Project.icon
+                        }
+                    ]
+            else
+                canonicalPath = [ ]
+            end if
+
+        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_SHARED_FOLDER
+            canonicalPath = [
+                {
+                    Name: '__; en: Common folders; es: Carpetas comunes; pl: Wspólne foldery',
+                    href: '/group-folders'
+                }
+            ]
+
+
+        case FS_USER_ROOT_FOLDER, FS_USER_ROOT_SHARED_FOLDER
+            canonicalPath = [
+                {
+                    Name: '__; en: My Folders; es: Mis carpetas; pl: Moje foldery',
+                    href: '/myfolders'
+                }
+            ]
+
+        case else
+            canonicalLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if canonicalLink <> null then
+                parentFolder = canonicalLink.InFolder
+                if not parentFolder.CanonicalPath.isEmpty then
+                    parentPath = new JsonObject
+                    parentPath.Parse(parentFolder.CanonicalPath)
+                    if parentPath.count > 0 then
+                        canonicalPath = [...parentPath]
+                    else
+                        canonicalPath = []
+                    end if
+
+                    canonicalPath = [...,
+                        {
+                            Name: parentFolder.Title,
+                            Summary: parentFolder.Summary,
+                            href: parentFolder.href,
+                            icon: parentFolder.icon
+                        }
+                    ]
+                else
+                    canonicalPath = []
+                end if
+            else
+                canonicalPath = []
+            end if
+    end select
+
+    result = canonicalPath.ToString()
+
+
+context Note::RecalculateCanonicalPath
+post:
+    let changed: boolean = false
+
+
+    let bestFolderCanonocalLink: FolderNote = self.InFolders.select(element.Status = STATUS_ACTIVE).iterate(e; best: FolderNote |
+                                  if e.Folder.AccCode > best.Folder.AccCode then
+                                      best = e
+                                  end if
+                              )
+
+    if bestFolderCanonocalLink then
+        let currentFolderCanonocalLink: FolderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if bestFolderCanonocalLink.Folder.AccCode > currentFolderCanonocalLink.Folder.AccCode then
+          self.ResetCanonicalLinks
+          bestFolderCanonocalLink.SetCanonical
+          self.ValidateSubTreeCanonicalPaths()
+        end if
+    else
+        let canonicalTaskLink: TaskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if canonicalTaskLink.isNull then
+            let bestTaskLink: TaskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if bestTaskLink then
+                self.ResetCanonicalLinks
+                bestTaskLink.SetCanonical
+                self.ValidateSubTreeCanonicalPaths()
+            else
+                let canonicalNoteLink: NoteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+                if canonicalNoteLink.isNull then
+                    let bestNoteLink: NoteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+                    if bestNoteLink then
+                        self.ResetCanonicalLinks
+                        bestNoteLink.SetCanonical
+                        self.ValidateSubTreeCanonicalPaths()
+                    else
+                        --PROBLEM - UNCONNECTED DOKUMENT
+                    end if
+                end if
+
+            end if
+        end if
+    end if
+
+context Note::ResetCanonicalLinks
+post:
+    self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+    self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+    self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+
+
+context Note::RecalculateLocationInfo
+post:
+    self.RecalculateAccCode
+    self.RecalculateCanonicalPath
+    --self.RecalculateCanonicalLinksAfterAttach(newLink)
+
+context Task::RecalculateCanonicalPath(optional listChanged: boolean = false)
+post:
+    if self.TaskList then
+      --if listChanged then
+        self.ValidateSubTreeCanonicalPaths
+      --end if
+    else
+        let bestFolderCanonocalLink: FolderTask = self.InFolders.select(element.Status = STATUS_ACTIVE).iterate(e; best: FolderTask |
+                                      if e.Folder.AccCode > best.Folder.AccCode then
+                                          best = e
+                                      end if
+                                  )
+
+        if bestFolderCanonocalLink then
+            let currentFolderCanonocalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            if bestFolderCanonocalLink.Folder.AccCode > currentFolderCanonocalLink.Folder.AccCode then
+              self.ResetCanonicalLinks
+              bestFolderCanonocalLink.SetCanonical
+              self.ValidateSubTreeCanonicalPaths()
+            end if
+        else
+          self.ValidateSubTreeCanonicalPaths
+        end if
+    end if
+
+context Task::ResetCanonicalLinks
+post:
+    self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+
+context Task::RecalculateLocationInfo(optional listChanged: boolean = false)
+post:
+    self.RecalculateAccCode
+    self.RecalculateCanonicalPath
+
+---- obsolete ----------------------------------
+context Note::ObsoleteRecalculateCanonicalLinksAfterAttach(newLink: FolderNote)
+post:
+    let changed: boolean = false
+    let prevCanonicalLink: FolderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+
+    let fromFolder: Folder = prevCanonicalLink.Folder
+    let toFolder: Folder = newLink.Folder
+
+    if prevCanonicalLink = null then
+        newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+        changed = true
+    else
+
+        if toFolder.IsPublic then
+            if not fromFolder.IsPublic then
+                newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                changed = true
+            end if
+        else
+            if toFolder.IsGroupFolder then
+                if fromFolder.IsPersonal then
+                    newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
+                    prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
+                    changed = true
+                end if
+            end if
+        end if
+
+    end if
+
+    if changed = true then
+        self.ValidateSubTreeCanonicalPaths()
+    end if

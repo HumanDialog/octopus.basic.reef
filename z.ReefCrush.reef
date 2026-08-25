@@ -1,0 +1,14 @@
+
+
+
+context User::AssocCrash: string
+post:
+    let shared: Folder = self.SharedFolders in
+    if shared <> 0 then
+      shared.Status = FSX_IN_CALCULATION
+      result = self.SharedFolders.Title
+      shared.Status = FS_USER_ROOT_SHARED_FOLDER
+    else
+      self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+      result = "Repeat test."
+    end if

@@ -5,6 +5,7 @@ class Project
     State:                      integer
     Status:                     integer
     AccCode:                    integer
+    ServiceCode:                integer     --Extra field for recursive and service calls. No data storage.
     StartDate:                  date
     EndDate:                    date
     Order:                      integer
@@ -155,12 +156,9 @@ post:
 
 context Project::VerifyFolders
 post:
-  self.GetFolder.RecalculateStatusRec
-  self.GetFolder.CommitStatusRec
-  self.GetTrashFolder.RecalculateStatusRec
-  self.GetTrashFolder.CommitStatusRec
-  self.GetArchiveFolder.RecalculateStatusRec
-  self.GetArchiveFolder.CommitStatusRec
+  self.GetFolder.RecalculateStatus
+  self.GetTrashFolder.RecalculateStatus
+  self.GetArchiveFolder.RecalculateStatus
   self.ValidateSubTreeCanonicalPaths()
 
 

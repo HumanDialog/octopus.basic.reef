@@ -23,14 +23,39 @@ const ACC_GROUP_SHARED      =   7000
 
 const ACC_PUBLIC            =   9000
 
-
+const CUGA_GROUP_CHECKED    =   1
+const CUGA_USER_CHECKED     =   2
 
 
 ----  ACCESS CODE  -----------------------------------------------------------------------------------
 
+context App::se607a
+post:
+    self.VerifyFolders
+    self.CheckUGAssoc
+    self.RecalculateAccCodes
+
+context App::Crash
+post:
+    self.CheckUGAssoc
+    --self.RecalculateAccCodes
+
 context App::RAC
 post:
     self.RecalculateAccCodes
+
+context App::CUG
+post:
+    self.CheckUGAssoc
+
+context App::LUG: string
+post:
+     result = self.CountEmptyUGAssoc
+
+context App::RUG
+post:
+    self.RescueUGAssoc
+
 
 admin
 context App::RecalculateAccCodes
@@ -39,6 +64,33 @@ post:
     self.SetupRootAccCodes
     self.ResetSubRootAccCodes
     self.CalculateAccCodeRec
+
+
+
+admin
+context App::CheckUGAssoc
+post:
+    self.ResetServiceCodes
+    self.Groups.forAll(element.CheckGAssoc)
+    self.Users.forAll(element.CheckUAssoc)
+
+admin
+context App::RescueUGAssoc
+post:
+    system.allInstances("Folder").select(element.Owner.isNull and element.Group.isNull).forAll(element.ServiceCode = 11 and element.Owner = user and element.Group = group)
+    system.allInstances("Note").select(element.CreatedBy.isNull and element.Group.isNull).forAll(element.ServiceCode = 11 and element.CreatedBy = user and element.Group = group)
+    system.allInstances("Task").select(element.CreatedBy.isNull and element.Group.isNull).forAll(element.ServiceCode = 11 and element.CreatedBy = user and element.Group = group)
+    system.allInstances("Project").forAll(element.ServiceCode = 0)
+    system.allInstances("UploadedFile").select(element.CreatedBy.isNull and element.Group.isNull).forAll(element.ServiceCode = 11 and element.CreatedBy = user and element.Group = group)
+
+admin
+context App::CountEmptyUGAssoc: string
+post:
+    result = 'Items without user and group assigned: '
+    result = result + 'Folder: ' + system.allInstances("Folder").select(element.User.isNull and element.Group.isNull).count
+    result = result + ', Note: ' + system.allInstances("Note").select(element.CreatedBy.isNull and element.Group.isNull).count
+    result = result + ', Task: ' + system.allInstances("Task").select(element.CreatedBy.isNull and element.Group.isNull).count
+    result = result + ', UploadedFile: ' + system.allInstances("UploadedFile").select(element.CreatedBy.isNull and element.Group.isNull).count
 
 
 
@@ -76,11 +128,16 @@ post:
 
 context Group::SetupRootAccCodes
 post:
-    self.Folders.forAll(element.AccCode = ACC_GROUP)
+    self.Folders.forAll(element.AccCode = ACC_GROUP and element.Group = self)
     self.SharedFolders.AccCode = ACC_GROUP_SHARED
+    self.SharedFolders.Group = self
     self.ArchiveFolder.AccCode = ACC_GROUP
+    self.ArchiveFolder.Group = self
     self.TrashFolder.AccCode = ACC_GROUP
+    self.TrashFolder.Group = self
     self.AllLists.forAll(element.AccCode = ACC_GROUP)
+
+
 
 context Group::ResetSubRootAccCodes
 post:
@@ -89,6 +146,20 @@ post:
     self.ArchiveFolder.ResetSubAccCodes
     self.TrashFolder.ResetSubAccCodes
     self.AllLists.forAll(element.AllTasks.forAll(element.ResetAccCodesRec))
+
+
+context Group::CheckGAssoc
+post:
+    self.AllFolders.forAll(element.CheckGAssoc(self))
+    --self.ArchiveFolder.CheckGAssoc(self)
+    --self.TrashFolder.CheckGAssoc(self)
+    self.AllLists.forAll(element.AllTasks.forAll(element.CheckGAssoc(self)))
+
+
+context User::CheckUAssoc
+post:
+    self.AllFolders.forAll(element.CheckUAssoc(self))
+    self.AllLists.forAll(element.AllTasks.forAll(element.CheckUAssoc(self)))
 
 context Group::CalculateAccCodeRec
 post:
@@ -146,6 +217,8 @@ post:
     self.Folders.forAll(element.Folder.ResetAccCodesRec)
 
 
+
+
 context Folder::ResetAccCodesRec
 post:
     if self.AccCode <> ACC_UNKNOWN then
@@ -156,10 +229,58 @@ post:
     end if
 
 
+context Folder::CheckUAssoc(user: User)
+post:
+    if self.ServiceCode & CUGA_USER_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_USER_CHECKED
+        if self.Owner.isNull then
+            self.Owner = user
+        end if
+
+        self.Folders.forAll(element.Folder.CheckUAssoc(user))
+        self.Notes.forAll(element.Note.CheckUAssoc(user))
+        self.Tasks.forAll(element.Task.CheckUAssoc(user))
+        self.Files.forAll(element.File.CheckUAssoc(user))
+    end if
+
+
+context Folder::CheckGAssoc(group: Group)
+post:
+    if self.ServiceCode & CUGA_GROUP_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_GROUP_CHECKED
+        if self.Group.isNull then
+           self.Group = group
+        end if
+
+        self.Folders.forAll(element.Folder.CheckGAssoc(group))
+        self.Notes.forAll(element.Note.CheckGAssoc(group))
+        self.Tasks.forAll(element.Task.CheckGAssoc(group))
+        self.Files.forAll(element.File.CheckGAssoc(group))
+    end if
+
+
+
+
 context Folder::CalculateAccCode: integer
 post:
-    self.InFolders.select(element.InFolder.AccCode = ACC_UNKNOWN).forAll(element.InFolder.CalculateAccCodeRec)
-    result = self.InFolders.max(element.InFolder.AccCode)
+
+    select case self.Status
+        case FS_USER_ROOT_FOLDER, FS_USER_ROOT_DELETED_FOLDER, FS_USER_ROOT_ARCHIVED_FOLDER, FS_PINNED_ROOT_FOLDER, FS_BASKET_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER
+            result = ACC_USER
+        case FS_USER_ROOT_SHARED_FOLDER
+            result = ACC_USER_SHARED
+        case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
+            result = ACC_GROUP
+        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_DELETED_FOLDER, FS_GROUP_ROOT_ARCHIVED_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER
+            result = ACC_GROUP
+        case FS_GROUP_SHARED_FOLDER
+            result = ACC_GROUP_SHARED
+        case else
+            self.InFolders.forAll(element.InFolder.CalculateAccCodeRec)
+            result = self.InFolders.max(element.InFolder.AccCode)
+    end select
+
+
 
 
 context Folder::CalculateAccRootCodes
@@ -170,19 +291,22 @@ post:
 
 context Folder::CalculateAccCodeRec
 post:
-    if self.AccCode = ACC_UNKNOWN then
-        self.AccCode = ACC_CALCULATING
+    if self.ServiceCode <> 0 then
+        self.ServiceCode = 0
         self.AccCode = self.CalculateAccCode
-        self.CalculateElementsAccCodes
         self.Folders.forAll(element.Folder.CalculateAccCodeRec)
+        self.Notes.forAll(element.Note.CalculateAccCodeRec)
+        self.Tasks.forAll(element.Task.CalculateAccCodeRec)
     end if
+
+
+
 
 
 ---- No subfolders ----------------------------------------------
 context Folder::CalculateElementsAccCodes
 post:
-    self.Notes.forAll(element.Note.CalculateAccCodeRec)
-    self.Tasks.forAll(element.Task.CalculateAccCodeRec)
+
 
 
 context Note::ResetAccCodesRec
@@ -192,9 +316,29 @@ post:
         self.Notes.forAll(element.Note.ResetAccCodesRec)
     end if
 
+
+context Note::CheckUAssoc(user: User)
+post:
+    if self.ServiceCode & CUGA_USER_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_USER_CHECKED
+        if self.CreatedBy.isNull then
+            self.CreatedBy = user
+        end if
+        self.Notes.forAll(element.Note.CheckUAssoc(user))--.ResetAccCodesRec)
+    end if
+
+context Note::CheckGAssoc(group: Group)
+post:
+    if self.ServiceCode & CUGA_GROUP_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_GROUP_CHECKED
+        if self.Group.isNull then
+            self.Group = group
+        end if
+        self.Notes.forAll(element.Note.CheckGAssoc(group))--.ResetAccCodesRec)
+    end if
+
 context Note::CalculateAccCode: integer
 post:
-
     self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
     self.InNotes.forAll(element.InNote.CalculateAccCodeRec)
     let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
@@ -207,8 +351,8 @@ post:
 
 context Note::CalculateAccCodeRec
 post:
-    if self.AccCode = ACC_UNKNOWN then
-        self.AccCode = ACC_CALCULATING
+    if self.ServiceCode <> 0 then
+        self.ServiceCode = 0
         self.AccCode = self.CalculateAccCode
         self.Notes.forAll(element.Note.CalculateAccCodeRec)
     end if
@@ -219,6 +363,46 @@ post:
         self.AccCode = ACC_UNKNOWN
         self.Notes.forAll(element.Note.ResetAccCodesRec)
     end if
+
+context Task::CheckUAssoc(user: User)
+post:
+    if self.ServiceCode & CUGA_USER_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_USER_CHECKED
+        if self.CreatedBy.isNull then
+            self.CreatedBy = user
+        end if
+        self.Notes.forAll(element.Note.CheckUAssoc(user))--.ResetAccCodesRec)
+    end if
+
+context Task::CheckGAssoc(group: Group)
+post:
+    if self.ServiceCode & CUGA_GROUP_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_GROUP_CHECKED
+        if self.Group.isNull then
+            self.Group = group
+        end if
+        self.Notes.forAll(element.Note.CheckGAssoc(group))--.ResetAccCodesRec)
+    end if
+
+context UploadedFile::CheckUAssoc(user: User)
+post:
+    if self.ServiceCode & CUGA_USER_CHECKED = 0 then
+        self.ServiceCode = self.ServiceCode | CUGA_USER_CHECKED
+        if self.User.isNull then
+            self.User = user
+        end if
+        --self.Notes.forAll(element.Note.CheckGAssoc(group))--.ResetAccCodesRec)
+    end if
+
+context UploadedFile::CheckGAssoc(group: Group)
+post:
+    if self.ServiceCode & CUGA_GROUP_CHECKED = 0 then
+       self.ServiceCode = self.ServiceCode | CUGA_GROUP_CHECKED
+       self.Group = group
+       --self.Notes.forAll(element.Note.CheckGAssoc(group))--.ResetAccCodesRec)
+    end if
+
+
 
 context Task::CalculateAccCode
 post:
@@ -232,8 +416,8 @@ post:
 
 context Task::CalculateAccCodeRec
 post:
-    if self.AccCode = ACC_UNKNOWN then
-        self.AccCode = ACC_CALCULATING
+    if self.ServiceCode <> 0 then
+        self.ServiceCode = 0
         self.AccCode = self.CalculateAccCode
         self.Notes.forAll(element.Note.CalculateAccCodeRec)
     end if
@@ -243,25 +427,130 @@ post:
 ----  Folder::ResetSubAccCodes
 context Folder::RecalculateAccCode
 post:
-    self.AccCode = ACC_CALCULATING ---force
-    self.ResetAccCodesRec
+    self.ResetServiceCode(101, RSCO_SUBFOLDERS | RSCO_ELEMENTS | RSCO_PARENTS)
     self.CalculateAccCodeRec
 
 context Note::RecalculateAccCode
 post:
-    self.AccCode = ACC_CALCULATING ---force
-    self.ResetAccCodesRec
+    self.ResetServiceCode(103, RSCO_ELEMENTS  | RSCO_PARENTS)
     self.CalculateAccCodeRec
 
 context Task::RecalculateAccCode
 post:
-    self.AccCode = ACC_CALCULATING ---force
-    self.ResetAccCodesRec
+    self.ResetServiceCode(105, RSCO_ELEMENTS  | RSCO_PARENTS)
     self.CalculateAccCodeRec
 
+
+---- ACC CODE BASED  ITERATORS -----------------------------------------------------------------------
+
+context Folder::GetGroupSharedFolder: Folder
+post:
+    if self.Status = FS_GROUP_SHARED_FOLDER then
+        result = self
+    else
+        result = self.GetGroupSharedParentFolder
+    end if
+
+
+context Folder::GetGroupSharedParentFolder: Folder
+post:
+    let parent: Folder = self.GetParentFolder
+    select case parent.Status
+    case FS_GROUP_SHARED_SUB_FOLDER
+        result = parent.GetGroupSharedParentFolder
+    case FS_GROUP_SHARED_FOLDER
+        result = parent
+    end select
+
+
+context Folder::GetUserSharedFolder: Folder
+post:
+    if self.Status = FS_USER_SHARED_FOLDER then
+        result = self
+    else
+        result = self.GetUserSharedParentFolder
+    end if
+
+
+context Folder::GetUserSharedParentFolder: Folder
+post:
+
+    let parent: Folder = self.GetParentFolder
+    select case parent.Status
+    case FS_USER_SHARED_SUB_FOLDER
+        result = parent.GetUserSharedParentFolder
+    case FS_USER_SHARED_FOLDER
+        result = parent
+    end select
+
+context Folder::GetUserSharedRootFolder(u: User): Folder
+post:
+    let shared: Folder = self.GetUserSharedFolder
+    result = shared.InFolders.select(element.UserId = u.Id).first.Folder
+
+context Note::GetUserSharedFolder(u: User): Folder
+post:
+    let userFolder: Folder in
+    self.InFolders.select(element.AccCode = ACC_USER_SHARED).forAll(f |
+                    if userFolder.isNull then
+                        userFolder = f.Folder.GetUserSharedRootFolder(u)
+                    end if
+                    )
+    result = userFolder
+
+context Task::GetUserSharedFolder(u: User)
+post:
+    let userFolder: Folder in
+    self.InFolders.select(element.AccCode = ACC_USER_SHARED).forAll(f |
+                    if userFolder.isNull then
+                        userFolder = f.Folder.GetUserSharedRootFolder(u)
+                    end if
+                    )
+
+context UploadedFile::GetUserSharedFolder(u: User)
+post:
+    let userFolder: Folder in
+    self.InFolders.select(element.AccCode = ACC_USER_SHARED).forAll(f |
+                    if userFolder.isNull then
+                        userFolder = f.Folder.GetUserSharedRootFolder(u)
+                    end if
+                    )
+
+context Folder::GetGroupSharedRootFolder(g: Group)
+post:
+    let shared: Folder = self.GetGroupSharedFolder
+    result = shared.InFolders.select(element.GroupId = g.Id).first
+
+
+context Note::GetGroupSharedFolder(g: Group)
+post:
+    let groupFolder: Folder in
+    self.InFolders.select(element.AccCode = ACC_GROUP_SHARED).forAll(f |
+                    if groupFolder.isNull then
+                        groupFolder = f.Folder.GetGroupSharedRootFolder(g)
+                    end if
+                    )
+
+context Task::GetGroupSharedFolder(g: Group)
+post:
+    let groupFolder: Folder in
+    self.InFolders.select(element.AccCode = ACC_GROUP_SHARED).forAll(f |
+                    if groupFolder.isNull then
+                        groupFolder = f.Folder.GetGroupSharedRootFolder(g)
+                    end if
+                    )
+
+context UploadedFile::GetGroupSharedFolder(g: Group)
+post:
+    let groupFolder: Folder in
+    self.InFolders.select(element.AccCode = ACC_GROUP_SHARED).forAll(f |
+                    if groupFolder.isNull then
+                        groupFolder = f.Folder.GetGroupSharedRootFolder(g)
+                    end if
+                    )
+
+
 ---------------------------user/Name---------------------------
-
-
 context User::IsInGroup(g: Group): boolean
 post:
     result = self.Groups.exists(element.GroupId = g.Id)

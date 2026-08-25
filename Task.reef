@@ -51,10 +51,11 @@ public:
 
     CreatedBy:              User        <backNav: CreatedTasks>
     Actor:                  User
+    Group:                  Group       <backNav: Tasks>
     Effort:                 integer
     Status:                 integer
     AccCode:                integer
-
+    ServiceCode:            integer     --Extra field for recursive and service calls. No data storage.
     Steps[0..n]:	        TaskStep
     Description:	        string
     Images:                 string      <readOnly>
@@ -72,6 +73,7 @@ public:
     TaskListId:             integer
     ActorId:                integer
     CreatedById:            integer
+    GroupId:                integer
 
     CreationDate:	        date
     ModificationDate:       date
@@ -111,6 +113,7 @@ context Task::OnAfterCreate
 post:
     self.CreationDate.SetUTCDate()
     self.ModificationDate = self.CreationDate
+    self.AccCode = ACC_USER
 
 context Task::Copy(src: Task)
 post:
@@ -234,7 +237,7 @@ post:
     if order <> 0 then
         self.ListOrder = order
     end if
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
 
 context Task::CopyToBasket(optional flags: integer = 0): ElementReference
 post:
@@ -406,9 +409,9 @@ post:
                 canonicalPath = [...,
                     {
                         Name: parentFolder.Title,
-                        Summary: parentFolder.Summary,
-                        href: parentFolder.href,
-                        icon: parentFolder.icon
+                        --Summary: parentFolder.Summary,
+                        --icon: parentFolder.icon,
+                        href: parentFolder.href
                     }]
             else
                 canonicalPath = []
@@ -443,13 +446,10 @@ post:
     )
 
 
-context Task::RecalculateLocationInfo(newLink: FolderTask)
-post:
-    self.RecalculateCanonicalLinksAfterAttach(newLink)
-    self.RecalculateAccCode
 
 
-context Task::RecalculateCanonicalLinksAfterAttach(newLink: FolderTask)
+
+context Task::ObsoleteRecalculateCanonicalLinksAfterAttach(newLink: FolderTask)
 post:
     let changed: boolean = false
     let prevCanonicalLink: FolderTask = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
@@ -578,7 +578,7 @@ post:
         e.LinkInfo = FLI_CANONICAL
         e.Order = order)
 
-    upFile.ValidateSubTreeCanonicalPaths()
+    upFile.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
     result = fileLink
 
 
@@ -787,7 +787,7 @@ post:
 
     if not trash.Tasks.exists(element.TaskId = self.Id) then
         taskLink = trash.Tasks.newElement(e | e.Task=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.ValidateSubTreeCanonicalPaths()
+        self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false
@@ -803,7 +803,7 @@ post:
     self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
     self.InFolders.forAll(element.Status = STATUS_ACTIVE)
     self.Status = STATUS_ACTIVE
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
     result = true
 
 
@@ -823,7 +823,7 @@ post:
 
     if not archive.Tasks.exists(element.TaskId = self.Id) then
         taskLink = archive.Tasks.newElement(e | e.Task=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.ValidateSubTreeCanonicalPaths()
+        self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false
@@ -838,7 +838,7 @@ post:
     self.InFolders.select(element.Status = STATUS_ACTIVE).removeAll
     self.InFolders.forAll(element.Status = STATUS_ACTIVE)
     self.Status = STATUS_ACTIVE
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
     result = true
 
 

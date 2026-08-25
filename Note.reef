@@ -24,10 +24,12 @@ public:
     State:                  integer
     Status:                 integer
     AccCode:                integer
+    ServiceCode:            integer     --Extra field for recursive and service calls. No data storage.
     CreationDate:	        date
     ModificationDate:       date
     CreatedBy:              User
     ModifiedBy:             User
+    Group:                  Group       <backNav: Notes>
 
     Images:                 string      <readOnly>
     AttachedFiles:          string      <readOnly>
@@ -43,6 +45,7 @@ public:
 
     CreatedById:            integer
     ModifiedById:           integer
+    GroupId:                integer
 end class
 
 
@@ -66,6 +69,7 @@ post:
 
     self.ModificationDate = self.CreationDate
     self.ModifiedBy = self.CreatedBy
+    self.AccCode = ACC_USER
 
 
 
@@ -344,9 +348,9 @@ post:
             canonicalPath = [...,
                 {
                     Name: parentFolder.Title,
-                    Summary: parentFolder.Summary,
-                    href: parentFolder.href,
-                    icon: parentFolder.icon
+                    ----Summary: parentFolder.Summary,
+                    ----icon: parentFolder.icon,
+                    href: parentFolder.href
                 }]
         else
             canonicalPath = []
@@ -417,46 +421,6 @@ post:
     )
 
 
-context Note::RecalculateLocationInfo(newLink: FolderNote)
-post:
-    self.RecalculateCanonicalLinksAfterAttach(newLink)
-    self.RecalculateAccCode
-
-
-context Note::RecalculateCanonicalLinksAfterAttach(newLink: FolderNote)
-post:
-    let changed: boolean = false
-    let prevCanonicalLink: FolderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
-
-    let fromFolder: Folder = prevCanonicalLink.Folder
-    let toFolder: Folder = newLink.Folder
-
-    if prevCanonicalLink = null then
-        newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
-        changed = true
-    else
-
-        if toFolder.IsPublic then
-            if not fromFolder.IsPublic then
-                newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
-                prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
-                changed = true
-            end if
-        else
-            if toFolder.IsGroupFolder then
-                if fromFolder.IsPersonal then
-                    newLink.LinkInfo = newLink.LinkInfo | FLI_CANONICAL
-                    prevCanonicalLink.LinkInfo = prevCanonicalLink.LinkInfo & (~FLI_CANONICAL)
-                    changed = true
-                end if
-            end if
-        end if
-
-    end if
-
-    if changed = true then
-        self.ValidateSubTreeCanonicalPaths()
-    end if
 
 
 context Note::GetCanonicalPath: JsonObject
@@ -544,7 +508,7 @@ post:
         e.File = upFile
         e.LinkInfo = FLI_CANONICAL)
 
-    upFile.ValidateSubTreeCanonicalPaths()
+    upFile.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
     result = fileLink
 
 
@@ -739,7 +703,7 @@ post:
 
     if not trash.Notes.exists(element.NoteId = self.Id) then
         noteLink = trash.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.ValidateSubTreeCanonicalPaths()
+        self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false
@@ -760,7 +724,7 @@ post:
     self.InMessages.forAll(element.Status = STATUS_ACTIVE)
 
     self.Status = STATUS_ACTIVE
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
     result = true
 
 
@@ -781,7 +745,7 @@ post:
 
     if not archive.Notes.exists(element.NoteId = self.Id) then
         noteLink = archive.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.ValidateSubTreeCanonicalPaths()
+        self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false
@@ -799,7 +763,7 @@ post:
     self.InNotes.forAll(element.Status = STATUS_ACTIVE)
 
     self.Status = STATUS_ACTIVE
-    self.ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
     result = true
 
 -- ----------------------------------------------------------------------------------------------------------------
@@ -843,6 +807,17 @@ post:
 context NoteNote::IsCanonical: boolean
 post:
     result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context NoteNote::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context TaskNote::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context NoteNote::ResetCanonical
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
 
 context NoteNote::SetLocationAsCanonical
 post:

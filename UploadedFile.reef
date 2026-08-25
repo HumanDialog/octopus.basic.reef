@@ -5,6 +5,8 @@ class UploadedFile
     Tags(64):               string
     Index(16):              string
     Status:                 integer
+    AccCode:                integer
+    ServiceCode:            integer     --Extra field for recursive and service calls. No data storage.
 
     Key:                    string      <readOnly>
     MimeType:               string
@@ -15,11 +17,16 @@ class UploadedFile
     CreatedBy:              User
     ModifiedBy:             User
 
+
     CanonicalPath(0):       string
     InFolders[0..n]:        FolderFile
     InTasks[0..n]:          TaskFile
     InNotes[0..n]:          NoteFile
     InMessages[0..n]:       MessageFile
+
+    User:                   User        <backNav: Files (0..n)>
+    Group:                  Group       <backNav: Files (0..n)>
+
 end class
 
 
@@ -72,6 +79,8 @@ post:
 
     self.ModificationDate = self.CreationDate
     self.ModifiedBy = self.CreatedBy
+
+    self.AccCode = ACC_USER
 
 
 context UploadedFile::DeletePermanently
@@ -231,12 +240,13 @@ post:
     self.CanonicalPath = self.CalculateCanonicalPath()
 
 
-context UploadedFile::RecalculateLocationInfo(newLink: FolderFile)
+context UploadedFile::RecalculateLocationInfo
 post:
-    self.RecalculateCanonicalLinksAfterAttach(newLink)
     --self.RecalculateAccCode
+    --self.RecalculateCanonicalLinksAfterAttach(newLink)
 
-context UploadedFile::RecalculateCanonicalLinksAfterAttach(newLink: FolderFile)
+
+context UploadedFile::ObsoleteRecalculateCanonicalLinksAfterAttach(newLink: FolderFile)
 post:
     let changed: boolean = false
     let prevCanonicalLink: FolderFile = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
@@ -399,7 +409,7 @@ post:
 
     if not trash.Files.exists(element.FileId = self.Id) then
         trash.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.ValidateSubTreeCanonicalPaths()
+        self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
         result = true
     else
         result = false

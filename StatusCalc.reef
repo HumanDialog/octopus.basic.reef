@@ -1,0 +1,102 @@
+
+context Folder::RecalculateStatus(optional recursive: boolean = true)
+post:
+    if recursive then
+        self.ResetServiceCode(100, RSCO_SUBFOLDERS)
+        self.RecalculateStatusRec()
+    else
+        self.Status = self.CalculateStatus
+    end if
+
+context Folder::RecalculateStatusRec
+post:
+    if self.ServiceCode <> 0 then
+        self.ServiceCode = 0
+        if self.IsRoot then
+            self.Folders.forAll(element.Folder.RecalculateStatusRec)
+        else
+            self.Status = self.CalculateStatus
+            self.Folders.forAll(element.Folder.RecalculateStatusRec)
+        end if
+    end if
+
+
+
+context Folder::CalculateStatus: integer
+post:
+    let level: integer in
+
+    if self.IsRoot then
+        result = self.Status
+    else
+        let maxAccLevel: integer = self.InFolders.iterate(e; acclevel: integer |
+            level = e.InFolder.GetSubfolderStatusLevel
+            if level > acclevel then acclevel = level end if)
+
+        select case maxAccLevel
+        case FIN_PUBLIC
+            result = FS_PUBLIC_FOLDER
+        case FIN_GROUP_SHARED
+            result = FS_GROUP_SHARED_FOLDER
+        case FIN_GROUP_SUBSHARED
+            result = FS_GROUP_SHARED_SUB_FOLDER
+        case FIN_GROUP
+            result = FS_GROUP_FOLDER
+
+        case FIN_USER_SHARED
+            result = FS_USER_SHARED_FOLDER
+        case FIN_USER_SUBSHARED
+            result = FS_USER_SHARED_SUB_FOLDER
+
+        case FIN_USER
+            result = FS_USER_FOLDER
+
+        end select
+    end if
+
+
+--------------------------------------------------------------------------------------------------------
+admin
+context App::VerifyFolders
+post:
+  self.PublicFolders.forAll(f | f.RecalculateLocationInfo)
+  self.Groups.forAll(g | g.VerifyFolders)
+  self.Users.forAll(u | u.VerifyFolders)
+
+
+context Group::VerifySystemFolders
+post:
+  if self.SharedFolders.isNull then
+    self.SharedFolders = self.AllFolders.newElement(element.Title = self.Name + " Shared Folders" and element.Status = FS_GROUP_ROOT_SHARED_FOLDER)
+  end if
+  self.SharedFolders.RecalculateLocationInfo
+
+  self.GetTrashFolder.RecalculateLocationInfo
+  self.GetArchiveFolder.RecalculateLocationInfo
+
+
+context Group::VerifyFolders
+post:
+
+  self.VerifySystemFolders()
+
+  if self.Folders.first = 0 then
+    self.NewFolder("Notes")
+    self.NewFolder("Projects")
+  end if
+
+  if self.Folders.select(element.Kind = FK_DISCUSSION).first = 0 then
+    self.CreateSimpleDiscussionsStructure
+  end if
+
+  self.Folders.forAll(f | f.RecalculateLocationInfo)
+
+
+context User::VerifyFolders
+post:
+  self.GetSharedFolders.RecalculateLocationInfo
+  self.GetPinnedFolders.RecalculateLocationInfo
+  self.GetBasketFolder.RecalculateLocationInfo
+  self.GetTrashFolder.RecalculateLocationInfo
+  self.GetArchiveFolder.RecalculateLocationInfo
+  self.Folders.forAll(f | f.RecalculateLocationInfo)

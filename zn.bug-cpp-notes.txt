@@ -1,0 +1,85 @@
+------607-01------------------------------------------
+> build
+
+2026-07-01 16:54 Building project: octopus
+SUCCESS: Compiled: 41 classes, 751 operations, 18 invariants, 65 constraints, 0 functions. Parsed 27 source files.
+
+> sys/save
+[SVM] p:/reef-apps/octopus.basic.reef/bin/octopus.refr saved
+> Folder?Status=131;fields=Id,Title,Status
+Id Title Status
+
+> app/Service607a
+Error: 8256 Only logged in users may Create subFolders
+> sys/login
+SUCCESS. alice logged in as supervisor.
+> app/Service607a
+
+> app/Crash
+
+=== UNHANDLED EXCEPTION =
+
+------------------------------------------------------
+
+User::SharedFolder
+Id: 11, Propert No 15
+
+0,-1  <>
+
+-1=131 <> 101
+
+Folder?Status=131;fields=Id,Title,Status
+
+> sys/login
+SUCCESS. alice logged in as supervisor.
+> app/Service607a
+
+> app/Crash
+
+> Folder?Status=131;fields=Id,Title,Status
+
+-----------------------------------------------------
+
+> Folder/model
+Id:                       integer
+Title:                    string
+Summary:                  string
+Group:                    Group <backNav:AllFolders(0..n)> <constraint: self.GroupId = element.Id>
+User:                     User <backNav:Folders(0..n)> <constraint: self.UserId = element.Id and self.Status = 101>
+Owner:                    User <backNav:AllFolders(0..n)> <constraint: self.UserId = element.Id>
+Kind:                     integer
+Status:                   integer
+AccCode:                  integer
+ServiceCode:              integer
+CanonicalPath:            string
+Folders[0..n]:            FolderFolder <backNav:InFolder> <constraint: element.InFolderId = self.Id and element.Status = 0>
+InFolders[0..n]:          FolderFolder <backNav:Folder> <constraint: element.FolderId = self.Id>
+Notes[0..n]:              FolderNote <backNav:Folder> <constraint: element.FolderId = self.Id and element.Status = 0>
+Tasks[0..n]:              FolderTask <backNav:Folder> <constraint: element.FolderId = self.Id and element.Status = 0>
+Files[0..n]:              FolderFile <backNav:Folder> <constraint: element.FolderId = self.Id and element.Status = 0>
+Order:                    integer
+GroupId:                  integer
+UserId:                   integer
+FoldersCount:             integer
+NotesCount:               integer
+TasksCount:               integer
+CreationDate:             date
+ModificationDate:         date
+CreatedBy:                User <no backNav:FolderCreatedByBA> <constraint: self.CreatedById = element.Id>
+Project:                  Project <no backNav:FolderProjectBA> <constraint: self.ProjectId = element.Id>
+ProjectId:                integer
+AppPublicFoldersBA:       *App <backNav:PublicFolders(0..n)> <constraint: self.Status = 15>
+InGroup:                  Group <backNav:Folders(0..n)> <constraint: self.GroupId = element.Id and self.Status = 102>
+GroupSharedFoldersBA:     *Group <backNav:SharedFolders> <constraint: self.GroupId = element.Id and self.Status = 132>
+GroupArchiveFolderBA:     *Group <backNav:ArchiveFolder> <constraint: self.GroupId = element.Id and self.Status = 152>
+GroupTrashFolderBA:       *Group <backNav:TrashFolder> <constraint: self.GroupId = element.Id and self.Status = 162>
+ProjectFoldersBA:         *Project <backNav:Folders> <constraint: self.GroupId = element.GroupId and self.ProjectId = element.Id and self.Status = 105>
+ProjectArchiveFolderBA:   *Project <backNav:ArchiveFolder> <constraint: self.GroupId = element.GroupId and self.ProjectId = element.Id and self.Status = 153>
+ProjectTrashFolderBA:     *Project <backNav:TrashFolder> <constraint: self.GroupId = element.GroupId and self.ProjectId = element.Id and self.Status = 163>
+UserPinnedFoldersBA:      *User <backNav:PinnedFolders> <constraint: self.UserId = element.Id and self.Status = 103>
+UserBasketFolderBA:       *User <backNav:BasketFolder> <constraint: self.UserId = element.Id and self.Status = 104>
+UserSharedFoldersBA:      *User <backNav:SharedFolders> <constraint: self.UserId = element.Id and self.Status = 131>
+UserArchiveFolderBA:      *User <backNav:ArchiveFolder> <constraint: self.UserId = element.Id and self.Status = 151>
+UserTrashFolderBA:        *User <backNav:TrashFolder> <constraint: self.UserId = element.Id and self.Status = 161>
+CreatedById:              integer
+$type                     Folder
