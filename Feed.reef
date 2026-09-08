@@ -1,7 +1,7 @@
 -- Group/15/ClearSampleTUHData
 -- Group/15/MakeSampleTUHUsers
 -- sys/login?u=admin@example.com;gid=15;role=TUHServiceman
--- group/MakeTUHFolders
+-- group/MakeFeedsFolders
 -- sys/login?u=emma@example.com;gid=15;role=TUHCustomer
 -- group/FeedsRoot/Folders/at/4/Folder/MakeSampleTUHFeed
 -- sys/logout?bl
@@ -66,7 +66,7 @@ post:
  --       result.RecalculateLocationInfo
  --   end if
 
-context Group::MakeTUHFolders() : string
+context Group::MakeFeedsFolders() : string
 post:
 
     self.GetUnapprovedPostsFolder  
@@ -107,7 +107,7 @@ post:
 
 
 
-context User::MakeTUHFolders() : string
+context User::MakeFeedsFolders() : string
 post:
     if self.MySentPosts = null then
         self.MySentPosts = self.AllFolders.newElement(element.Title = "__; en: My posts; es: Mis publicaciones; pl: Moje posty" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_SENT_POSTS_FOLDER)
@@ -538,14 +538,14 @@ context Group::MakeSampleTUHUsers
 post:
     let u: User
     u = self.CreateMember("Emma Johnson", "emma@example.com")
-        u.MakeTUHFolders()
+        u.MakeFeedsFolders()
     u = self.CreateMember("Jack Smith",   "jack@example.com")
-        u.MakeTUHFolders()
+        u.MakeFeedsFolders()
     u = self.CreateMember("Olivia Brown", "olivia@example.com")
-        u.MakeTUHFolders()
+        u.MakeFeedsFolders()
 
     u = self.CreateMember("Admin Serviceman", "admin@example.com")
-        u.MakeTUHFolders()
+        u.MakeFeedsFolders()
 
 
 context User::SubscribeFolder(folder: Folder) : UserFolder

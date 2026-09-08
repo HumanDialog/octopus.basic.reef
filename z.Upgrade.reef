@@ -267,3 +267,16 @@ post:
   self.Users.forAll(element.SharedFolders.delete)
   self.Users.forAll(element.GetSharedFolders())
   result = "Done"
+
+
+context App::MakeFeedsFolders: string
+post:
+  result = self.MakeFeedsFoldersA()
+
+
+admin context App::MakeFeedsFoldersA: string
+post:
+  self.Users.forAll(element.MakeFeedsFolders)
+  self.Groups.forAll(element.MakeFeedsFolders)
+  result = "Done"
+  
