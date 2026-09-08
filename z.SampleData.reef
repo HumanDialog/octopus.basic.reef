@@ -762,3 +762,5 @@ post:
     folderNote.Note.AddPost('<p>Kebz na Nowowiejskiej, żaden inny.</p>')
 
     result = "" + postNo + " posts generated."
+
+    

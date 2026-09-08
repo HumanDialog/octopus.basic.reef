@@ -31,7 +31,8 @@ class Group
 
     ArchiveFolder:              Folder
     TrashFolder:                Folder
-    ThreadsRoot:                Folder
+    FeedsRoot:                  Folder
+    UnapprovedPosts:            Folder
 	Notes(0..n):                Note            <backNav: Group>
     Tasks(0..n):                Task            <backNav: Group>
 

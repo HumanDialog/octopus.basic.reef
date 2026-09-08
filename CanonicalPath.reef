@@ -44,6 +44,10 @@ post:
         link.Task.ValidateSubTreeCanonicalPaths()
     )
 
+    self.Files.select(element.IsCanonical).forAll(link: FolderFile |
+        link.File.ValidateSubTreeCanonicalPaths()
+    )
+
 context Folder::CalculateCanonicalPath: string
 post:
     let parentPath: JsonObject
@@ -53,7 +57,7 @@ post:
     let parentFolder: Folder
 
     select case self.Status
-        case FS_PUBLIC_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER
+        case FS_PUBLIC_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
             canonicalPath = [ ]
 
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
@@ -125,12 +129,57 @@ post:
 
     result = canonicalPath.ToString()
 
-
 context Note::RecalculateCanonicalPath
 post:
-    let changed: boolean = false
+    select case self.Kind
+        case NK_COMMENT
+            self.RecalculateCanonicalPath_Comment()
+        case else
+            self.RecalculateCanonicalPath_General()
+    end select
 
 
+context Note::RecalculateCanonicalPath_Comment
+post:
+    let canonicalNoteLink: NoteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+    if canonicalNoteLink.isNull then
+        let bestNoteLink: NoteNote = self.InNotes.select(element.Status=STATUS_ACTIVE).first
+        if bestNoteLink then
+            self.ResetCanonicalLinks
+            bestNoteLink.SetCanonical
+            self.ValidateSubTreeCanonicalPaths()
+        else
+            let bestFolderCanonocalLink: FolderNote = self.InFolders.select(element.Status = STATUS_ACTIVE).iterate(e; best: FolderNote |
+                                  if e.Folder.AccCode > best.Folder.AccCode then
+                                      best = e
+                                  end if
+                              )
+            if bestFolderCanonocalLink then
+                let currentFolderCanonocalLink: FolderNote = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+                if bestFolderCanonocalLink.Folder.AccCode > currentFolderCanonocalLink.Folder.AccCode then
+                    self.ResetCanonicalLinks
+                    bestFolderCanonocalLink.SetCanonical
+                    self.ValidateSubTreeCanonicalPaths()
+                end if
+            else
+                let canonicalTaskLink: TaskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+                if canonicalTaskLink.isNull then
+                    let bestTaskLink: TaskNote = self.InTasks.select(element.Status=STATUS_ACTIVE).first
+                    if bestTaskLink then
+                        self.ResetCanonicalLinks
+                        bestTaskLink.SetCanonical
+                        self.ValidateSubTreeCanonicalPaths()
+                    else
+                        --PROBLEM - UNCONNECTED DOKUMENT
+                    end if
+                end if
+            end if
+        end if
+    end if
+
+
+context Note::RecalculateCanonicalPath_General
+post:
     let bestFolderCanonocalLink: FolderNote = self.InFolders.select(element.Status = STATUS_ACTIVE).iterate(e; best: FolderNote |
                                   if e.Folder.AccCode > best.Folder.AccCode then
                                       best = e
@@ -147,7 +196,7 @@ post:
     else
         let canonicalTaskLink: TaskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
         if canonicalTaskLink.isNull then
-            let bestTaskLink: TaskNote = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+            let bestTaskLink: TaskNote = self.InTasks.select(element.Status=STATUS_ACTIVE).first
             if bestTaskLink then
                 self.ResetCanonicalLinks
                 bestTaskLink.SetCanonical
@@ -155,7 +204,7 @@ post:
             else
                 let canonicalNoteLink: NoteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
                 if canonicalNoteLink.isNull then
-                    let bestNoteLink: NoteNote = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+                    let bestNoteLink: NoteNote = self.InNotes.select(element.Status=STATUS_ACTIVE).first
                     if bestNoteLink then
                         self.ResetCanonicalLinks
                         bestNoteLink.SetCanonical
@@ -251,3 +300,107 @@ post:
     if changed = true then
         self.ValidateSubTreeCanonicalPaths()
     end if
+
+
+context UploadedFile::RecalculateLocationInfo
+post:
+    self.RecalculateAccCode
+    self.RecalculateCanonicalPath
+    
+
+context UploadedFile::RecalculateCanonicalPath
+post:
+    let bestFolderCanonocalLink: FolderFile = self.InFolders.select(element.Status = STATUS_ACTIVE).iterate(e; best: FolderFile |
+                                  if e.Folder.AccCode > best.Folder.AccCode then
+                                      best = e
+                                  end if
+                              )
+
+    if bestFolderCanonocalLink then
+        let currentFolderCanonocalLink: FolderFile = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if bestFolderCanonocalLink.Folder.AccCode > currentFolderCanonocalLink.Folder.AccCode then
+          self.ResetCanonicalLinks
+          bestFolderCanonocalLink.SetCanonical
+          self.ValidateSubTreeCanonicalPaths()
+        end if
+    else
+        let canonicalTaskLink: TaskFile = self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+        if canonicalTaskLink.isNull then
+            let bestTaskLink: TaskFile = self.InTasks.select(element.Status=STATUS_ACTIVE).first
+            if bestTaskLink then
+                self.ResetCanonicalLinks
+                bestTaskLink.SetCanonical
+                self.ValidateSubTreeCanonicalPaths()
+            else
+                let canonicalNoteLink: NoteFile = self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
+                if canonicalNoteLink.isNull then
+                    let bestNoteLink: NoteFile = self.InNotes.select(element.Status=STATUS_ACTIVE).first
+                    if bestNoteLink then
+                        self.ResetCanonicalLinks
+                        bestNoteLink.SetCanonical
+                        self.ValidateSubTreeCanonicalPaths()
+                    else
+                        --PROBLEM - UNCONNECTED DOKUMENT
+                    end if
+                end if
+
+            end if
+        end if
+    end if
+
+context UploadedFile::ResetCanonicalLinks
+post:
+    self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+    self.InTasks.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+    self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
+
+
+context NoteFile::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context NoteFile::IsNotCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) = 0
+
+context NoteFile::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context NoteFile::ResetCanonical
+post:
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
+
+
+context TaskFile::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context TaskFile::IsNotCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) = 0
+
+context TaskFile::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context TaskFile::ResetCanonical
+post:
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)
+
+
+context FolderFile::IsCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) <> 0
+
+context FolderFile::IsNotCanonical: boolean
+post:
+    result = (self.LinkInfo & FLI_CANONICAL) = 0
+
+context FolderFile::SetCanonical
+post:
+    self.LinkInfo = self.LinkInfo | FLI_CANONICAL
+
+context FolderFile::ResetCanonical
+post:
+    self.LinkInfo = self.LinkInfo & (~FLI_CANONICAL)

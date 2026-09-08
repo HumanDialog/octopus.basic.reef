@@ -27,8 +27,9 @@ class User
     UploadedFiles(0..n):    UploadedFile        <backNav: CreatedBy>
     Clipboards<0..n>:       Clipboard           <backNav: User>
     SubscribedLists[0..n]:  UserTaskList        <backNav: User>
+    SubscribedFolders[0..n]:  UserFolder        <backNav: User>
 
-    MyWorkingPosts[0..n]:   EditingPost         <backNav: User>
+    MyDraftPosts:           Folder
     MySentPosts:            Folder
     MyFeed:                 Folder 
     
@@ -196,7 +197,7 @@ post:
 
 context User::AddWorkingPost(): Note
 post:
-    result = self.CreatedNotes.newElement(element.Kind = NK_POST)
+    result = self.CreatedNotes.newElement(element.Kind = NK_COMMENT)
 
 context User::href: string
 post:

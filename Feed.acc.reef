@@ -1,0 +1,360 @@
+
+
+
+access role TUHCustomer: TILOS User
+    acc App = ACC_READ
+
+    acc User = self.AccMember
+
+    acc Group = self.AccMember
+
+    acc TaskList = self.AccMember
+
+    acc UserTaskList = self.List.AccMember
+
+    acc Task = self.AccMember
+
+    acc TaskNote = self.Task.AccMember
+
+    acc Folder = self.AccTUHCustomer
+
+    acc FolderFolder = self.InFolder.Acc
+
+    acc FolderNote = self.Folder.Acc
+
+    acc FolderTask = self.Folder.Acc
+
+    acc Note = self.AccTUHCustomer
+
+    acc MessageChannel = self.AccMember
+
+    acc Message = self.AccMember
+
+    acc UploadedFile = self.AccMember
+
+    acc FolderFile = self.Folder.Acc
+
+    acc TaskFile = self.Task.AccMember
+
+    acc NoteFile = self.Note.AccTUHCustomer
+
+    acc NoteNote = self.Note.AccTUHCustomer
+
+    acc Project = self.AccMember
+
+
+
+
+access role TUHServiceman: TILOS Developer
+    acc App = ACC_READ
+
+    acc User = self.AccOwner
+
+    acc Group = self.AccOwner
+
+    acc TaskList = self.AccOwner
+
+    acc Task = self.AccOwner
+
+    acc TaskNote = self.Task.AccOwner
+
+    acc Folder = self.AccTUHServiceman
+
+    acc FolderFolder = self.InFolder.Acc
+
+    acc FolderNote = self.Folder.Acc
+
+    acc FolderTask = self.Folder.Acc
+
+    acc Note = self.AccTUHServiceman
+
+    acc MessageChannel = self.AccOwner
+
+    acc Message = self.AccOwner
+
+    acc MessageChannelUser = self.AccOwner
+
+    acc UploadedFile = self.AccOwner
+    acc FolderFile = self.Folder.Acc
+    acc TaskFile = self.Task.AccOwner
+    acc NoteFile = self.Note.AccOwner
+    acc NoteNote = self.Note.AccOwner
+    acc UserTaskList = self.List.AccOwner
+    acc Project = self.AccOwner
+
+
+
+context Note::AccTUHGuest: integer
+post:
+    select case self.AccCode
+        case ACC_PUBLIC
+            result = ACC_READ
+        case else
+            result = ACC_DENIED        
+    end select
+    
+
+context Note::AccTUHCustomer: integer
+post:
+    select case self.AccCode
+        case ACC_USER
+            if self.CreatedBy = user then
+                result = ACC_READWRITE
+            else
+                result = ACC_DENIED
+            end if
+
+        case ACC_USER_SHARED
+            if self.GetUserSharedFolder(user) <> null then
+                result = ACC_READWRITE
+            else
+                result = ACC_DENIED
+            end if
+
+        case ACC_GROUP
+            if self.GroupId = group.Id then
+                select case self.State
+                    case NS_DRAFT
+                        if self.CreatedBy = user then
+                            result = ACC_READWRITE
+                        else
+                            result = ACC_READ
+                        end if
+
+                    case NS_UNAPPROVED
+                        if self.CreatedBy = user then
+                            result = ACC_READ
+                        else
+                            result = ACC_DENIED
+                        end if
+
+                    case NS_CONFIDENTIAL
+                        if self.CreatedBy = user then
+                            result = ACC_READ
+                        else
+                            result = ACC_DENIED
+                        end if
+
+                    case NS_PUBLISHED
+                        result = ACC_READ
+                        
+                    case else
+                        result = ACC_READWRITE
+                end select
+            else
+                result = ACC_DENIED
+            end if
+            
+
+        case ACC_GROUP_SHARED
+            if self.GetGroupSharedFolder(group) <> null then
+                select case self.State
+                    case NS_DRAFT
+                        if self.CreatedBy = user then
+                            result = ACC_READWRITE
+                        else
+                            result = ACC_READ
+                        end if
+
+                    case NS_UNAPPROVED
+                        if self.CreatedBy = user then
+                            result = ACC_READ
+                        else
+                            result = ACC_DENIED
+                        end if
+
+                    case NS_CONFIDENTIAL
+                        if self.CreatedBy = user then
+                            result = ACC_READ
+                        else
+                            result = ACC_DENIED
+                        end if
+
+                    case NS_PUBLISHED
+                        result = ACC_READ
+                        
+                    case else
+                        result = ACC_READWRITE
+                end select
+            else
+                result = ACC_DENIED
+            end if
+
+        case ACC_PUBLIC
+            result = ACC_READWRITE
+
+        case else
+            if self.CreatedBy = user then
+                result = ACC_READWRITE
+            else
+                result = ACC_DENIED
+            end if
+    end select
+   
+
+
+context Note::AccTUHServiceman: integer
+post:
+    select case self.AccCode
+        case ACC_USER
+            if self.CreatedBy = user then
+                result = ACC_READWRITE
+            else
+                result = ACC_DENIED
+            end if
+
+        case ACC_USER_SHARED
+            if self.GetUserSharedFolder(user) <> null then
+                result = ACC_READWRITE
+            else
+                result = ACC_DENIED
+            end if
+
+        case ACC_GROUP
+            if self.GroupId = group.Id then
+                select case self.State
+                    case NS_DRAFT
+                        if self.CreatedBy = user then
+                            result = ACC_READWRITE
+                        else
+                            result = ACC_READWRITE
+                        end if
+
+                    case NS_UNAPPROVED
+                        result = ACC_READWRITE
+
+                    case NS_CONFIDENTIAL
+                        result = ACC_READWRITE
+                        
+                    case NS_PUBLISHED
+                        result = ACC_READWRITE
+                        
+                    case else
+                        result = ACC_READWRITE
+                end select
+            else
+                result = ACC_DENIED
+            end if
+            
+
+        case ACC_GROUP_SHARED
+            if self.GetGroupSharedFolder(group) <> null then
+                select case self.State
+                    case NS_DRAFT
+                        if self.CreatedBy = user then
+                            result = ACC_READWRITE
+                        else
+                            result = ACC_READWRITE
+                        end if
+
+                    case NS_UNAPPROVED
+                        result = ACC_READWRITE
+
+                    case NS_CONFIDENTIAL
+                        result = ACC_READWRITE
+                        
+                    case NS_PUBLISHED
+                        result = ACC_READWRITE
+                        
+                    case else
+                        result = ACC_READWRITE
+                end select
+            else
+                result = ACC_DENIED
+            end if
+
+        case ACC_PUBLIC
+            result = ACC_READWRITE
+
+        case else
+            result = ACC_READWRITE
+    end select
+
+
+context Folder::AccTUHGuest: integer
+post:
+    select case self.AccCode
+        case ACC_PUBLIC
+            result = ACC_READ
+        case else
+            result = ACC_DENIED
+    end select
+
+
+context Folder::AccTUHCustomer: integer
+post:
+    if self.Owner = user then
+        result = ACC_READWRITE
+    end if
+
+    let shared: Folder
+    select case self.AccCode
+        case ACC_USER
+            if self.Owner = user then
+                result = ACC_READWRITE
+            end if
+
+        case ACC_USER_SHARED
+            shared = self.GetUserSharedFolder
+            if  shared.InFolders.exists (element.GroupId = group.Id) then
+                result = ACC_READWRITE
+            end if
+
+        case ACC_GROUP
+            if self.Group = group then
+                if self.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER then
+                    result = ACC_DENIED
+                else
+                    result = ACC_READ
+                end if
+            end if
+
+        case ACC_GROUP_SHARED
+            shared = self.GetGroupSharedFolder
+            if  shared.InFolders.exists (element.GroupId = group.Id) then
+                result = ACC_READ
+            end if
+            
+        case ACC_PUBLIC
+            result = ACC_READWRITE
+    end select
+
+
+context Folder::AccTUHServiceman: integer
+post:
+    if self.Owner = user then
+        result = ACC_READWRITE
+    end if
+
+    let shared: Folder
+    select case self.AccCode
+        case ACC_USER
+            if self.Owner = user then
+                result = ACC_READWRITE
+            end if
+
+        case ACC_USER_SHARED
+            shared = self.GetUserSharedFolder
+            if  shared.InFolders.exists (element.GroupId = group.Id) then
+                result = ACC_READWRITE
+            end if
+
+        case ACC_GROUP
+            if self.Group = group then
+                result = ACC_READWRITE
+            end if
+
+        case ACC_GROUP_SHARED
+            shared = self.GetGroupSharedFolder
+            if  shared.InFolders.exists (element.GroupId = group.Id) then
+                result = ACC_READWRITE
+            end if
+            
+        case ACC_PUBLIC
+            result = ACC_READWRITE
+
+        -- temporary: special case when group folder is creating
+        case else
+            result = ACC_READWRITE
+    end select
+

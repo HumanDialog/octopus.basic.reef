@@ -1,0 +1,658 @@
+-- Group/15/ClearSampleTUHData
+-- Group/15/MakeSampleTUHUsers
+-- sys/login?u=admin@example.com;gid=15;role=TUHServiceman
+-- group/MakeTUHFolders
+-- sys/login?u=emma@example.com;gid=15;role=TUHCustomer
+-- group/FeedsRoot/Folders/at/4/Folder/MakeSampleTUHFeed
+-- sys/logout?bl
+
+const FEED_MAX_ELEMENTS_NO    = 100
+
+class UserFolder
+    Folder:     Folder      <backNav: SubscribedBy>
+    User:       User        <backNav: SubscribedFolders>
+end class
+
+
+constraint Group::FeedsRoot
+    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_FEEDS_FOLDER
+
+constraint Group::UnapprovedPosts
+    element.GroupId = self.Id and element.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER
+
+constraint User::MyFeed
+    element.UserId = self.Id and element.Status = FS_USER_MY_FEED_FOLDER
+
+constraint User::MySentPosts
+    element.UserId = self.Id and element.Status = FS_USER_MY_SENT_POSTS_FOLDER
+
+constraint User::MyDraftPosts
+    element.UserId = self.Id and element.Status = FS_USER_MY_DRAFT_POSTS_FOLDER
+
+
+context Group::GetFeedsRootFolder: Folder
+post:
+    if self.FeedsRoot.isNull then
+        self.FeedsRoot = self.AllFolders.newElement(e | e.Title = "Feeds" and e.Status = FS_GROUP_ROOT_FEEDS_FOLDER)
+    end if
+
+    result = self.FeedsRoot
+
+--    result = self.FeedsRoot
+--    if result = null then
+--        result = self.AllFolders.newElement(element.Title = "Feeds" and element.Summary="Current questions about TILOS, bug reports, and suggestions for new features" and element.Status = FS_GROUP_ROOT_FEEDS_FOLDER)
+--        result.AccCode = ACC_GROUP
+--        result.Kind = FK_FOLDER
+--        result.RecalculateLocationInfo
+--    end if
+--
+
+context Group::GetUnapprovedPostsFolder: Folder
+post:
+    if self.UnapprovedPosts.isNull then
+        self.UnapprovedPosts = self.AllFolders.newElement(e | 
+            e.Title = "__; en: Unapproved posts; es: Publicaciones no aprobadas; pl: Niezatwierdzone posty"
+            e.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER
+            e.Kind = FK_FEED)
+    end if
+
+    result = self.UnapprovedPosts
+
+ --   result = self.UnapprovedPosts
+ --   if result = null then
+ --       result = self.AllFolders.newElement(element.Title = "__; en: Unapproved posts; es: Publicaciones no aprobadas; pl: Niezatwierdzone posty" and element.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER)
+ --       result.AccCode = ACC_GROUP
+ --       result.Kind = FK_FEED
+ --       result.RecalculateLocationInfo
+ --   end if
+
+context Group::MakeTUHFolders() : string
+post:
+
+    self.GetUnapprovedPostsFolder  
+
+    let feeds: Folder = self.GetFeedsRootFolder
+    let link: FolderFolder
+    
+    if feeds.Folders.count = 0 then
+        link = feeds.CreateSubFolder("General", "", 1 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Installation and Licensing", "", 2 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Import, Export, and Data Exchange", "", 3 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Views", "", 4 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Scheduling and Project Control", "", 5 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Libraries and Resources", "", 6 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Printing and Presentation", "", 7 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Feature Requests", "", 8 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+        link = feeds.CreateSubFolder("Announcements", "", 9 * ORDER_STEP, FK_FEED);
+            self.MakeFolderSubscribedByAllMembers(link.Folder)
+
+        result = "" + feeds.Folders.count + " folders created"
+    else
+        result = "Feed folders already created"
+    end if
+
+
+
+context Group::MakeFolderSubscribedByAllMembers(folder: Folder)
+post:
+    self.Members.forAll(m: UserGroup | m.User.SubscribeFolder(folder))
+
+
+
+context User::MakeTUHFolders() : string
+post:
+    if self.MySentPosts = null then
+        self.MySentPosts = self.AllFolders.newElement(element.Title = "__; en: My posts; es: Mis publicaciones; pl: Moje posty" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_SENT_POSTS_FOLDER)
+    end if
+
+    if self.MyDraftPosts = null then
+        self.MyDraftPosts = self.Folders.newElement(element.Title = "__; en: My draft posts; es: Mis borradores de entradas; pl: Moje szkice wpisów" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_DRAFT_POSTS_FOLDER)
+    end if
+
+    if self.MyFeed = null then
+        self.MyFeed = self.Folders.newElement(element.Title = "__; en: My news feed; es: Mi feed de noticias; pl: Mój strumień wiadomości" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_FEED_FOLDER)
+    end if
+
+    result = "Done"
+
+context User::NewDraftThread(title: string, summary: string, content: string, optional category: Folder=null, optional confidential: boolean=0) : Note
+post:
+    result = self.NewDraftThreadA(title, summary, content, category, confidential)
+
+
+admin context User::NewDraftThreadA(title: string, summary: string, content: string, optional category: Folder=null, optional confidential: boolean=0) : Note
+pre Category is a feed folder:
+    category = null or category.Kind = FK_FEED
+post:
+
+    let note: Note = self.CreatedNotes.newElement(n | 
+            n.Title = title
+            n.Summary = summary
+            n.Content = content
+            n.Kind = NK_THREAD
+            n.State = NS_DRAFT
+            n.Group = group) in
+
+    if confidential then
+        note.Flags = note.Flags | NF_WILL_CONFIDENTIAL
+    end if
+
+    --if category = null then
+    --    category = group.GetFeedsRootFolder.Folders.first.Folder       -- default category?
+    --end if
+
+    -- needs ACC_READWRITE
+    --category.Notes.newElement(element.Note = note and element.Status = STATUS_DRAFT)
+
+    self.MyDraftPosts.AttachNote(note)
+    result = note
+
+context Note::PublishThread(): boolean
+post:
+    result = self.PublishThreadA()
+
+
+admin context Note::PublishThreadA(): boolean
+pre Note is not set as working:
+    self.State = NS_DRAFT
+post:
+    self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
+    self.CreatedBy.MySentPosts.AttachNote(self)
+
+    self.State = NS_UNAPPROVED
+    
+    -- needs ACC_READWRITE
+    self.Group.GetUnapprovedPostsFolder.AttachNote(self)
+    --self.DraftThreadCategoryFolder.AttachNote(self)
+    --self.InFolders.select(element.Status = STATUS_DRAFT).removeAll
+
+    self.UpdateMetaInfo()
+    --group.InformInterestedUsers(self)
+
+
+    result = true
+
+
+context Note::ApproveMe(catLink: FolderFolder)
+post:
+    let category :Folder = catLink.Folder
+    group.UnapprovedPosts.ApproveThread(self, category)
+
+
+context Folder::ApproveThread(thread: Note, category: Folder)
+pre: 
+    thread <> null and category <> null
+pre Note is not a thread:
+    thread.Kind = NK_THREAD
+pre Note is already approved:
+    thread.State <= NS_UNAPPROVED
+pre category is not a Feed:
+    category.Kind = FK_FEED
+post:
+
+    if thread.Flags & NF_WILL_CONFIDENTIAL then
+        thread.State = NS_CONFIDENTIAL
+    else
+        thread.State = NS_PUBLISHED
+    end if
+
+    thread.InFolders.select(element.Folder = self).removeAll
+    category.AttachNote(thread)
+    self.Group.InformInterestedUsers(thread)
+
+
+
+context User::NewDraftComment(content: string, thread: Note) : Note
+post:
+    result = self.NewDraftCommentA(content, thread)
+
+admin context User::NewDraftCommentA(content: string, thread: Note) : Note
+post:
+    let note: Note = self.CreatedNotes.newElement(n | 
+            n.Content = content
+            n.Kind = NK_COMMENT
+            n.State = NS_DRAFT
+            n.Group = group) in
+
+    -- needs ACC_READWRITE
+    thread.Notes.newElement(element.Note = note and element.Status = STATUS_DRAFT)
+    self.MyDraftPosts.AttachNote(note)
+
+    result = note
+
+context Note::PublishComment(): boolean 
+post:
+    result = self.PublishCommentA()
+
+admin context Note::PublishCommentA(): boolean 
+pre Note is not set as working:
+    self.State = NS_DRAFT
+post:
+    let thread: Note = self.DraftCommentThread
+    
+    self.State = thread.State
+
+    self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
+    self.CreatedBy.MySentPosts.AttachNote(self)
+
+    -- needs ACC_READWRITE
+    let order: integer = thread.Notes.max(element.Order) + ORDER_STEP
+    thread.AttachNote(self, order, NR_COMMENT)
+    self.InNotes.select(element.Status = STATUS_DRAFT).removeAll
+
+    self.UpdateMetaInfo()
+    group.InformInterestedUsers(self)
+
+    result = true
+
+
+context Note::ThreadFolderInfo: JsonObject
+post:
+
+    if self.State < NS_CONFIDENTIAL then
+        result = null
+    else
+        let thread: Note
+
+        if self.Kind = NK_COMMENT then
+            thread = self.InNotes.select(element.IsCanonical).first.InNote
+        else
+            thread = self
+        end if
+
+        let folder: Folder = thread.InFolders.select(element.IsCanonical).first.Folder
+        result = {
+            Title: folder.Title,
+            href: folder.href,
+            icon: folder.icon,
+            ref: './Folder/' + folder.Id,
+            IsSubscribed: folder.IsSubscribed
+        }
+    end if
+
+context FolderNote::ThreadFolderInfo: JsonObject
+post:
+    result = self.Note.ThreadFolderInfo
+
+
+context Note::IsDraftThreadInCategory(folderId: integer): boolean
+post:
+    result = self.InFolders.exists(element.Status = STATUS_DRAFT and element.FolderId = folderId)
+
+
+context Note::DraftThreadCategoryFolder: Folder
+post:
+    let folderId: integer = self.InFolders.select(element.Status = STATUS_DRAFT).first.FolderId
+    result = group.AllFolders.select(element.Id=folderId).first
+
+
+context Note::DraftThreadCategoryFolderInfo: JsonObject
+post:
+    let folder: Folder = self.DraftThreadCategoryFolder
+    if folder <> null then
+        result = {
+            Id: folder.Id,
+            Title: folder.Title,
+            href: folder.href
+        }
+    else
+        result = null
+    end if
+
+context FolderNote::DraftThreadCategoryFolderInfo: JsonObject
+post:
+    result = self.Note.DraftThreadCategoryFolderInfo
+    
+
+context Note::DraftCommentThread: Note
+post:
+    let threadId: integer = self.InNotes.select(element.Status = STATUS_DRAFT).first.InNoteId
+    if threadId <> 0 then
+        result = self.Group.Notes.select(element.Id=threadId).first
+    else
+        result = null
+    end if
+
+context Note::DraftCommentThreadInfo: JsonObject
+post:
+    let thread: Note = self.DraftCommentThread
+    if thread <> null then
+        result = {
+            Title: thread.Title,
+            Content: thread.Content,
+            Summary: thread.Summary,
+            href: thread.href,
+            ModificationDate: thread.ModificationDate,
+            ModifiedByName: thread.ModifiedBy.Name
+        }
+    else
+        result = null
+    end if
+
+context FolderNote::DraftCommentThreadInfo: JsonObject
+post:
+    result = self.Note.DraftCommentThreadInfo
+
+
+
+context Note::IsDraftCommentInThread(threadId: integer): boolean
+post:
+    result = self.InNotes.exists(element.Status = STATUS_DRAFT and element.InNoteId = threadId)
+
+context Folder::MakeSampleTUHFeed: string
+post:
+
+    let thread: Note in
+    let comment: Note in
+    let unapprovedPosts: Folder = group.GetUnapprovedPostsFolder
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('Problem z automatycznym przeliczaniem prędkości postępu (Production Rate) przy modyfikacji stref profilu odległości', '',
+                    '<p>Cześć wszystkim, pracuję nad harmonogramem modernizacji 45-kilometrowego odcinka linii kolejowej i napotkałem dziwny problem przy dynamicznym przeliczaniu <b>Production Rates</b>.</p>
+                    <p>Zdefiniowałem zadanie liniowe <i>"Układanie toru bezstykowego"</i> powiązane z profilem wydajnościowym zależnym od ukształtowania terenu (zmienna kategoria gruntów i strefy łuków). Kiedy modyfikuję granice strefy odległości bezpośrednio w <code>Distance Profile</code> (np. zmiana stacji początkowej z <code>KM 12+400</code> na <code>KM 14+100</code>), TILOS nie odświeża automatycznie kąta nachylenia zadania na wykresie czasowo-przestrzennym.</p>
+                    <p>W efekcie zadanie zachowuje stary czas trwania, a profil prędkości rozjeżdża się z geometrią trasy, powodując błędne wyliczenia na stykach sekcji. Dopiero wymuszenie pełnego przeliczenia harmonogramu przez <pre>F9 -> Recalculate Entire Project</pre> przywraca poprawny wektor, ale natychmiast rozbija mi to ręcznie ustawione bufory technologiczne (Distance/Time Buffers) względem robót podtorowych.</p>
+                    <p>Czy ktoś z Was spotkał się z tym przy pracy na wersji 10.x? Wygląda to na błąd w mechanizmie dirty-flag dla segmentowanych obiektów liniowych powiązanych z biblioteką profili.</p>',
+                    self)
+    
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Znam ten ból. Obejście, które stosujemy: przypisz profil ponownie do zadania przez <code>Properties -> Quantity & Rates</code> zamiast modyfikować sam profil globalny. Wtedy przelicza wektor natychmiast bez ruszania buforów.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Zgłaszałem to do supportu – problem leży w relacjach <i>Start-Start with Distance Lag</i>. Sprawdź, czy w parametrach łańcucha nie masz ujemnego przesunięcia.</p>', 
+                        thread).PublishComment()
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('', '',
+                    '<p>Czy istnieje możliwość zablokowania automatycznego przesuwania zadań typu <b>Clash/Crossing</b> podczas importu aktualizacji postępu z pliku XML?</p>
+                    <p>Za każdym razem, gdy wgrywam faktyczne daty podwykonawcy, obiekty punktowe (np. przepusty w kilometrażu <code>KM 23+150</code>) tracą powiązanie z osią odległości i lądują na początku układu współrzędnych.</p>',
+                    self)
+    
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Sprawdź mapowanie pól w schemacie XML. Prawdopodobnie atrybut <code>DistanceStation</code> nie jest oznaczony jako klucz unikalny dla zadań punktowych.</p>', 
+                        thread).PublishComment()
+    
+    user.NewDraftComment('<p>Wystarczy zaznaczyć opcję <i>"Lock Spatial Coordinates on Data Date Update"</i> w ustawieniach głównych projektu.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p><b>+1</b>, mieliśmy dokładnie ten sam problem przy regularnej integracji z <i>Primavera P6</i>.</p>', 
+                        thread).PublishComment()
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('Pomysł na funkcję: Szacowanie rezerwy czasowej (Total Float) w oparciu o strefy kolizyjne', '',
+                    '<p>Obecny algorytm CPM w TILOS liczy <b>Total Float</b> czysto w domenie czasu, całkowicie ignorując dostępność frontu robót w przestrzeni (Distance Axis).</p>
+                    <p>Proponuję wprowadzenie metryki <code>Spatial-Time Float</code>. Jeśli zadanie B idzie za zadaniem A i zachowuje minimalny dystans bezpieczeństwa <code>min_dist = 500m</code>, całkowity zapas powinien uwzględniać nie tylko czas, ale i przestrzeń, w której ekipa może manewrować bez wstrzymywania robót.</p>
+                    <p>Taki widok na wykresie Time-Distance byłby zbawieniem przy gęstym upakowaniu robót ziemnych.</p>',
+                    self)
+
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Genialny pomysł! Tradycyjny <b>Critical Path</b> często kłamie na projektach liniowych, bo ścieżka krytyczna przeskakuje po odległościach bez fizycznego sensu.</p>', 
+                        thread).PublishComment()
+
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('', '',
+                    '<p>Szybkie pytanie o <b>Earned Value Management (EVM)</b> w widoku Time-Distance:</p>
+                    <p>Jak najwygodniej zwizualizować <code>BCWS</code> vs <code>BCWP</code> w podziale na sekcje kilometrażowe, a nie tylko jako krzywe S w osi czasu? Chciałbym nałożyć histogram kosztów bezpośrednio pod profilem wysokościowym trasy.</p>',
+                    self)
+                    
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Użyj widoku <i>Distance Profile Chart</i> i dodaj warstwę z <b>Resource / Cost Assignment</b> z włączoną agregacją per sektor.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Pamiętaj tylko, żeby w definicji zadań mieć poprawnie przypisane <code>Cost Accounts</code>, inaczej wykres przestrzenny się spłaszczy do zera.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Niestety moduł EVM ma spore ograniczenia przy wskaźnikach <i>CPI/SPI</i> w ujęciu czysto kilometrażowym. My wyciągamy to przez API do <code>PowerBI</code>.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Robiłem tak na kontrakcie autostradowym – da się to ładnie złożyć, wyślę Ci szablon widoku <i>.tpl</i> na priv.</p>', 
+                        thread).PublishComment()
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('Usterka: Błędne obliczanie ścieżki krytycznej przy pętlach technologicznych i nawrotach maszyn', '',
+                    '<p>Zgłaszam krytyczny problem w module analitycznym harmonogramu, który występuje przy modelowaniu robót z wykorzystaniem maszyn pracujących w pętli lub wykonujących nawroty (np. frezowanie i asfaltowanie wielowarstwowe).</p>
+                    <p>Scenariusz testowy wygląda następująco:</p>
+                    <p>Zadanie 1: <i>Frezowanie nawierzchni</i> (kierunek: rosnący kilometraż, od <code>KM 0+000</code> do <code>KM 10+000</code>).<br>
+                    Zadanie 2: <i>Układanie warstwy wiążącej</i> (kierunek: malejący kilometraż, od <code>KM 10+000</code> do <code>KM 0+000</code>).<br>
+                    Zdefiniowana relacja: <code>End-to-Start</code> z warunkiem przestrzennym <b>Distance Clear = 200m</b>.</p>
+                    <p>Podczas wyliczania wskaźników CPM, silnik harmonogramujący TILOS traktuje punkt przecięcia wektorów zadań jako natychmiastowe zablokowanie zasobu i generuje sztuczny ujemny zapas (Negative Float) rzędu <pre>-120h</pre>, mimo że w rzeczywistości maszyny w ogóle nie kolidują ze sobą czasowo na danym metrze bieżącym trasy.</p>
+                    <p>Co gorsza, funkcja <i>Drive Logic Path</i> podświetla całą sekwencję na czerwono, uniemożliwiając poprawny raport dla Inżyniera Kontraktu. Wygląda na to, że wektor zwrotu zadania (ujemny slope) w połączeniu z buforem przestrzennym odwraca znak we wzorze na <code>Early Finish / Late Start</code>.</p>
+                    <p>Czy ktoś wypracował standardowe reguły linkowania zadań o przeciwnych kierunkach postępu bez rozbijania ich na dziesiątki mikro-zadań jednokilometrowych?</p>',
+                    self)
+                    
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>To stary mankament relacji przy ujemnym nachyleniu linii. Jedyny stabilny workaround to podział zadania na podsekcje i linkowanie relacjami punktowymi w miejscach planowanych mijanek.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Sprawdź, czy w opcjach kalkulacji CPM nie masz zaznaczonej flagi <code>Continuous Activity Logic</code>. Wyłączenie jej potrafi zlikwidować ten fałszywy <i>Negative Float</i>.</p>', 
+                        thread).PublishComment()
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('', '',
+                    '<p>Czy ktoś z Was generował raport <b>Line of Balance (LoB)</b> dla tunelu drążonego TBM przy zmiennych warunkach geologicznych?</p>
+                    <p>Szukam sposobu na dynamiczne wyliczanie krzywej postępu drążenia w oparciu o importowane z Excela warstwy stratygraficzne gruntu. Chodzi o to, by zmiana kategorii skały automatycznie wydłużała czas przejścia TBM na danym interwale metrowym.</p>',
+                    self)
+                    
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Tak, definiujesz <i>Geological Profile</i> jako podkład pod osią odległości i wiążesz go z matrycą wydajności tarczy TBM przez formułę zmiennej prędkości <code>Rate = BaseRate * GeoFactor</code>.</p>', 
+                        thread).PublishComment()
+
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('', '',
+                    '<p>Uwaga na eksport danych do formatu <code>.xer</code> (Primavera P6) z projektów zawierających zadania nieliniowe!</p>
+                    <p>TILOS przy eksporcie konwertuje zadania typu <b>Hammock</b> na standardowe <i>Task Dependent</i>, co powoduje kompletne rozjechanie się dat zakończenia pakietów robót wykończeniowych w P6. Przed wysłaniem pliku do Zamawiającego zawsze weryfikujcie sumaryczne czasy trwania.</p>',
+                    self)
+
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Dzięki za ostrzeżenie! Właśnie zastanawiałem się, dlaczego P6 pokazuje mi inne daty na kamieniach milowych niż wykres <b>Time-Location</b>.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Najlepiej przygotować dedykowany szablon eksportu i wykluczyć Hammocki, zastępując je relacjami logicznymi <code>SS / FF</code> z odpowiednim offsetem.</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>P6 po prostu nie radzi sobie z natywną logiką rozciągania zadań TILOS-a bez twardych powiązań sieciowych.</p>', 
+                        thread).PublishComment()
+
+    -- =====================================================================================================================
+
+    thread = user.NewDraftThread('', '',
+                    '<p>Potrzebuję dobrej praktyki dotyczącej zarządzania <b>oknami zamknięć torowych</b> (Track Possession Windows).</p>
+                    <p>Jak w TILOS najlepiej zamodelować cykliczne zamknięcia nocne (np. codziennie <code>23:00 - 04:00</code> na odcinku <code>KM 15 - KM 20</code>), aby zadania dzienne automatycznie przerywały pracę i wznawiały ją w kolejnym oknie bez tworzenia 50 pojedynczych pasków zadań?</p>',
+                    self)
+
+    thread.PublishThread()
+    unapprovedPosts.ApproveThread(thread, self)
+
+    user.NewDraftComment('<p>Skonfiguruj niestandardowy <b>Non-working Calendar</b> z przerwami nocnymi i przypisz go tylko do zadań w tej konkretnej strefie odległości (<i>Distance Zone Calendar</i>).</p>', 
+                        thread).PublishComment()
+
+    user.NewDraftComment('<p>Możesz też użyć warstwy <i>Time Distance Grid</i> i zdefiniować zakresy wyłączone z ruchu jako obiekty restrykcyjne typu <code>Constraint Zone</code> - zadanie przetnie strefę bez generowania podzadań.</p>', 
+                        thread).PublishComment()
+
+
+    -- =====================================================================================================================
+
+    result = "Done"
+
+
+-- clear sample feed data
+context Group::ClearSampleTUHData: string
+post:
+    self.Members.forAll(m | 
+        m.User.MyDraftPosts.Notes.removeAll
+        m.User.MySentPosts.Notes.removeAll
+        m.User.MyFeed.Notes.removeAll
+        
+        m.User.MyDraftPosts.delete
+        m.User.MySentPosts.delete
+        m.User.MyFeed.delete
+
+        m.User.CreatedNotes.select(element.Kind = NK_THREAD).forAll(element.DeletePermanently())
+        m.User.CreatedNotes.select(element.Kind = NK_COMMENT).forAll(element.DeletePermanently())
+        m.User.SubscribedFolders.removeAll)
+
+    system.allInstances("User").select(element.login = "emma@example.com").removeAll
+    system.allInstances("User").select(element.login = "jack@example.com").removeAll
+    system.allInstances("User").select(element.login = "olivia@example.com").removeAll
+    system.allInstances("User").select(element.login = "admin@example.com").removeAll
+
+    self.Members.removeAll
+
+    self.FeedsRoot.Folders.removeAll
+    self.FeedsRoot = null
+
+    self.UnapprovedPosts.Notes.removeAll
+    self.UnapprovedPosts = null
+    
+context Group::MakeSampleTUHUsers
+post:
+    let u: User
+    u = self.CreateMember("Emma Johnson", "emma@example.com")
+        u.MakeTUHFolders()
+    u = self.CreateMember("Jack Smith",   "jack@example.com")
+        u.MakeTUHFolders()
+    u = self.CreateMember("Olivia Brown", "olivia@example.com")
+        u.MakeTUHFolders()
+
+    u = self.CreateMember("Admin Serviceman", "admin@example.com")
+        u.MakeTUHFolders()
+
+
+context User::SubscribeFolder(folder: Folder) : UserFolder
+post:
+    if not self.SubscribedFolders.exists(element.Folder = folder) then
+        result = self.SubscribedFolders.newElement(element.Folder = folder)
+    end if
+
+context User::UnsubscribeFolder(folder: Folder): boolean
+post:
+    self.SubscribedFolders.select(element.Folder = folder).removeAll
+    result = true
+
+
+context Folder::IsSubscribed: boolean
+post:
+    result = user.SubscribedFolders.exists(element.Folder = self)
+
+
+context Folder::Subscribe : UserFolder
+post:
+    result = user.SubscribeFolder(self)
+
+
+context Folder::Unsubscribe: boolean
+post:
+    result = user.UnsubscribeFolder(self)
+
+
+
+context Folder::LimitFolderElementsTo(limit: integer)
+post:
+    let elementsCount: integer = self.Folders.count + self.Tasks.count + self.Notes.count + self.Files.count
+    
+    let folder: FolderFolder
+    let task: FolderTask
+    let note: FolderNote
+    let fil: FolderFile
+
+    while elementsCount > limit do
+
+        folder = self.Folders.orderedBy("Order").first
+        task = self.Tasks.orderedBy("Order").first
+        note = self.Notes.orderedBy("Order").first
+        fil = self.Files.orderedBy("Order").first
+
+        if folder <> null and folder.Order <= task.Order and folder.Order <= note.Order and folder.Order <= fil.Order then
+            folder.delete
+        else if task <> null and task.Order <= folder.Order and task.Order <= note.Order and task.Order <= fil.Order then
+            task.delete
+        else if note <> null and note.Order <= folder.Order and note.Order <= task.Order and note.Order <= fil.Order then
+            note.delete
+        else if fil <> null then
+            fil.delete
+        end if
+        end if
+        end if
+        end if
+
+        elementsCount = self.Folders.count + self.Tasks.count + self.Notes.count + self.Files.count
+    end while 
+
+
+context Group::InformInterestedUsers(note: Note)
+post:
+    self.InformInterestedUsersA(note)
+
+
+admin context Group::InformInterestedUsersA(note: Note)
+pre:
+    note.State <> NS_DRAFT
+post:
+
+    let userFeed: Folder 
+
+    if note.Kind = NK_COMMENT then
+        let thread: Note = note.InNotes.select(element.IsCanonical and element.Status = STATUS_ACTIVE).first.InNote
+
+        -- notify author of the thread
+        if thread.CreatedBy <> note.CreatedBy then
+            userFeed = thread.CreatedBy.MyFeed
+            userFeed.AttachNote(note)
+            userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+        end if
+
+        -- notify all commenters 
+        thread.Notes.forAll(
+            if element.Note.CreatedBy <> note.CreatedBy then
+                userFeed = element.Note.CreatedBy.MyFeed
+                if not note.InFolders.exists(element.Folder = userFeed) then
+                    userFeed.AttachNote(note)
+                    userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+                end if
+            end if
+        )
+
+    else    
+        let categoryFolder: Folder = note.InFolders.select(element.IsCanonical and element.Status = STATUS_ACTIVE).first.Folder
+        
+        -- select(element.User <> note.CreatedBy). ?
+        categoryFolder.SubscribedBy.forAll(
+            userFeed = element.User.MyFeed
+            -- todo: note.State = NS_CONFIDENTIAL
+            userFeed.AttachNote(note)
+            userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+        )
+    end if
+
+
+

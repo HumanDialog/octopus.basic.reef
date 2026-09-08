@@ -49,6 +49,7 @@ post:
         if options & RSCO_PARENTS then
           self.InFolders.forAll(element.Folder.ResetServiceCode(code, options))
           self.InTasks.forAll(element.Task.ResetServiceCode(code, options))
+          self.InNotes.forAll(element.InNote.ResetServiceCode(code, options))
         end if
     end if
 
@@ -74,6 +75,8 @@ post:
 
         if options & RSCO_PARENTS then
             self.InFolders.forAll(element.Folder.ResetServiceCode(code, options))
+            self.InTasks.forAll(element.Task.ResetServiceCode(code, options))
+            self.InNotes.forAll(element.Note.ResetServiceCode(code, options))
         end if
     end if
 

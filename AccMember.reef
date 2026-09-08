@@ -124,7 +124,7 @@ post:
 
 context Note::AccMember: integer
 post:
-    if self.Status = NS_PUBLIC then
+    if self.State = NS_PUBLIC then
         result = ACC_READWRITE
     else if self.CreatedBy = user or self.ModifiedBy = user then
         result = ACC_READWRITE

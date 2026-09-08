@@ -31,6 +31,12 @@ const FS_GROUP_ROOT_DELETED_FOLDER  = 165
 const FS_USER_ROOT_ARCHIVED_FOLDER  = 166
 const FS_GROUP_ROOT_ARCHIVED_FOLDER = 167
 
+const FS_USER_MY_FEED_FOLDER        = 168
+const FS_USER_MY_SENT_POSTS_FOLDER  = 169
+const FS_USER_MY_DRAFT_POSTS_FOLDER = 170
+const FS_GROUP_ROOT_FEEDS_FOLDER    = 171
+const FS_GROUP_UNAPPROVED_POSTS_FOLDER = 172
+
 const FS_LATEST_ELEMENTS    = 1001
 
 const FSX_IN_CALCULATION    = 100000
@@ -80,6 +86,8 @@ class Folder
     CreatedBy:          User
     Project:            Project
     ProjectId:          integer
+
+    SubscribedBy(0..n):     UserFolder     <backNav: Folder>
 end class
 
 
@@ -201,6 +209,10 @@ post:
             result = '/folder/projectarchive/' + self.ProjectId
         case FS_PROJECT_TRASH_ROOT_FOLDER
             result = '/folder/projecttrash/' + self.ProjectId
+        case FS_GROUP_ROOT_FEEDS_FOLDER
+            result = '/folder/feeds'
+        case FS_GROUP_UNAPPROVED_POSTS_FOLDER
+            result = '/feed/unapprovedposts'
         case else
             select case self.Kind
                 case FK_FEED
@@ -274,7 +286,7 @@ post:
     case FS_USER_SHARED_FOLDER, FS_USER_SHARED_SUB_FOLDER
         result = FIN_USER_SUBSHARED
 
-    case FS_GROUP_ROOT_FOLDER, FS_GROUP_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER
+    case FS_GROUP_ROOT_FOLDER, FS_GROUP_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
         result = FIN_GROUP
     case FS_GROUP_ROOT_SHARED_FOLDER
         result = FIN_GROUP_SHARED
@@ -305,7 +317,7 @@ post:
             result = ACC_USER
 
 
-        case FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER
+        case FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
             result = ACC_GROUP
 
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
@@ -393,6 +405,8 @@ post:
             result = true
         case FS_GROUP_ARCHIVE_ROOT_FOLDER
             result = true
+        case FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
+            result = true
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
             result = true
         case else
@@ -452,7 +466,8 @@ post:
 
     let n: Note = user.CreatedNotes.newElement(n |
             n.Title = properties.Title and
-            n.Summary = properties.Summary) in
+            n.Summary = properties.Summary and
+            n.Group = group) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = properties.Order)
     n.RecalculateLocationInfo
@@ -465,7 +480,8 @@ post:
     let n: Note = user.CreatedNotes.newElement(n |
             n.Title = title and
             n.Summary = summary and
-            n.Kind = NK_THREAD) in
+            n.Kind = NK_THREAD and
+            n.Group = group) in
 
     result = self.Notes.newElement( e | e.Note = n and e.Order = order)
     n.RecalculateLocationInfo()
@@ -1181,7 +1197,7 @@ post:
     let order: integer = trash.MaxOrder + ORDER_STEP
 
     if not trash.Folders.exists(element.FolderId = self.Id) then
-        trash.Folders.newElement(e | e.Folder=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        trash.Folders.newElement(e | e.Folder=self and e.Order=order and e.Status = STATUS_ACTIVE)      -- e.LinkInfo = FLI_CANONICAL and
         --sx
         self.RecalculateLocationInfo --self.ValidateSubTreeCanonicalPaths()
         result = true
@@ -1226,7 +1242,7 @@ post:
     let order: integer = archive.MaxOrder + ORDER_STEP
 
     if not archive.Folders.exists(element.FolderId = self.Id) then
-        archive.Folders.newElement(e | e.Folder=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        archive.Folders.newElement(e | e.Folder=self and e.Order=order and e.Status = STATUS_ACTIVE)        -- and e.LinkInfo = FLI_CANONICAL
         self.RecalculateLocationInfo --self.ValidateSubTreeCanonicalPaths()
         result = true
     else
@@ -1707,9 +1723,13 @@ context FolderNote::Content: string
 post:
     result = self.Note.Content
 
-context FolderNote::Kind: string
+context FolderNote::Kind: integer
 post:
     result = self.Note.Kind
+
+context FolderNote::State: integer
+post:
+    result = self.Note.State
 
 -- ==============================================================================
 

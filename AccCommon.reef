@@ -215,7 +215,7 @@ post:
     self.Notes.forAll(element.Note.ResetAccCodesRec)
     self.Tasks.forAll(element.Task.ResetAccCodesRec)
     self.Folders.forAll(element.Folder.ResetAccCodesRec)
-
+    self.Files.forAll(element.File.ResetAccCodesRec)
 
 
 
@@ -226,6 +226,7 @@ post:
         self.Folders.forAll(element.Folder.ResetAccCodesRec)
         self.Notes.forAll(element.Note.ResetAccCodesRec)
         self.Tasks.forAll(element.Task.ResetAccCodesRec)
+        self.Files.forAll(element.File.ResetAccCodesRec)
     end if
 
 
@@ -271,7 +272,7 @@ post:
             result = ACC_USER_SHARED
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
             result = ACC_GROUP
-        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_DELETED_FOLDER, FS_GROUP_ROOT_ARCHIVED_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER
+        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_DELETED_FOLDER, FS_GROUP_ROOT_ARCHIVED_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
             result = ACC_GROUP
         case FS_GROUP_SHARED_FOLDER
             result = ACC_GROUP_SHARED
@@ -297,6 +298,7 @@ post:
         self.Folders.forAll(element.Folder.CalculateAccCodeRec)
         self.Notes.forAll(element.Note.CalculateAccCodeRec)
         self.Tasks.forAll(element.Task.CalculateAccCodeRec)
+        self.Files.forAll(element.File.CalculateAccCodeRec)
     end if
 
 
@@ -314,6 +316,7 @@ post:
     if self.AccCode <> ACC_UNKNOWN then
         self.AccCode = ACC_UNKNOWN
         self.Notes.forAll(element.Note.ResetAccCodesRec)
+        self.Files.forAll(element.File.ResetAccCodesRec)
     end if
 
 
@@ -341,10 +344,14 @@ context Note::CalculateAccCode: integer
 post:
     self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
     self.InNotes.forAll(element.InNote.CalculateAccCodeRec)
+    self.InTasks.forAll(element.Task.CalculateAccCodeRec)
+
     let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
     let inNotesCode: integer = self.InNotes.max(element.InNote.AccCode)
+    let inTasksCode: integer = self.InTasks.max(element.Task.AccCode)
 
     result = Max(inFoldersCode, inNotesCode)
+    result = Max(result, inTasksCode)
 
 
 
@@ -355,6 +362,7 @@ post:
         self.ServiceCode = 0
         self.AccCode = self.CalculateAccCode
         self.Notes.forAll(element.Note.CalculateAccCodeRec)
+        self.Files.forAll(element.File.CalculateAccCodeRec)
     end if
 
 context Task::ResetAccCodesRec
@@ -362,6 +370,7 @@ post:
     if self.AccCode <> ACC_UNKNOWN then
         self.AccCode = ACC_UNKNOWN
         self.Notes.forAll(element.Note.ResetAccCodesRec)
+        self.Files.forAll(element.File.ResetAccCodesRec)
     end if
 
 context Task::CheckUAssoc(user: User)
@@ -384,6 +393,34 @@ post:
         self.Notes.forAll(element.Note.CheckGAssoc(group))--.ResetAccCodesRec)
     end if
 
+
+context UploadedFile::CalculateAccCode: integer
+post:
+    self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
+    self.InNotes.forAll(element.Note.CalculateAccCodeRec)
+    self.InTasks.forAll(element.Task.CalculateAccCodeRec)
+
+    let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
+    let inNotesCode: integer = self.InNotes.max(element.Note.AccCode)
+    let inTasksCode: integer = self.InTasks.max(element.Task.AccCode)
+
+    result = Max(inFoldersCode, inNotesCode)
+    result = Max(result, inTasksCode)
+
+context UploadedFile::CalculateAccCodeRec
+post:
+    if self.ServiceCode <> 0 then
+        self.ServiceCode = 0
+        self.AccCode = self.CalculateAccCode
+    end if
+
+
+context UploadedFile::ResetAccCodesRec
+post:
+    if self.AccCode <> ACC_UNKNOWN then
+        self.AccCode = ACC_UNKNOWN
+    end if
+
 context UploadedFile::CheckUAssoc(user: User)
 post:
     if self.ServiceCode & CUGA_USER_CHECKED = 0 then
@@ -404,14 +441,19 @@ post:
 
 
 
-context Task::CalculateAccCode
+context Task::CalculateAccCode : integer
 post:
-
     self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
     let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
-    let taskListCode: integer = self.TaskList.AccCode
+    let taskListCode: integer = self.TaskList.CalculateAccCode  -- AccCode
+    
+    let userCode: integer  = ACC_UNKNOWN
+    if self.Actor <> null then
+        userCode = ACC_USER
+    end if
 
     result = Max(inFoldersCode, taskListCode)
+    result = Max(userCode, result)
 
 
 context Task::CalculateAccCodeRec
@@ -420,8 +462,23 @@ post:
         self.ServiceCode = 0
         self.AccCode = self.CalculateAccCode
         self.Notes.forAll(element.Note.CalculateAccCodeRec)
+        self.Files.forAll(element.File.CalculateAccCodeRec)
     end if
 
+
+context TaskList::CalculateAccCode: integer
+post:
+    if self.Project <> null then
+        result = ACC_GROUP
+    else if self.Group <> null then
+        result = ACC_GROUP
+    else if self.User <> null then
+        result = ACC_USER
+    else    
+        result = ACC_UNKNOWN
+    end if
+    end if
+    end if
 
 ------------------------------------------------------------------------------------------------------
 ----  Folder::ResetSubAccCodes
@@ -438,6 +495,11 @@ post:
 context Task::RecalculateAccCode
 post:
     self.ResetServiceCode(105, RSCO_ELEMENTS  | RSCO_PARENTS)
+    self.CalculateAccCodeRec
+
+context UploadedFile::RecalculateAccCode
+post:
+    self.ResetServiceCode(107, RSCO_PARENTS)
     self.CalculateAccCodeRec
 
 

@@ -6,8 +6,8 @@ post:
 context App::CreateTilosCommunityGroup : Group
 post:
     let tilosCommunity: Group = new Group
-    tilosCommunity.Name = "Tilos Community"
-    tilosCommunity.AllTags = '#bug #question #feature request #improvement request #release'
+    tilosCommunity.Name = "TILOS Users Hub"
+    tilosCommunity.AllTags = '#bug:bg-stone-400 #question:bg-lime-600 #feature request:bg-stone-400 #improvement request:bg-cyan-600 #release:bg-violet-600'
 
     tilosCommunity.CreateDiscussionsStructrure()
     tilosCommunity.CreateLibraryStructure()
@@ -19,7 +19,7 @@ post:
 context App::InitTilosGroupAndMembers: Group
 post:
     let tilosCommunity: Group = new Group
-    tilosCommunity.Name = "Tilos Community"
+    tilosCommunity.Name = "TILOS Users Hub"
     tilosCommunity.Lists.removeAll
 
     tilosCommunity.AllTags = '#bug:bg-stone-400 #question:bg-lime-600 #feature request:bg-stone-400 #improvement request:bg-cyan-600 #release:bg-violet-600'
@@ -149,7 +149,7 @@ post:
     self.Notes.newElement(element.Note = originalPost)
 
     let resp1: Note = new Note
-    resp1.Kind = NK_POST
+    resp1.Kind = NK_COMMENT
     resp1.CreationDate = 2023.11.21
     resp1.CreationDate.Time = "09:03"
     resp1.CreatedBy = Ethan
@@ -165,7 +165,7 @@ post:
     originalPost.Notes.newElement(element.Note=resp1 and element.Order = ORDER_STEP*1)
 
     let resp2: Note = new Note
-    resp2.Kind = NK_POST
+    resp2.Kind = NK_COMMENT
     resp2.CreationDate = 2023.11.22
     resp2.CreationDate.Time = "00:26"
     resp2.CreatedBy = Liam
@@ -181,7 +181,7 @@ post:
     originalPost.Notes.newElement(element.Note=resp2 and element.Order = ORDER_STEP*2)
 
     let resp3: Note = new Note
-    resp3.Kind = NK_POST
+    resp3.Kind = NK_COMMENT
     resp3.CreationDate = 2023.12.19
     resp3.CreationDate.Time = "08:14"
     resp3.CreatedBy = Mason
@@ -230,15 +230,18 @@ post:
 
 context Group::CreateMember(name: string, login: string): User
 post:
-    let u: User = new User
-    u.login = login
-    u.Email = login
-    u.Name = name
+    if not self.Members.exists(element.User.login = login) then
+        let u: User = new User
+        u.login = login
+        u.Email = login
+        u.Name = name
 
-    u.GetPinnedFolders()
-    u.GetBasketFolder()
+        u.GetPinnedFolders()
+        u.GetBasketFolder()
 
-    self.Members.newElement(element.User = u)
+        self.Members.newElement(element.User = u)
+        result = u
+    end if
 
 
 context Group::AddBasicSampleStuff()
@@ -316,269 +319,3 @@ post:
     list.ReorderTasks()
 
 
-
--- ================================================================================================================================
--- ================================================================================================================================
--- ================================================================================================================================
-
-class EditingPost
-    Note:               Note
-    User:               User        <backNav: MyWorkingPosts[0..n]>
-    ParentFolder:       Folder
-    ParentNote:         Note
-end class
-
-
-context Group::MakeTUHFolders() : string
-post:
-    self.ThreadsRoot = self.AllFolders.newElement(element.Title = "Threads" and element.Summary="Current questions about TILOS, bug reports, and suggestions for new features")
-    self.ThreadsRoot.Kind = FK_FOLDER
-    self.ThreadsRoot.AccCode = ACC_GROUP
-
-    let link: FolderFolder
-    
-    link = self.ThreadsRoot.CreateSubFolder("General", "", 1 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Installation and Licensing", "", 2 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Import, Export, and Data Exchange", "", 3 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Views", "", 4 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Scheduling and Project Control", "", 5 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Libraries and Resources", "", 6 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Printing and Presentation", "", 7 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Feature Requests", "", 8 * ORDER_STEP, FK_FEED);
-    link = self.ThreadsRoot.CreateSubFolder("Announcements", "", 9 * ORDER_STEP, FK_FEED);
-
-    result = "" + self.ThreadsRoot.Folders.count + " folders created"
-
-
-
-context User::MakeTUHFolders() : string
-post:
-    --self.MyWorkingPosts = self.AllFolders.newElement(element.Title = "My Working Posts" and element.Kind = FK_FEED and element.AccCode = ACC_USER)
-    self.MySentPosts = self.AllFolders.newElement(element.Title = "My Posts" and element.Kind = FK_FEED and element.AccCode = ACC_USER)
-    self.MyFeed = self.AllFolders.newElement(element.Title = "My Feed" and element.Kind = FK_FEED and element.AccCode = ACC_USER)
-
-    result = "Folders created"
-
-
-context User::NewWorkingThread(title: string, content: string, optional category: Folder = null) : EditingPost
-post:
-
-    let note: Note = self.CreatedNotes.newElement(n | 
-            n.Title = title and
-            n.Content = content and
-            n.Kind = NK_THREAD) in
-
-    if category = null then
-        category = group.ThreadsRoot.Folders.first.Folder       -- default category?
-    end if
-
-    let editingPost: EditingPost = self.MyWorkingPosts.newElement(element.Note = note and element.ParentFolder = category)
-    result = editingPost
-
-
-context EditingPost::PublishThread(): boolean
-post:
-    let usr: User = self.User
-    let note: Note = self.Note
-    let parentFolder: Folder = self.ParentFolder
-
-    usr.MyWorkingPosts.select(element.Note = note).removeAll
-
-    if not usr.MySentPosts.Notes.exists(element.Note = note) then
-        usr.MySentPosts.AttachNote(note)
-    end if
-
-    if parentFolder <> null then
-        result = parentFolder.AttachNote(note)
-    end if
-
-
-context EditingPost::Kind: integer
-post:
-    result = self.Note.Kind
-
-
-context User::NewWorkingComment(content: string, thread: Note) : EditingPost
-post:
-    let note: Note = self.CreatedNotes.newElement(n | 
-            n.Content = content and
-            n.Kind = NK_POST) in
-    
-    let editingPost: EditingPost = self.MyWorkingPosts.newElement(element.Note = note and element.ParentNote = thread)
-    result = editingPost
-
-context EditingPost::PublishComment(): boolean 
-post:
-    let usr: User = self.User
-    let comment: Note = self.Note
-    let thread: Note = self.ParentNote
-
-    usr.MyWorkingPosts.select(element.Note = comment).removeAll
-    
-    if not usr.MySentPosts.Notes.exists(element.Note = comment) then
-        usr.MySentPosts.AttachNote(comment)
-    end if
-
-    let order: integer in
-
-    if thread <> null then
-        order = thread.Notes.max(element.Order) + ORDER_STEP
-        result = thread.AttachNote(comment, order)
-    end if
-
-context Folder::MakeSampleTUHFeed: string
-post:
-
-    let editingPost: EditingPost in
-    let thread: Note in
-    let comment: Note in
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('Problem z automatycznym przeliczaniem prędkości postępu (Production Rate) przy modyfikacji stref profilu odległości',
-                    '<p>Cześć wszystkim, pracuję nad harmonogramem modernizacji 45-kilometrowego odcinka linii kolejowej i napotkałem dziwny problem przy dynamicznym przeliczaniu <b>Production Rates</b>.</p>
-                    <p>Zdefiniowałem zadanie liniowe <i>"Układanie toru bezstykowego"</i> powiązane z profilem wydajnościowym zależnym od ukształtowania terenu (zmienna kategoria gruntów i strefy łuków). Kiedy modyfikuję granice strefy odległości bezpośrednio w <code>Distance Profile</code> (np. zmiana stacji początkowej z <code>KM 12+400</code> na <code>KM 14+100</code>), TILOS nie odświeża automatycznie kąta nachylenia zadania na wykresie czasowo-przestrzennym.</p>
-                    <p>W efekcie zadanie zachowuje stary czas trwania, a profil prędkości rozjeżdża się z geometrią trasy, powodując błędne wyliczenia na stykach sekcji. Dopiero wymuszenie pełnego przeliczenia harmonogramu przez <pre>F9 -> Recalculate Entire Project</pre> przywraca poprawny wektor, ale natychmiast rozbija mi to ręcznie ustawione bufory technologiczne (Distance/Time Buffers) względem robót podtorowych.</p>
-                    <p>Czy ktoś z Was spotkał się z tym przy pracy na wersji 10.x? Wygląda to na błąd w mechanizmie dirty-flag dla segmentowanych obiektów liniowych powiązanych z biblioteką profili.</p>',
-                    self)
-    
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Znam ten ból. Obejście, które stosujemy: przypisz profil ponownie do zadania przez <code>Properties -> Quantity & Rates</code> zamiast modyfikować sam profil globalny. Wtedy przelicza wektor natychmiast bez ruszania buforów.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Zgłaszałem to do supportu – problem leży w relacjach <i>Start-Start with Distance Lag</i>. Sprawdź, czy w parametrach łańcucha nie masz ujemnego przesunięcia.</p>', 
-                        thread).PublishComment()
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('',
-                    '<p>Czy istnieje możliwość zablokowania automatycznego przesuwania zadań typu <b>Clash/Crossing</b> podczas importu aktualizacji postępu z pliku XML?</p>
-                    <p>Za każdym razem, gdy wgrywam faktyczne daty podwykonawcy, obiekty punktowe (np. przepusty w kilometrażu <code>KM 23+150</code>) tracą powiązanie z osią odległości i lądują na początku układu współrzędnych.</p>',
-                    self)
-    
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Sprawdź mapowanie pól w schemacie XML. Prawdopodobnie atrybut <code>DistanceStation</code> nie jest oznaczony jako klucz unikalny dla zadań punktowych.</p>', 
-                        thread).PublishComment()
-    
-    user.NewWorkingComment('<p>Wystarczy zaznaczyć opcję <i>"Lock Spatial Coordinates on Data Date Update"</i> w ustawieniach głównych projektu.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p><b>+1</b>, mieliśmy dokładnie ten sam problem przy regularnej integracji z <i>Primavera P6</i>.</p>', 
-                        thread).PublishComment()
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('Pomysł na funkcję: Szacowanie rezerwy czasowej (Total Float) w oparciu o strefy kolizyjne',
-                    '<p>Obecny algorytm CPM w TILOS liczy <b>Total Float</b> czysto w domenie czasu, całkowicie ignorując dostępność frontu robót w przestrzeni (Distance Axis).</p>
-                    <p>Proponuję wprowadzenie metryki <code>Spatial-Time Float</code>. Jeśli zadanie B idzie za zadaniem A i zachowuje minimalny dystans bezpieczeństwa <code>min_dist = 500m</code>, całkowity zapas powinien uwzględniać nie tylko czas, ale i przestrzeń, w której ekipa może manewrować bez wstrzymywania robót.</p>
-                    <p>Taki widok na wykresie Time-Distance byłby zbawieniem przy gęstym upakowaniu robót ziemnych.</p>',
-                    self)
-
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Genialny pomysł! Tradycyjny <b>Critical Path</b> często kłamie na projektach liniowych, bo ścieżka krytyczna przeskakuje po odległościach bez fizycznego sensu.</p>', 
-                        thread).PublishComment()
-
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('',
-                    '<p>Szybkie pytanie o <b>Earned Value Management (EVM)</b> w widoku Time-Distance:</p>
-                    <p>Jak najwygodniej zwizualizować <code>BCWS</code> vs <code>BCWP</code> w podziale na sekcje kilometrażowe, a nie tylko jako krzywe S w osi czasu? Chciałbym nałożyć histogram kosztów bezpośrednio pod profilem wysokościowym trasy.</p>',
-                    self)
-                    
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Użyj widoku <i>Distance Profile Chart</i> i dodaj warstwę z <b>Resource / Cost Assignment</b> z włączoną agregacją per sektor.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Pamiętaj tylko, żeby w definicji zadań mieć poprawnie przypisane <code>Cost Accounts</code>, inaczej wykres przestrzenny się spłaszczy do zera.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Niestety moduł EVM ma spore ograniczenia przy wskaźnikach <i>CPI/SPI</i> w ujęciu czysto kilometrażowym. My wyciągamy to przez API do <code>PowerBI</code>.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Robiłem tak na kontrakcie autostradowym – da się to ładnie złożyć, wyślę Ci szablon widoku <i>.tpl</i> na priv.</p>', 
-                        thread).PublishComment()
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('Usterka: Błędne obliczanie ścieżki krytycznej przy pętlach technologicznych i nawrotach maszyn',
-                    '<p>Zgłaszam krytyczny problem w module analitycznym harmonogramu, który występuje przy modelowaniu robót z wykorzystaniem maszyn pracujących w pętli lub wykonujących nawroty (np. frezowanie i asfaltowanie wielowarstwowe).</p>
-                    <p>Scenariusz testowy wygląda następująco:</p>
-                    <p>Zadanie 1: <i>Frezowanie nawierzchni</i> (kierunek: rosnący kilometraż, od <code>KM 0+000</code> do <code>KM 10+000</code>).<br>
-                    Zadanie 2: <i>Układanie warstwy wiążącej</i> (kierunek: malejący kilometraż, od <code>KM 10+000</code> do <code>KM 0+000</code>).<br>
-                    Zdefiniowana relacja: <code>End-to-Start</code> z warunkiem przestrzennym <b>Distance Clear = 200m</b>.</p>
-                    <p>Podczas wyliczania wskaźników CPM, silnik harmonogramujący TILOS traktuje punkt przecięcia wektorów zadań jako natychmiastowe zablokowanie zasobu i generuje sztuczny ujemny zapas (Negative Float) rzędu <pre>-120h</pre>, mimo że w rzeczywistości maszyny w ogóle nie kolidują ze sobą czasowo na danym metrze bieżącym trasy.</p>
-                    <p>Co gorsza, funkcja <i>Drive Logic Path</i> podświetla całą sekwencję na czerwono, uniemożliwiając poprawny raport dla Inżyniera Kontraktu. Wygląda na to, że wektor zwrotu zadania (ujemny slope) w połączeniu z buforem przestrzennym odwraca znak we wzorze na <code>Early Finish / Late Start</code>.</p>
-                    <p>Czy ktoś wypracował standardowe reguły linkowania zadań o przeciwnych kierunkach postępu bez rozbijania ich na dziesiątki mikro-zadań jednokilometrowych?</p>',
-                    self)
-                    
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>To stary mankament relacji przy ujemnym nachyleniu linii. Jedyny stabilny workaround to podział zadania na podsekcje i linkowanie relacjami punktowymi w miejscach planowanych mijanek.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Sprawdź, czy w opcjach kalkulacji CPM nie masz zaznaczonej flagi <code>Continuous Activity Logic</code>. Wyłączenie jej potrafi zlikwidować ten fałszywy <i>Negative Float</i>.</p>', 
-                        thread).PublishComment()
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('',
-                    '<p>Czy ktoś z Was generował raport <b>Line of Balance (LoB)</b> dla tunelu drążonego TBM przy zmiennych warunkach geologicznych?</p>
-                    <p>Szukam sposobu na dynamiczne wyliczanie krzywej postępu drążenia w oparciu o importowane z Excela warstwy stratygraficzne gruntu. Chodzi o to, by zmiana kategorii skały automatycznie wydłużała czas przejścia TBM na danym interwale metrowym.</p>',
-                    self)
-                    
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Tak, definiujesz <i>Geological Profile</i> jako podkład pod osią odległości i wiążesz go z matrycą wydajności tarczy TBM przez formułę zmiennej prędkości <code>Rate = BaseRate * GeoFactor</code>.</p>', 
-                        thread).PublishComment()
-
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('',
-                    '<p>Uwaga na eksport danych do formatu <code>.xer</code> (Primavera P6) z projektów zawierających zadania nieliniowe!</p>
-                    <p>TILOS przy eksporcie konwertuje zadania typu <b>Hammock</b> na standardowe <i>Task Dependent</i>, co powoduje kompletne rozjechanie się dat zakończenia pakietów robót wykończeniowych w P6. Przed wysłaniem pliku do Zamawiającego zawsze weryfikujcie sumaryczne czasy trwania.</p>',
-                    self)
-
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Dzięki za ostrzeżenie! Właśnie zastanawiałem się, dlaczego P6 pokazuje mi inne daty na kamieniach milowych niż wykres <b>Time-Location</b>.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Najlepiej przygotować dedykowany szablon eksportu i wykluczyć Hammocki, zastępując je relacjami logicznymi <code>SS / FF</code> z odpowiednim offsetem.</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>P6 po prostu nie radzi sobie z natywną logiką rozciągania zadań TILOS-a bez twardych powiązań sieciowych.</p>', 
-                        thread).PublishComment()
-
-    -- =====================================================================================================================
-
-    editingPost = user.NewWorkingThread('',
-                    '<p>Potrzebuję dobrej praktyki dotyczącej zarządzania <b>oknami zamknięć torowych</b> (Track Possession Windows).</p>
-                    <p>Jak w TILOS najlepiej zamodelować cykliczne zamknięcia nocne (np. codziennie <code>23:00 - 04:00</code> na odcinku <code>KM 15 - KM 20</code>), aby zadania dzienne automatycznie przerywały pracę i wznawiały ją w kolejnym oknie bez tworzenia 50 pojedynczych pasków zadań?</p>',
-                    self)
-
-    thread = editingPost.Note
-    editingPost.PublishThread()
-
-    user.NewWorkingComment('<p>Skonfiguruj niestandardowy <b>Non-working Calendar</b> z przerwami nocnymi i przypisz go tylko do zadań w tej konkretnej strefie odległości (<i>Distance Zone Calendar</i>).</p>', 
-                        thread).PublishComment()
-
-    user.NewWorkingComment('<p>Możesz też użyć warstwy <i>Time Distance Grid</i> i zdefiniować zakresy wyłączone z ruchu jako obiekty restrykcyjne typu <code>Constraint Zone</code> – zadanie przetnie strefę bez generowania podzadań.</p>', 
-                        thread).PublishComment()
-
-
-    -- =====================================================================================================================
-
-    result = "Done"

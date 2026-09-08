@@ -197,7 +197,7 @@ post:
                         Name: parentTask.Title,
                         Summary: parentTask.Summary,
                         href: parentTask.href,
-                        icon: 'Task'
+                        icon: parentTask.icon
                     }]
             else
                 canonicalPath = []
@@ -219,7 +219,7 @@ post:
                             Name:       parentNote.Title,
                             Summary:    parentNote.Summary,
                             href:       parentNote.href,
-                            icon:       'Note'
+                            icon:       parentNote.icon
                         }]
                 else
                     canonicalPath = []
@@ -240,10 +240,7 @@ post:
     self.CanonicalPath = self.CalculateCanonicalPath()
 
 
-context UploadedFile::RecalculateLocationInfo
-post:
-    --self.RecalculateAccCode
-    --self.RecalculateCanonicalLinksAfterAttach(newLink)
+
 
 
 context UploadedFile::ObsoleteRecalculateCanonicalLinksAfterAttach(newLink: FolderFile)
@@ -408,7 +405,7 @@ post:
     let order: integer = trash.MaxOrder + ORDER_STEP
 
     if not trash.Files.exists(element.FileId = self.Id) then
-        trash.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        trash.Files.newElement(e | e.File=self and e.Order=order and e.Status = STATUS_ACTIVE)      --  and e.LinkInfo = FLI_CANONICAL
         self.RecalculateLocationInfo --.ValidateSubTreeCanonicalPaths()
         result = true
     else
@@ -447,7 +444,7 @@ post:
     let order: integer = archive.MaxOrder + ORDER_STEP
 
     if not archive.Files.exists(element.FileId = self.Id) then
-        archive.Files.newElement(e | e.File=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
+        archive.Files.newElement(e | e.File=self and e.Order=order and e.Status = STATUS_ACTIVE)        -- and e.LinkInfo = FLI_CANONICAL
         self.ValidateSubTreeCanonicalPaths()
         result = true
     else
@@ -519,10 +516,6 @@ context FolderFile::IsInBasket: boolean
 post:
     result = self.File.IsInBasket
 
-context FolderFile::IsCanonical: boolean
-post:
-    result = (self.LinkInfo & FLI_CANONICAL) <> 0
-
 
 context FolderFile::SetLocationAsCanonical
 post:
@@ -562,10 +555,6 @@ post:
     result = self.Folder.icon
 
 -- ==============================================================================
-
-context TaskFile::IsCanonical: boolean
-post:
-    result = (self.LinkInfo & FLI_CANONICAL) <> 0
 
 context TaskFile::Title: string
 post:
@@ -622,10 +611,6 @@ post:
     result = self.Task.icon
 
 -- ==============================================================================
-
-context NoteFile::IsCanonical: boolean
-post:
-    result = (self.LinkInfo & FLI_CANONICAL) <> 0
 
 context NoteFile::Title: string
 post:

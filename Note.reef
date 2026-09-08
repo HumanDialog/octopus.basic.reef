@@ -1,16 +1,22 @@
 
 const NK_DOCUMENT          = 0
 const NK_THREAD            = 1
-const NK_POST              = 2
+const NK_COMMENT           = 2
 
 
-const NS_PUBLISHED_NOTE = 10
-const NS_PUBLIC            = 100
+const NS_DRAFT             = 1000
+const NS_UNAPPROVED        = 1500
+const NS_CONFIDENTIAL      = 2000
+const NS_PUBLISHED         = 3000
+const NS_PUBLIC            = 4000
 
 -- [N]ote [R]ole
 const NR_NONE               = 0
 const NR_DESCRIPTION        = 1
 const NR_COVER              = 2
+const NR_COMMENT            = 3
+
+const NF_WILL_CONFIDENTIAL  = &h00000001
 
 class Note
 protected:
@@ -46,6 +52,8 @@ public:
     CreatedById:            integer
     ModifiedById:           integer
     GroupId:                integer
+
+    Flags:                  integer
 end class
 
 
@@ -92,8 +100,12 @@ post:
             result = '/note/' + self.Id
         case NK_THREAD
             result = '/note/' + self.Id
-        case NK_POST
-            result = '/note/' + self.Id
+        case NK_COMMENT
+            if self.State = NS_DRAFT then
+                result = '/note/' + self.InNotes.select(element.Status = STATUS_DRAFT).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
+            else
+                result = '/note/' + self.InNotes.select(element.IsCanonical).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
+            end if
         case else
             result = '/note/' + self.Id
     end select
@@ -105,7 +117,7 @@ post:
             result = 'file-text'
         case NK_THREAD
             result = 'message-square'
-        case NK_POST
+        case NK_COMMENT
             result = 'message-square'
         case else
             result = 'file-text'
@@ -119,6 +131,7 @@ post:
     self.InFolders.removeAll
     self.InTasks.removeAll
     self.InMessages.removeAll
+    self.InNotes.removeAll
     self.delete
 
 context Note::UpdateMetaInfo
@@ -207,7 +220,7 @@ context Note::SetContent(val: string)
 post:
     self.Content = val
 
-    --if self.Kind = NK_POST or self.Kind = NK_THREAD then
+    --if self.Kind = NK_COMMENT or self.Kind = NK_THREAD then
     --    self.Summary = self.Content.textFromHTML(128, true)
     --end if
 
@@ -231,7 +244,7 @@ post:
     n.Title = "Re: " + self.Title
     n.Content = content
     --n.Summary = content.textFromHTML(128, true)
-    n.Kind = NK_POST
+    n.Kind = NK_COMMENT
 
     let maxOrder: integer = self.Notes.max(element.Order)
     result = self.Notes.newElement(element.Note=n and element.Order=maxOrder+ORDER_STEP)
@@ -249,7 +262,7 @@ post:
     note.Title = "Re: " + self.Title
     note.Content = content
     --note.Summary = content.textFromHTML(128, true)
-    note.Kind = NK_POST
+    note.Kind = NK_COMMENT
 
     result = self.Notes.newElement(element.Note=note and element.Order=maxOrder+ORDER_STEP)
 
@@ -372,7 +385,7 @@ post:
                         Name: parentTask.Title,
                         Summary: parentTask.Summary,
                         href: parentTask.href,
-                        icon: 'Task'
+                        icon: parentTask.icon
                     }]
             else
                 canonicalPath = []
@@ -394,7 +407,7 @@ post:
                             Name:       parentNote.Title,
                             Summary:    parentNote.Summary,
                             href:       parentNote.href,
-                            icon:       'Note'
+                            icon:       parentNote.icon
                         }]
                 else
                     canonicalPath = []
@@ -433,10 +446,11 @@ post:
     end if
 
 
-context Note::AttachNote(note: Note, order: integer): boolean
+context Note::AttachNote(note: Note, order: integer, optional linkRole: integer=0): boolean
 post:
     if not self.Notes.exists(element.Note = note) then
-        self.Notes.newElement( element.Note = note and element.Order = order)
+        self.Notes.newElement( element.Note = note and element.Order = order and element.Role=linkRole)
+        note.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -446,6 +460,7 @@ context Note::AttachFile(f: UploadedFile, order: integer): boolean
 post:
     if not self.Files.exists(element.File = f) then
         self.Files.newElement(element.File=f)
+        f.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -506,7 +521,7 @@ post:
 
     fileLink = self.Files.newElement( e |
         e.File = upFile
-        e.LinkInfo = FLI_CANONICAL)
+        )       -- e.LinkInfo = FLI_CANONICAL
 
     upFile.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
     result = fileLink
@@ -600,14 +615,18 @@ post:
 
 context Note::CreateSubNote(title: string, optional order: integer=0, optional summary: string = ""): NoteNote
 post:
-    let note: Note = user.CreatedNotes.newElement(element.Title = title and element.Summary = summary)
+    let note: Note = user.CreatedNotes.newElement(
+        element.Title = title
+        element.Summary = summary
+        element.Group = group)
 
     if order = 0 then
         order = self.Notes.max(element.Order) + ORDER_STEP
     end if
 
     result = self.Notes.newElement(element.Note = note and element.Order = order)
-    result.SetLocationAsCanonical()
+    note.RecalculateLocationInfo()
+    
 
 
 context Note::ReorderNotes(optional fromOrder: integer = 0): integer
@@ -702,8 +721,8 @@ post:
     let order: integer = trash.MaxOrder + ORDER_STEP
 
     if not trash.Notes.exists(element.NoteId = self.Id) then
-        noteLink = trash.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
+        noteLink = trash.Notes.newElement(e | e.Note=self and e.Order=order  and e.Status = STATUS_ACTIVE)      -- and e.LinkInfo = FLI_CANONICAL
+        self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths() 
         result = true
     else
         result = false
@@ -724,7 +743,7 @@ post:
     self.InMessages.forAll(element.Status = STATUS_ACTIVE)
 
     self.Status = STATUS_ACTIVE
-    self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
+    self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths() 
     result = true
 
 
@@ -744,8 +763,8 @@ post:
     let order: integer = archive.MaxOrder + ORDER_STEP
 
     if not archive.Notes.exists(element.NoteId = self.Id) then
-        noteLink = archive.Notes.newElement(e | e.Note=self and e.Order=order and e.LinkInfo = FLI_CANONICAL and e.Status = STATUS_ACTIVE)
-        self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()
+        noteLink = archive.Notes.newElement(e | e.Note=self and e.Order=order and e.Status = STATUS_ACTIVE)     -- and e.LinkInfo = FLI_CANONICAL
+        self.RecalculateLocationInfo --ValidateSubTreeCanonicalPaths()  
         result = true
     else
         result = false
@@ -847,3 +866,11 @@ post:
 context NoteNote::InIcon: string
 post:
     result = self.InNote.icon
+
+context NoteNote::InContent: string
+post:
+    result = self.InNote.Content
+
+context NoteNote::InModificationDate: date
+post:
+    result = self.InNote.ModificationDate

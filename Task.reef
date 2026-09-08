@@ -5,6 +5,7 @@ const STATUS_ACTIVE     =  0     -- This is a data we usually work on
 const STATUS_ARCHIVED   =  1
 const STATUS_HIDDEN     =  2
 const STATUS_DELETED    =  3
+const STATUS_DRAFT      =  4
 
 const STATUS_TEMPLATE   =  8
 ----------------------------------------------------------------------------
@@ -392,7 +393,7 @@ post:
                 Name:       self.TaskList.Name,
                 Summary:    self.TaskList.Summary,
                 href:       self.TaskList.href,
-                icon:       'TaskList'
+                icon:       'notebook'
             }]
     else
         canonicalFolderLink = self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).first
@@ -495,10 +496,11 @@ post:
     end if
 
 
-context Task::AttachNote(note: Note): boolean
+context Task::AttachNote(note: Note, optional linkRole: integer=0): boolean
 post:
     if not self.Notes.exists(element.Note = note) then
-        self.Notes.newElement(element.Note=note and element.Order = self.MaxOrder + ORDER_STEP)
+        self.Notes.newElement(element.Note=note and element.Order = self.MaxOrder + ORDER_STEP and element.Role=linkRole)
+        note.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -509,6 +511,7 @@ context Task::AttachFile(f: UploadedFile): boolean
 post:
     if not self.Files.exists(element.File = f) then
         self.Files.newElement(element.File=f and element.Order = self.MaxOrder + ORDER_STEP)
+        f.RecalculateLocationInfo()
         result = true
     else
         result = false
@@ -680,28 +683,29 @@ post:
 
 context Task::CreateSubNote(title: string, optional order: integer=0, optional summary: string = ""): TaskNote
 post:
-    let note: Note = user.CreatedNotes.newElement(element.Title = title and element.Summary = summary)
+    let note: Note = user.CreatedNotes.newElement(
+        element.Title = title
+        element.Summary = summary
+        element.Group = group)
 
     if order = 0 then
         order = self.MaxOrder + ORDER_STEP
     end if
 
-    --result = self.Notes.newElement(element.Note = note and element.Order = order)
     result = self.Notes.newElement(element.Note = note and element.Order = order)
-    result.SetLocationAsCanonical()
+    note.RecalculateLocationInfo()
 
 context Task::AddDescription(title: string, optional order: integer=0): TaskNote
 post:
-    let note: Note = user.CreatedNotes.newElement(element.Title = title)
+    let note: Note = user.CreatedNotes.newElement(element.Title = title and element.Group=group)
 
     if order = 0 then
         order = self.MaxOrder + ORDER_STEP
     end if
 
-    --result = self.Notes.newElement(element.Note = note and element.Order = order)
     result = self.Notes.newElement(element.Note = note and element.Order = order and element.Role = NR_DESCRIPTION)
-    result.SetLocationAsCanonical()
-
+    note.RecalculateLocationInfo()
+    
 
 context Task::ReorderNotes(optional fromOrder: integer = 0): integer
 post:
