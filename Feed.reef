@@ -118,10 +118,11 @@ post:
     end if
 
     if self.MyFeed = null then
-        self.MyFeed = self.Folders.newElement(element.Title = "__; en: My news feed; es: Mi feed de noticias; pl: Mój strumień wiadomości" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_FEED_FOLDER)
+        self.MyFeed = self.Folders.newElement(element.Title = "__; en: News; es: Noticias; pl: Wiadomości" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_FEED_FOLDER)
     end if
 
     result = "Done"
+
 
 context User::NewDraftThread(title: string, summary: string, content: string, optional category: Folder=null, optional confidential: boolean=0) : Note
 post:
@@ -166,6 +167,7 @@ pre Note is not set as working:
 post:
     self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
     self.CreatedBy.MySentPosts.AttachNote(self)
+    self.CreatedBy.MyFeed.AttachNote(self)
 
     self.State = NS_UNAPPROVED
     
@@ -178,6 +180,24 @@ post:
     --group.InformInterestedUsers(self)
 
 
+    result = true
+
+
+context Note::PublishCustomNoteAsThread: boolean
+post:
+    result = self.PublishCustomNoteAsThreadA()
+
+
+admin context Note::PublishCustomNoteAsThreadA: boolean
+post:
+    self.Kind = NK_THREAD
+    self.State = NS_UNAPPROVED
+
+    user.MySentPosts.AttachNote(self)
+    user.MyFeed.AttachNote(self)
+    
+    group.GetUnapprovedPostsFolder.AttachNote(self)
+    self.UpdateMetaInfo()
     result = true
 
 
@@ -206,6 +226,12 @@ post:
 
     thread.InFolders.select(element.Folder = self).removeAll
     category.AttachNote(thread)
+
+    let link: FolderNote = thread.InFolders.select(element.Folder=category).first
+    if not link.IsCanonical then
+        link.SetLocationAsCanonical
+    end if
+
     self.Group.InformInterestedUsers(thread)
 
 

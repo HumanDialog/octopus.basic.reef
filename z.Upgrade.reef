@@ -280,3 +280,18 @@ post:
   self.Groups.forAll(element.MakeFeedsFolders)
   result = "Done"
   
+
+
+context App::ChangeMyFeedTitles: string
+post:
+    result = self.ChangeMyFeedTitlesA()
+
+
+admin context App::ChangeMyFeedTitlesA: string
+post:
+    self.Users.forAll(
+        if element.MyFeed <> null then
+            element.MyFeed.Title = "__; en: News; es: Noticias; pl: Wiadomości"
+        end if
+    )
+    result = 'Done'

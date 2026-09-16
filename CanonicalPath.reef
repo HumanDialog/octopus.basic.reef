@@ -225,7 +225,7 @@ post:
     self.InNotes.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
 
 
-context Note::RecalculateLocationInfo
+admin context Note::RecalculateLocationInfo
 post:
     self.RecalculateAccCode
     self.RecalculateCanonicalPath
@@ -260,7 +260,7 @@ context Task::ResetCanonicalLinks
 post:
     self.InFolders.select(element.IsCanonical and element.Status=STATUS_ACTIVE).forAll(element.ResetCanonical)
 
-context Task::RecalculateLocationInfo(optional listChanged: boolean = false)
+admin context Task::RecalculateLocationInfo(optional listChanged: boolean = false)
 post:
     self.RecalculateAccCode
     self.RecalculateCanonicalPath
@@ -302,7 +302,7 @@ post:
     end if
 
 
-context UploadedFile::RecalculateLocationInfo
+admin context UploadedFile::RecalculateLocationInfo
 post:
     self.RecalculateAccCode
     self.RecalculateCanonicalPath

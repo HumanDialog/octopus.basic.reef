@@ -1068,7 +1068,7 @@ post:
 
 
 
-context Folder::RecalculateLocationInfo
+admin context Folder::RecalculateLocationInfo
 post:
     --self.RecalculateCanonicalLinksAfterAttach(newLink)
     self.RecalculateStatus
