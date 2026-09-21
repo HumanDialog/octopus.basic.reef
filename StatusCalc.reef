@@ -100,3 +100,4 @@ post:
   self.GetTrashFolder.RecalculateLocationInfo
   self.GetArchiveFolder.RecalculateLocationInfo
   self.Folders.forAll(f | f.RecalculateLocationInfo)
+  self.MakeFeedsFolders()
