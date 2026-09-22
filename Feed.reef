@@ -124,6 +124,24 @@ post:
     result = "Done"
 
 
+context Folder::NewScratchPost(title: string, summary: string, content: string): FolderNote
+pre Not signed in:
+    user <> null
+pre Scratch note already exists in this folder:
+    not self.Notes.exists(element.Role = NR_SCRATCH)
+post:
+    let note: Note = user.CreatedNotes.newElement(n | 
+        n.Title = title
+        n.Summary = summary
+        n.Content = content
+        n.Kind = NK_THREAD
+        n.State = NS_SCRATCH
+        n.Group = group) in
+
+    result = self.AttachNote(note, 0, NR_SCRATCH)
+
+
+
 context User::NewDraftThread(title: string, summary: string, content: string, optional category: Folder=null, optional confidential: boolean=0) : Note
 post:
     result = self.NewDraftThreadA(title, summary, content, category, confidential)

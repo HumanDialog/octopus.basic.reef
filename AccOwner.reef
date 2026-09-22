@@ -122,7 +122,7 @@ post:
         result = ACC_READWRITE
     else
         result = self.InTasks.max(element.Task.AccOwner)
-        result = Max(result, self.InNotes.max(element.Note.AccOwner))
+        result = Max(result, self.InNotes.max(element.InNote.AccOwner))
     end if
     end if
     end if

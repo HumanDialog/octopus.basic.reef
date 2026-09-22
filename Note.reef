@@ -4,6 +4,7 @@ const NK_THREAD            = 1
 const NK_COMMENT           = 2
 
 
+const NS_SCRATCH           = 950
 const NS_DRAFT             = 1000
 const NS_UNAPPROVED        = 1500
 const NS_CONFIDENTIAL      = 2000
@@ -15,6 +16,9 @@ const NR_NONE               = 0
 const NR_DESCRIPTION        = 1
 const NR_COVER              = 2
 const NR_COMMENT            = 3
+const NR_SCRATCH            = 4
+const NR_DRAFT              = 5
+
 
 const NF_WILL_CONFIDENTIAL  = &h00000001
 
@@ -490,7 +494,7 @@ post:
             case 'Note'
                 note = system.GetItem(id, typeName)
                 if note <> null then
-                    if self.AttachNote(note, order) then
+                    if self.AttachNote(note, order) <> null then
                         order = order + ORDER_STEP
                     end if
                 end if

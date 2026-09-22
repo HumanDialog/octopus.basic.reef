@@ -783,7 +783,7 @@ post:
 --    self.Status = FS
 
 
-context Folder::AttachNote(note: Note, optional order: integer = 0) : boolean
+context Folder::AttachNote(note: Note, optional order: integer = 0, optional linkRole: integer=0) : FolderNote
 post:
     let folderNote: FolderNote
 
@@ -792,11 +792,11 @@ post:
             order = self.MaxOrder + ORDER_STEP
         end if
 
-        folderNote = self.Notes.newElement(e | e.Note=note and e.Order=order)
+        folderNote = self.Notes.newElement(e | e.Note=note and e.Order=order and e.Role=linkRole)
         note.RecalculateLocationInfo()
-        result = true
+        result = folderNote
     else
-        result = false
+        result = null
     end if
 
 context Folder::AttachTask(task: Task, optional order: integer = 0) : boolean
@@ -863,7 +863,7 @@ post:
             case 'Note'
                 note = system.GetItem(id, typeName)
                 if note <> null then
-                    if self.AttachNote(note, order) then
+                    if self.AttachNote(note, order) <> null then
                         order = order + ORDER_STEP
                     end if
                 end if
