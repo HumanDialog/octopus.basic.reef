@@ -16,11 +16,11 @@ access role GroupOwner: Group Leader
 
     acc Folder = self.AccOwner
 
-    acc FolderFolder = self.InFolder.Acc
+    acc FolderFolder = self.InFolder.acc
 
-    acc FolderNote = self.Folder.Acc
+    acc FolderNote = self.Folder.acc
 
-    acc FolderTask = self.Folder.Acc
+    acc FolderTask = self.Folder.acc
 
     acc Note = self.AccOwner
 
@@ -31,7 +31,7 @@ access role GroupOwner: Group Leader
     acc MessageChannelUser = self.AccOwner
 
     acc UploadedFile = self.AccOwner
-    acc FolderFile = self.Folder.Acc
+    acc FolderFile = self.Folder.acc
     acc TaskFile = self.Task.AccOwner
     acc NoteFile = self.Note.AccOwner
     acc NoteNote = self.Note.AccOwner

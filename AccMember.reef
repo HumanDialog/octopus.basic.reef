@@ -17,11 +17,11 @@ access role GroupMember: Group Member
 
     acc Folder = self.AccMember
 
-    acc FolderFolder = self.InFolder.Acc
+    acc FolderFolder = self.InFolder.acc
 
-    acc FolderNote = self.Folder.Acc
+    acc FolderNote = self.Folder.acc
 
-    acc FolderTask = self.Folder.Acc
+    acc FolderTask = self.Folder.acc
 
     acc Note = self.AccMember
 
@@ -31,7 +31,7 @@ access role GroupMember: Group Member
 
     acc UploadedFile = self.AccMember
 
-    acc FolderFile = self.Folder.Acc
+    acc FolderFile = self.Folder.acc
 
     acc TaskFile = self.Task.AccMember
 

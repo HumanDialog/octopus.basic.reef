@@ -18,11 +18,11 @@ access role TUHCustomer: TILOS User
 
     acc Folder = self.AccTUHCustomer
 
-    acc FolderFolder = self.InFolder.Acc
+    acc FolderFolder = self.InFolder.acc
 
-    acc FolderNote = self.Folder.Acc
+    acc FolderNote = self.Folder.acc
 
-    acc FolderTask = self.Folder.Acc
+    acc FolderTask = self.Folder.acc
 
     acc Note = self.AccTUHCustomer
 
@@ -32,7 +32,7 @@ access role TUHCustomer: TILOS User
 
     acc UploadedFile = self.AccMember
 
-    acc FolderFile = self.Folder.Acc
+    acc FolderFile = self.Folder.acc
 
     acc TaskFile = self.Task.AccMember
 
@@ -60,11 +60,11 @@ access role TUHServiceman: TILOS Developer
 
     acc Folder = self.AccTUHServiceman
 
-    acc FolderFolder = self.InFolder.Acc
+    acc FolderFolder = self.InFolder.acc
 
-    acc FolderNote = self.Folder.Acc
+    acc FolderNote = self.Folder.acc
 
-    acc FolderTask = self.Folder.Acc
+    acc FolderTask = self.Folder.acc
 
     acc Note = self.AccTUHServiceman
 
@@ -75,7 +75,7 @@ access role TUHServiceman: TILOS Developer
     acc MessageChannelUser = self.AccOwner
 
     acc UploadedFile = self.AccOwner
-    acc FolderFile = self.Folder.Acc
+    acc FolderFile = self.Folder.acc
     acc TaskFile = self.Task.AccOwner
     acc NoteFile = self.Note.AccOwner
     acc NoteNote = self.Note.AccOwner
@@ -90,9 +90,9 @@ post:
         case ACC_PUBLIC
             result = ACC_READ
         case else
-            result = ACC_DENIED        
+            result = ACC_DENIED
     end select
-    
+
 
 context Note::AccTUHCustomer: integer
 post:
@@ -137,14 +137,14 @@ post:
 
                     case NS_PUBLISHED
                         result = ACC_READ
-                        
+
                     case else
                         result = ACC_READWRITE
                 end select
             else
                 result = ACC_DENIED
             end if
-            
+
 
         case ACC_GROUP_SHARED
             if self.GetGroupSharedFolder(group) <> null then
@@ -172,7 +172,7 @@ post:
 
                     case NS_PUBLISHED
                         result = ACC_READ
-                        
+
                     case else
                         result = ACC_READWRITE
                 end select
@@ -190,7 +190,7 @@ post:
                 result = ACC_DENIED
             end if
     end select
-   
+
 
 
 context Note::AccTUHServiceman: integer
@@ -225,17 +225,17 @@ post:
 
                     case NS_CONFIDENTIAL
                         result = ACC_READWRITE
-                        
+
                     case NS_PUBLISHED
                         result = ACC_READWRITE
-                        
+
                     case else
                         result = ACC_READWRITE
                 end select
             else
                 result = ACC_DENIED
             end if
-            
+
 
         case ACC_GROUP_SHARED
             if self.GetGroupSharedFolder(group) <> null then
@@ -252,10 +252,10 @@ post:
 
                     case NS_CONFIDENTIAL
                         result = ACC_READWRITE
-                        
+
                     case NS_PUBLISHED
                         result = ACC_READWRITE
-                        
+
                     case else
                         result = ACC_READWRITE
                 end select
@@ -314,7 +314,7 @@ post:
             if  shared.InFolders.exists (element.GroupId = group.Id) then
                 result = ACC_READ
             end if
-            
+
         case ACC_PUBLIC
             result = ACC_READWRITE
     end select
@@ -349,7 +349,7 @@ post:
             if  shared.InFolders.exists (element.GroupId = group.Id) then
                 result = ACC_READWRITE
             end if
-            
+
         case ACC_PUBLIC
             result = ACC_READWRITE
 
@@ -357,4 +357,3 @@ post:
         case else
             result = ACC_READWRITE
     end select
-
