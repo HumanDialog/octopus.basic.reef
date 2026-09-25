@@ -121,25 +121,29 @@ post:
                             result = ACC_READ
                         end if
 
-                    case NS_UNAPPROVED
+                    case NS_LATEST
                         if self.CreatedBy = user then
-                            result = ACC_READ
+                            result = ACC_READWRITE
                         else
-                            result = ACC_DENIED
+                            result = ACC_READ
                         end if
 
                     case NS_CONFIDENTIAL
                         if self.CreatedBy = user then
-                            result = ACC_READ
+                            result = ACC_READWRITE
                         else
                             result = ACC_DENIED
                         end if
 
-                    case NS_PUBLISHED
-                        result = ACC_READ
+                    case NS_REVIEWED
+                        if self.CreatedBy = user then
+                            result = ACC_READWRITE
+                        else
+                            result = ACC_READ
+                        end if
 
                     case else
-                        result = ACC_READWRITE
+                        result = ACC_READWRITE  --! uwaga: do uszczelniania
                 end select
             else
                 result = ACC_DENIED
@@ -156,25 +160,29 @@ post:
                             result = ACC_READ
                         end if
 
-                    case NS_UNAPPROVED
+                    case NS_LATEST
                         if self.CreatedBy = user then
-                            result = ACC_READ
+                            result = ACC_READWRITE
                         else
-                            result = ACC_DENIED
+                            result = ACC_READ
                         end if
 
                     case NS_CONFIDENTIAL
                         if self.CreatedBy = user then
-                            result = ACC_READ
+                            result = ACC_READWRITE
                         else
                             result = ACC_DENIED
                         end if
 
-                    case NS_PUBLISHED
-                        result = ACC_READ
+                    case NS_REVIEWED
+                        if self.CreatedBy = user then
+                            result = ACC_READWRITE
+                        else
+                            result = ACC_READ
+                        end if
 
                     case else
-                        result = ACC_READWRITE
+                        result = ACC_READWRITE  --! uwaga: do uszczelniania
                 end select
             else
                 result = ACC_DENIED
@@ -220,13 +228,13 @@ post:
                             result = ACC_READWRITE
                         end if
 
-                    case NS_UNAPPROVED
+                    case NS_LATEST
                         result = ACC_READWRITE
 
                     case NS_CONFIDENTIAL
                         result = ACC_READWRITE
 
-                    case NS_PUBLISHED
+                    case NS_REVIEWED
                         result = ACC_READWRITE
 
                     case else
@@ -247,13 +255,13 @@ post:
                             result = ACC_READWRITE
                         end if
 
-                    case NS_UNAPPROVED
+                    case NS_LATEST
                         result = ACC_READWRITE
 
                     case NS_CONFIDENTIAL
                         result = ACC_READWRITE
 
-                    case NS_PUBLISHED
+                    case NS_REVIEWED
                         result = ACC_READWRITE
 
                     case else
@@ -302,7 +310,7 @@ post:
 
         case ACC_GROUP
             if self.Group = group then
-                if self.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER then
+                if self.Status = FS_GROUP_CONFIDENTIAL_POSTS_FOLDER then
                     result = ACC_DENIED
                 else
                     result = ACC_READ

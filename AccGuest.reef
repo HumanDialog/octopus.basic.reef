@@ -23,7 +23,7 @@ access role Guest
         end if
 
     acc Note =
-        if self.State = NS_PUBLISHED then
+        if self.State = NS_PUBLIC then
             ACC_READ
         else
             self.AccGuest

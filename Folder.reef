@@ -35,7 +35,8 @@ const FS_USER_MY_FEED_FOLDER        = 168
 const FS_USER_MY_SENT_POSTS_FOLDER  = 169
 const FS_USER_MY_DRAFT_POSTS_FOLDER = 170
 const FS_GROUP_ROOT_FEEDS_FOLDER    = 171
-const FS_GROUP_UNAPPROVED_POSTS_FOLDER = 172
+const FS_GROUP_LATEST_POSTS_FOLDER = 172
+const FS_GROUP_CONFIDENTIAL_POSTS_FOLDER = 173
 
 const FS_LATEST_ELEMENTS    = 1001
 
@@ -211,8 +212,10 @@ post:
             result = '/folder/projecttrash/' + self.ProjectId
         case FS_GROUP_ROOT_FEEDS_FOLDER
             result = '/folder/feeds'
-        case FS_GROUP_UNAPPROVED_POSTS_FOLDER
-            result = '/feed/unapprovedposts'
+        case FS_GROUP_LATEST_POSTS_FOLDER
+            result = '/feed/latest'
+        case FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
+            result = '/feed/confidential'
         case else
             select case self.Kind
                 case FK_FEED
@@ -248,7 +251,7 @@ post:
         case FK_DISCUSSION
             result = 'messages-square'
         case FK_FEED
-            result = 'messages-square'
+            result = 'newspaper'
         case else
             result = 'folder'
     end select
@@ -286,7 +289,7 @@ post:
     case FS_USER_SHARED_FOLDER, FS_USER_SHARED_SUB_FOLDER
         result = FIN_USER_SUBSHARED
 
-    case FS_GROUP_ROOT_FOLDER, FS_GROUP_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
+    case FS_GROUP_ROOT_FOLDER, FS_GROUP_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_LATEST_POSTS_FOLDER, FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
         result = FIN_GROUP
     case FS_GROUP_ROOT_SHARED_FOLDER
         result = FIN_GROUP_SHARED
@@ -317,7 +320,7 @@ post:
             result = ACC_USER
 
 
-        case FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
+        case FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_LATEST_POSTS_FOLDER, FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
             result = ACC_GROUP
 
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
@@ -405,7 +408,7 @@ post:
             result = true
         case FS_GROUP_ARCHIVE_ROOT_FOLDER
             result = true
-        case FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_UNAPPROVED_POSTS_FOLDER
+        case FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_LATEST_POSTS_FOLDER, FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
             result = true
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
             result = true
@@ -1628,6 +1631,15 @@ context FolderNote::SetSummary(value: string)
 post:
     self.Note.Summary = value
 
+context FolderNote::Content: string
+post:
+    result = self.Note.Content
+
+
+context FolderNote::SetContent(value: string)
+post:
+    self.Note.Content = value
+
 
 context FolderNote::href: string
 post:
@@ -1719,9 +1731,6 @@ context FolderNote::InIcon: string
 post:
     result = self.Folder.icon
 
-context FolderNote::Content: string
-post:
-    result = self.Note.Content
 
 context FolderNote::Kind: integer
 post:

@@ -99,7 +99,7 @@ context Folder::AccMember: integer
 post:
     if self.Owner = user then
         result = ACC_READWRITE
-    else if self.IsGroupFolder and self.Group = group then
+    else if self.GroupId = group.Id then
         result = ACC_READWRITE
     else if self.IsPublic then
         result = ACC_READWRITE
