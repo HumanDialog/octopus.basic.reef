@@ -1,4 +1,6 @@
------------ GroupMember ------------------------------------------------
+-----------ACC Consultant -------------------------------------------------------------------------------
+
+---- Consultant is compaany worker, who has access to all group informations including confidential ones
 
 access role Consultant: Consultant
     acc App = ACC_READ
@@ -82,7 +84,7 @@ post:
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user or self.Actor = user then
             result = ACC_READWRITE
         end if
@@ -91,7 +93,7 @@ post:
          if shared then
              result = ACC_READ
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.GroupId = group.Id then
             result = ACC_READWRITE
         end if
@@ -121,7 +123,7 @@ post:
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.Owner = user then
             result = ACC_READWRITE
         end if
@@ -130,7 +132,7 @@ post:
          if  shared.InFolders.exists (element.GroupId = group.Id) then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.Group = group then
             result = ACC_READWRITE
         end if
@@ -154,7 +156,7 @@ post:
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user then
             result = ACC_READWRITE
         end if
@@ -163,7 +165,7 @@ post:
          if shared then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.GroupId = group.Id then
             result = ACC_READWRITE
         end if
@@ -205,7 +207,7 @@ post:
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user then
             result = ACC_READ
         end if
@@ -214,7 +216,7 @@ post:
          if shared then
              result = ACC_READ
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.GroupId = group.Id then
             result = ACC_READ
         end if

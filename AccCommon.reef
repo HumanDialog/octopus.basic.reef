@@ -13,15 +13,21 @@ const ACC_READWRITE   = 3
 const ACC_UNKNOWN           =   0000
 const ACC_CALCULATING       =   0001
 
+const ACC_USER_RESTRICTED  =    0800
+const ACC_USER_CONFIDENTIAL =   0900
 const ACC_USER              =   1000
+
 const ACC_USER_SHARED       =   2000
 
 const ACC_EXT_USER_SHARED   =   2500 --Future: Oznaczanie, że widzi to użytkownik z innej grupy
 
+const ACC_GROUP_RESTRICTED  =   2800
+const ACC_GROUP_CONFIDENTIAL =  2900
 const ACC_GROUP             =   3000
 const ACC_GROUP_SHARED      =   7000
 
 const ACC_PUBLIC            =   9000
+
 
 const CUGA_GROUP_CHECKED    =   1
 const CUGA_USER_CHECKED     =   2

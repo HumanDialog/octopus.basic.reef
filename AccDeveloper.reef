@@ -91,7 +91,7 @@ post:
          if shared then
              result = ACC_READ
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if user.IsInGroupId(self.GroupId) then
             result = ACC_READWRITE
         end if
@@ -130,7 +130,7 @@ post:
          if  shared.InFolders.exists (element.GroupId = group.Id) then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if user.IsInGroupId(self.GroupId) then
             result = ACC_READWRITE
         end if
@@ -163,8 +163,8 @@ post:
          if shared then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP
-        if self.GroupId = group.Id then
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
+        if user.IsInGroupId(self.GroupId) then
             result = ACC_READWRITE
         end if
     case ACC_GROUP_SHARED
@@ -214,9 +214,9 @@ post:
          if shared then
              result = ACC_READ
          end if
-    case ACC_GROUP
-        if self.GroupId = group.Id then
-            result = ACC_READ
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
+        if user.IsInGroupId(self.GroupId) then
+            result = ACC_READWRITE
         end if
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
