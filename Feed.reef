@@ -17,8 +17,11 @@ end class
 constraint Group::FeedsRoot
     element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_FEEDS_FOLDER
 
-constraint Group::UnapprovedPosts
-    element.GroupId = self.Id and element.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER
+constraint Group::LatestPosts
+    element.GroupId = self.Id and element.Status = FS_GROUP_LATEST_POSTS_FOLDER
+
+constraint Group::ConfidentialPosts
+    element.GroupId = self.Id and element.Status = FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
 
 constraint User::MyFeed
     element.UserId = self.Id and element.Status = FS_USER_MY_FEED_FOLDER
@@ -47,29 +50,36 @@ post:
 --    end if
 --
 
-context Group::GetUnapprovedPostsFolder: Folder
+context Group::GetLatestPostsFolder: Folder
 post:
-    if self.UnapprovedPosts.isNull then
-        self.UnapprovedPosts = self.AllFolders.newElement(e | 
-            e.Title = "__; en: Unapproved posts; es: Publicaciones no aprobadas; pl: Niezatwierdzone posty"
-            e.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER
-            e.Kind = FK_FEED)
+    if self.LatestPosts.isNull then
+        self.LatestPosts = self.AllFolders.newElement(e | 
+            e.Title = "__; en: Latest posts; es: Últimas entradas; pl: Najnowsze wpisy"
+            e.Status = FS_GROUP_LATEST_POSTS_FOLDER
+            e.Kind = FK_FEED
+            e.AccCode = ACC_GROUP)
     end if
 
-    result = self.UnapprovedPosts
+    result = self.LatestPosts
 
- --   result = self.UnapprovedPosts
- --   if result = null then
- --       result = self.AllFolders.newElement(element.Title = "__; en: Unapproved posts; es: Publicaciones no aprobadas; pl: Niezatwierdzone posty" and element.Status = FS_GROUP_UNAPPROVED_POSTS_FOLDER)
- --       result.AccCode = ACC_GROUP
- --       result.Kind = FK_FEED
- --       result.RecalculateLocationInfo
- --   end if
+
+context Group::GetConfidentialPostsFolder: Folder
+post:
+    if self.ConfidentialPosts.isNull then
+        self.ConfidentialPosts = self.AllFolders.newElement(e | 
+            e.Title = "__; en: Confidential posts; es: Entradas confidenciales; pl: Wpisy poufne"
+            e.Status = FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
+            e.Kind = FK_FEED
+            e.AccCode = ACC_GROUP)
+    end if
+
+    result = self.ConfidentialPosts
 
 context Group::MakeFeedsFolders() : string
 post:
 
-    self.GetUnapprovedPostsFolder  
+    self.GetLatestPostsFolder  
+    self.GetConfidentialPostsFolder
 
     let feeds: Folder = self.GetFeedsRootFolder
     let link: FolderFolder
@@ -141,64 +151,90 @@ post:
     result = self.AttachNote(note, 0, NR_SCRATCH)
 
 
-
-context User::NewDraftThread(title: string, summary: string, content: string, optional category: Folder=null, optional confidential: boolean=0) : Note
+context Note::SaveScratchAsDraft(title: string, summary: string, content: string): string
+pre:
+    self.Kind = NK_THREAD and self.State = NS_SCRATCH
 post:
-    result = self.NewDraftThreadA(title, summary, content, category, confidential)
-
-
-admin context User::NewDraftThreadA(title: string, summary: string, content: string, optional category: Folder=null, optional confidential: boolean=0) : Note
-pre Category is a feed folder:
-    category = null or category.Kind = FK_FEED
-post:
-
-    let note: Note = self.CreatedNotes.newElement(n | 
-            n.Title = title
-            n.Summary = summary
-            n.Content = content
-            n.Kind = NK_THREAD
-            n.State = NS_DRAFT
-            n.Group = group) in
-
-    if confidential then
-        note.Flags = note.Flags | NF_WILL_CONFIDENTIAL
+    self.State = NS_DRAFT
+    
+    if title.NotEmpty then
+        self.Title = title
     end if
 
-    --if category = null then
-    --    category = group.GetFeedsRootFolder.Folders.first.Folder       -- default category?
-    --end if
+    if summary.NotEmpty then
+        self.Summary = summary
+    end if
 
-    -- needs ACC_READWRITE
-    --category.Notes.newElement(element.Note = note and element.Status = STATUS_DRAFT)
+    if content.NotEmpty then
+        self.Content = content
+    end if
 
-    self.MyDraftPosts.AttachNote(note)
-    result = note
+    let maxOrder: integer in
+    self.InFolders.select(element.Role = NR_SCRATCH).forAll( link: FolderNote |
+        link.Role = NR_DRAFT
+        maxOrder = link.Folder.MaxOrder()
+        if link.Order < maxOrder then
+            link.Order = maxOrder + ORDER_STEP
+        end if
+        )
 
-context Note::PublishThread(): boolean
+    --self.CreatedBy.MyDraftPosts.AttachNote(self)
+
+    result = self.href()
+
+context Note::PublishThread : Note
 post:
-    result = self.PublishThreadA()
+    result = self.PublishThreadA
 
 
-admin context Note::PublishThreadA(): boolean
-pre Note is not set as working:
-    self.State = NS_DRAFT
+admin context Note::PublishThreadA : Note
+pre:
+    self.Kind = NK_THREAD and (self.State = NS_DRAFT or self.State = NS_SCRATCH)
 post:
-    self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
+    self.State = NS_LATEST
+
+    self.InFolders.select(element.Role = NR_DRAFT).removeAll
+    self.InFolders.select(element.Role = NR_SCRATCH).removeAll
+    --self.CreatedBy.MyDraftPosts.select(element.Note = self).removeAll
+    
     self.CreatedBy.MySentPosts.AttachNote(self)
     self.CreatedBy.MyFeed.AttachNote(self)
+    self.CreatedBy.MyFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
 
-    self.State = NS_UNAPPROVED
-    
     -- needs ACC_READWRITE
-    self.Group.GetUnapprovedPostsFolder.AttachNote(self)
-    --self.DraftThreadCategoryFolder.AttachNote(self)
-    --self.InFolders.select(element.Status = STATUS_DRAFT).removeAll
+    self.Group.GetLatestPostsFolder.AttachNote(self)
+    self.Group.InformInterestedUsers(self)
 
     self.UpdateMetaInfo()
-    --group.InformInterestedUsers(self)
+
+    result = self
 
 
-    result = true
+context Note::SendThreadAsConfidential(): Note
+post:
+    result = self.SendThreadAsConfidentialA()
+
+
+admin context Note::SendThreadAsConfidentialA: Note
+pre:
+    self.Kind = NK_THREAD and (self.State = NS_DRAFT or self.State = NS_SCRATCH)
+post:
+    self.State = NS_CONFIDENTIAL
+    
+    self.InFolders.select(element.Role = NR_DRAFT).removeAll
+    self.InFolders.select(element.Role = NR_SCRATCH).removeAll
+    
+    self.CreatedBy.MySentPosts.AttachNote(self)
+    self.CreatedBy.MyFeed.AttachNote(self)
+    self.CreatedBy.MyFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+
+    -- needs ACC_READWRITE
+    self.Group.GetConfidentialPostsFolder.AttachNote(self)
+    
+    self.UpdateMetaInfo()
+
+    result = self
+
 
 
 context Note::PublishCustomNoteAsThread: boolean
@@ -209,43 +245,43 @@ post:
 admin context Note::PublishCustomNoteAsThreadA: boolean
 post:
     self.Kind = NK_THREAD
-    self.State = NS_UNAPPROVED
+    self.State = NS_LATEST
 
     user.MySentPosts.AttachNote(self)
     user.MyFeed.AttachNote(self)
     
-    group.GetUnapprovedPostsFolder.AttachNote(self)
+    group.GetLatestPostsFolder.AttachNote(self)
     self.UpdateMetaInfo()
     result = true
 
 
-context Note::ApproveMe(catLink: FolderFolder)
+context Note::CanMoveToCategory: boolean
+post:
+    result = self.Group.LatestPosts.acc > ACC_READ
+
+context Note::MoveMeToFeed(catLink: FolderFolder): Note
 post:
     let category :Folder = catLink.Folder
-    group.UnapprovedPosts.ApproveThread(self, category)
+    self.Group.LatestPosts.MoveThreadToFeed(self, category)
+    result = self
 
 
-context Folder::ApproveThread(thread: Note, category: Folder)
+context Folder::MoveThreadToFeed(thread: Note, category: Folder)
 pre: 
     thread <> null and category <> null
 pre Note is not a thread:
     thread.Kind = NK_THREAD
-pre Note is already approved:
-    thread.State <= NS_UNAPPROVED
 pre category is not a Feed:
     category.Kind = FK_FEED
 post:
 
-    if thread.Flags & NF_WILL_CONFIDENTIAL then
-        thread.State = NS_CONFIDENTIAL
-    else
-        thread.State = NS_PUBLISHED
+    if thread.State <= NS_LATEST then
+        thread.State = NS_REVIEWED
     end if
+    
+    self.Notes.select(element.Note = thread).removeAll              -- remove from current feed
+    let link: FolderNote = category.AttachNote(thread)              -- add to new feed
 
-    thread.InFolders.select(element.Folder = self).removeAll
-    category.AttachNote(thread)
-
-    let link: FolderNote = thread.InFolders.select(element.Folder=category).first
     if not link.IsCanonical then
         link.SetLocationAsCanonical
     end if
@@ -268,7 +304,9 @@ post:
 
     -- needs ACC_READWRITE
     thread.Notes.newElement(element.Note = note and element.Status = STATUS_DRAFT)
-    self.MyDraftPosts.AttachNote(note)
+    
+    --self.MyDraftPosts.AttachNote(note)
+    self.MyFeed.AttachNote(note, 0, NR_DRAFT)
 
     result = note
 
@@ -277,15 +315,20 @@ post:
     result = self.PublishCommentA()
 
 admin context Note::PublishCommentA(): boolean 
-pre Note is not set as working:
-    self.State = NS_DRAFT
+pre:
+    self.Kind = NK_COMMENT and (self.State = NS_DRAFT or self.State = NS_SCRATCH)
 post:
     let thread: Note = self.DraftCommentThread
     
-    self.State = thread.State
+    self.State = NS_REVIEWED
 
-    self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
+    self.InFolders.select(element.Role = NR_DRAFT).removeAll
+    self.InFolders.select(element.Role = NR_SCRATCH).removeAll
+
+    --self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
     self.CreatedBy.MySentPosts.AttachNote(self)
+    self.CreatedBy.MyFeed.AttachNote(self)
+    self.CreatedBy.MyFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
 
     -- needs ACC_READWRITE
     let order: integer = thread.Notes.max(element.Order) + ORDER_STEP
@@ -301,7 +344,9 @@ post:
 context Note::ThreadFolderInfo: JsonObject
 post:
 
-    if self.State < NS_CONFIDENTIAL then
+    if self.State <= NS_DRAFT then
+        result = null
+    else if self.State = NS_CONFIDENTIAL then
         result = null
     else
         let thread: Note
@@ -320,6 +365,7 @@ post:
             ref: './Folder/' + folder.Id,
             IsSubscribed: folder.IsSubscribed
         }
+    end if
     end if
 
 context FolderNote::ThreadFolderInfo: JsonObject
@@ -367,19 +413,24 @@ post:
 
 context Note::DraftCommentThreadInfo: JsonObject
 post:
-    let thread: Note = self.DraftCommentThread
-    if thread <> null then
-        result = {
-            Title: thread.Title,
-            Content: thread.Content,
-            Summary: thread.Summary,
-            href: thread.href,
-            ModificationDate: thread.ModificationDate,
-            ModifiedByName: thread.ModifiedBy.Name
-        }
+    if self.Kind = NK_COMMENT and self.State = NS_DRAFT then
+        let thread: Note = self.DraftCommentThread
+        if thread <> null then
+            result = {
+                Title: thread.Title,
+                Content: thread.Content,
+                Summary: thread.Summary,
+                href: thread.href,
+                ModificationDate: thread.ModificationDate,
+                ModifiedByName: thread.ModifiedBy.Name
+            }
+        else
+            result = null
+        end if
     else
         result = null
     end if
+    
 
 context FolderNote::DraftCommentThreadInfo: JsonObject
 post:
@@ -396,19 +447,18 @@ post:
 
     let thread: Note in
     let comment: Note in
-    let unapprovedPosts: Folder = group.GetUnapprovedPostsFolder
+    let latestPosts: Folder = group.GetLatestPostsFolder
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('Problem z automatycznym przeliczaniem prędkości postępu (Production Rate) przy modyfikacji stref profilu odległości', '',
+    thread = user.MyFeed.NewScratchPost('Problem z automatycznym przeliczaniem prędkości postępu (Production Rate) przy modyfikacji stref profilu odległości', '',
                     '<p>Cześć wszystkim, pracuję nad harmonogramem modernizacji 45-kilometrowego odcinka linii kolejowej i napotkałem dziwny problem przy dynamicznym przeliczaniu <b>Production Rates</b>.</p>
                     <p>Zdefiniowałem zadanie liniowe <i>"Układanie toru bezstykowego"</i> powiązane z profilem wydajnościowym zależnym od ukształtowania terenu (zmienna kategoria gruntów i strefy łuków). Kiedy modyfikuję granice strefy odległości bezpośrednio w <code>Distance Profile</code> (np. zmiana stacji początkowej z <code>KM 12+400</code> na <code>KM 14+100</code>), TILOS nie odświeża automatycznie kąta nachylenia zadania na wykresie czasowo-przestrzennym.</p>
                     <p>W efekcie zadanie zachowuje stary czas trwania, a profil prędkości rozjeżdża się z geometrią trasy, powodując błędne wyliczenia na stykach sekcji. Dopiero wymuszenie pełnego przeliczenia harmonogramu przez <pre>F9 -> Recalculate Entire Project</pre> przywraca poprawny wektor, ale natychmiast rozbija mi to ręcznie ustawione bufory technologiczne (Distance/Time Buffers) względem robót podtorowych.</p>
-                    <p>Czy ktoś z Was spotkał się z tym przy pracy na wersji 10.x? Wygląda to na błąd w mechanizmie dirty-flag dla segmentowanych obiektów liniowych powiązanych z biblioteką profili.</p>',
-                    self)
+                    <p>Czy ktoś z Was spotkał się z tym przy pracy na wersji 10.x? Wygląda to na błąd w mechanizmie dirty-flag dla segmentowanych obiektów liniowych powiązanych z biblioteką profili.</p>').Note
     
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Znam ten ból. Obejście, które stosujemy: przypisz profil ponownie do zadania przez <code>Properties -> Quantity & Rates</code> zamiast modyfikować sam profil globalny. Wtedy przelicza wektor natychmiast bez ruszania buforów.</p>', 
                         thread).PublishComment()
@@ -418,13 +468,12 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('', '',
+    thread = user.MyFeed.NewScratchPost('', '',
                     '<p>Czy istnieje możliwość zablokowania automatycznego przesuwania zadań typu <b>Clash/Crossing</b> podczas importu aktualizacji postępu z pliku XML?</p>
-                    <p>Za każdym razem, gdy wgrywam faktyczne daty podwykonawcy, obiekty punktowe (np. przepusty w kilometrażu <code>KM 23+150</code>) tracą powiązanie z osią odległości i lądują na początku układu współrzędnych.</p>',
-                    self)
+                    <p>Za każdym razem, gdy wgrywam faktyczne daty podwykonawcy, obiekty punktowe (np. przepusty w kilometrażu <code>KM 23+150</code>) tracą powiązanie z osią odległości i lądują na początku układu współrzędnych.</p>').Note
     
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Sprawdź mapowanie pól w schemacie XML. Prawdopodobnie atrybut <code>DistanceStation</code> nie jest oznaczony jako klucz unikalny dla zadań punktowych.</p>', 
                         thread).PublishComment()
@@ -437,14 +486,13 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('Pomysł na funkcję: Szacowanie rezerwy czasowej (Total Float) w oparciu o strefy kolizyjne', '',
+    thread = user.MyFeed.NewScratchPost('Pomysł na funkcję: Szacowanie rezerwy czasowej (Total Float) w oparciu o strefy kolizyjne', '',
                     '<p>Obecny algorytm CPM w TILOS liczy <b>Total Float</b> czysto w domenie czasu, całkowicie ignorując dostępność frontu robót w przestrzeni (Distance Axis).</p>
                     <p>Proponuję wprowadzenie metryki <code>Spatial-Time Float</code>. Jeśli zadanie B idzie za zadaniem A i zachowuje minimalny dystans bezpieczeństwa <code>min_dist = 500m</code>, całkowity zapas powinien uwzględniać nie tylko czas, ale i przestrzeń, w której ekipa może manewrować bez wstrzymywania robót.</p>
-                    <p>Taki widok na wykresie Time-Distance byłby zbawieniem przy gęstym upakowaniu robót ziemnych.</p>',
-                    self)
+                    <p>Taki widok na wykresie Time-Distance byłby zbawieniem przy gęstym upakowaniu robót ziemnych.</p>').Note
 
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Genialny pomysł! Tradycyjny <b>Critical Path</b> często kłamie na projektach liniowych, bo ścieżka krytyczna przeskakuje po odległościach bez fizycznego sensu.</p>', 
                         thread).PublishComment()
@@ -452,13 +500,12 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('', '',
+    thread = user.MyFeed.NewScratchPost('', '',
                     '<p>Szybkie pytanie o <b>Earned Value Management (EVM)</b> w widoku Time-Distance:</p>
-                    <p>Jak najwygodniej zwizualizować <code>BCWS</code> vs <code>BCWP</code> w podziale na sekcje kilometrażowe, a nie tylko jako krzywe S w osi czasu? Chciałbym nałożyć histogram kosztów bezpośrednio pod profilem wysokościowym trasy.</p>',
-                    self)
+                    <p>Jak najwygodniej zwizualizować <code>BCWS</code> vs <code>BCWP</code> w podziale na sekcje kilometrażowe, a nie tylko jako krzywe S w osi czasu? Chciałbym nałożyć histogram kosztów bezpośrednio pod profilem wysokościowym trasy.</p>').Note
                     
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Użyj widoku <i>Distance Profile Chart</i> i dodaj warstwę z <b>Resource / Cost Assignment</b> z włączoną agregacją per sektor.</p>', 
                         thread).PublishComment()
@@ -474,7 +521,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('Usterka: Błędne obliczanie ścieżki krytycznej przy pętlach technologicznych i nawrotach maszyn', '',
+    thread = user.MyFeed.NewScratchPost('Usterka: Błędne obliczanie ścieżki krytycznej przy pętlach technologicznych i nawrotach maszyn', '',
                     '<p>Zgłaszam krytyczny problem w module analitycznym harmonogramu, który występuje przy modelowaniu robót z wykorzystaniem maszyn pracujących w pętli lub wykonujących nawroty (np. frezowanie i asfaltowanie wielowarstwowe).</p>
                     <p>Scenariusz testowy wygląda następująco:</p>
                     <p>Zadanie 1: <i>Frezowanie nawierzchni</i> (kierunek: rosnący kilometraż, od <code>KM 0+000</code> do <code>KM 10+000</code>).<br>
@@ -482,11 +529,10 @@ post:
                     Zdefiniowana relacja: <code>End-to-Start</code> z warunkiem przestrzennym <b>Distance Clear = 200m</b>.</p>
                     <p>Podczas wyliczania wskaźników CPM, silnik harmonogramujący TILOS traktuje punkt przecięcia wektorów zadań jako natychmiastowe zablokowanie zasobu i generuje sztuczny ujemny zapas (Negative Float) rzędu <pre>-120h</pre>, mimo że w rzeczywistości maszyny w ogóle nie kolidują ze sobą czasowo na danym metrze bieżącym trasy.</p>
                     <p>Co gorsza, funkcja <i>Drive Logic Path</i> podświetla całą sekwencję na czerwono, uniemożliwiając poprawny raport dla Inżyniera Kontraktu. Wygląda na to, że wektor zwrotu zadania (ujemny slope) w połączeniu z buforem przestrzennym odwraca znak we wzorze na <code>Early Finish / Late Start</code>.</p>
-                    <p>Czy ktoś wypracował standardowe reguły linkowania zadań o przeciwnych kierunkach postępu bez rozbijania ich na dziesiątki mikro-zadań jednokilometrowych?</p>',
-                    self)
+                    <p>Czy ktoś wypracował standardowe reguły linkowania zadań o przeciwnych kierunkach postępu bez rozbijania ich na dziesiątki mikro-zadań jednokilometrowych?</p>').Note
                     
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>To stary mankament relacji przy ujemnym nachyleniu linii. Jedyny stabilny workaround to podział zadania na podsekcje i linkowanie relacjami punktowymi w miejscach planowanych mijanek.</p>', 
                         thread).PublishComment()
@@ -496,13 +542,12 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('', '',
+    thread = user.MyFeed.NewScratchPost('', '',
                     '<p>Czy ktoś z Was generował raport <b>Line of Balance (LoB)</b> dla tunelu drążonego TBM przy zmiennych warunkach geologicznych?</p>
-                    <p>Szukam sposobu na dynamiczne wyliczanie krzywej postępu drążenia w oparciu o importowane z Excela warstwy stratygraficzne gruntu. Chodzi o to, by zmiana kategorii skały automatycznie wydłużała czas przejścia TBM na danym interwale metrowym.</p>',
-                    self)
+                    <p>Szukam sposobu na dynamiczne wyliczanie krzywej postępu drążenia w oparciu o importowane z Excela warstwy stratygraficzne gruntu. Chodzi o to, by zmiana kategorii skały automatycznie wydłużała czas przejścia TBM na danym interwale metrowym.</p>').Note
                     
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Tak, definiujesz <i>Geological Profile</i> jako podkład pod osią odległości i wiążesz go z matrycą wydajności tarczy TBM przez formułę zmiennej prędkości <code>Rate = BaseRate * GeoFactor</code>.</p>', 
                         thread).PublishComment()
@@ -510,13 +555,12 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('', '',
+    thread = user.MyFeed.NewScratchPost('', '',
                     '<p>Uwaga na eksport danych do formatu <code>.xer</code> (Primavera P6) z projektów zawierających zadania nieliniowe!</p>
-                    <p>TILOS przy eksporcie konwertuje zadania typu <b>Hammock</b> na standardowe <i>Task Dependent</i>, co powoduje kompletne rozjechanie się dat zakończenia pakietów robót wykończeniowych w P6. Przed wysłaniem pliku do Zamawiającego zawsze weryfikujcie sumaryczne czasy trwania.</p>',
-                    self)
+                    <p>TILOS przy eksporcie konwertuje zadania typu <b>Hammock</b> na standardowe <i>Task Dependent</i>, co powoduje kompletne rozjechanie się dat zakończenia pakietów robót wykończeniowych w P6. Przed wysłaniem pliku do Zamawiającego zawsze weryfikujcie sumaryczne czasy trwania.</p>').Note
 
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Dzięki za ostrzeżenie! Właśnie zastanawiałem się, dlaczego P6 pokazuje mi inne daty na kamieniach milowych niż wykres <b>Time-Location</b>.</p>', 
                         thread).PublishComment()
@@ -529,13 +573,12 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.NewDraftThread('', '',
+    thread = user.MyFeed.NewScratchPost('', '',
                     '<p>Potrzebuję dobrej praktyki dotyczącej zarządzania <b>oknami zamknięć torowych</b> (Track Possession Windows).</p>
-                    <p>Jak w TILOS najlepiej zamodelować cykliczne zamknięcia nocne (np. codziennie <code>23:00 - 04:00</code> na odcinku <code>KM 15 - KM 20</code>), aby zadania dzienne automatycznie przerywały pracę i wznawiały ją w kolejnym oknie bez tworzenia 50 pojedynczych pasków zadań?</p>',
-                    self)
+                    <p>Jak w TILOS najlepiej zamodelować cykliczne zamknięcia nocne (np. codziennie <code>23:00 - 04:00</code> na odcinku <code>KM 15 - KM 20</code>), aby zadania dzienne automatycznie przerywały pracę i wznawiały ją w kolejnym oknie bez tworzenia 50 pojedynczych pasków zadań?</p>').Note
 
     thread.PublishThread()
-    unapprovedPosts.ApproveThread(thread, self)
+    latestPosts.MoveThreadToFeed(thread, self)
 
     user.NewDraftComment('<p>Skonfiguruj niestandardowy <b>Non-working Calendar</b> z przerwami nocnymi i przypisz go tylko do zadań w tej konkretnej strefie odległości (<i>Distance Zone Calendar</i>).</p>', 
                         thread).PublishComment()
@@ -575,8 +618,11 @@ post:
     self.FeedsRoot.Folders.removeAll
     self.FeedsRoot = null
 
-    self.UnapprovedPosts.Notes.removeAll
-    self.UnapprovedPosts = null
+    self.LatestPosts.Notes.removeAll
+    self.LatestPosts = null
+
+    self.ConfidentialPosts.Notes.removeAll
+    self.ConfidentialPosts = null
     
 context Group::MakeSampleTUHUsers
 post:
@@ -692,7 +738,6 @@ post:
         -- select(element.User <> note.CreatedBy). ?
         categoryFolder.SubscribedBy.forAll(
             userFeed = element.User.MyFeed
-            -- todo: note.State = NS_CONFIDENTIAL
             userFeed.AttachNote(note)
             userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
         )

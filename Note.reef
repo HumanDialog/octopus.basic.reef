@@ -6,9 +6,9 @@ const NK_COMMENT           = 2
 
 const NS_SCRATCH           = 950
 const NS_DRAFT             = 1000
-const NS_UNAPPROVED        = 1500
+const NS_LATEST            = 1500
 const NS_CONFIDENTIAL      = 2000
-const NS_PUBLISHED         = 3000
+const NS_REVIEWED          = 3000
 const NS_PUBLIC            = 4000
 
 -- [N]ote [R]ole
@@ -19,8 +19,6 @@ const NR_COMMENT            = 3
 const NR_SCRATCH            = 4
 const NR_DRAFT              = 5
 
-
-const NF_WILL_CONFIDENTIAL  = &h00000001
 
 class Note
 protected:

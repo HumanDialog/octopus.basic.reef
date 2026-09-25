@@ -73,6 +73,10 @@ post:
 
   self.GetTrashFolder.RecalculateLocationInfo
   self.GetArchiveFolder.RecalculateLocationInfo
+  self.GetLatestPostsFolder.RecalculateLocationInfo  
+  self.GetConfidentialPostsFolder.RecalculateLocationInfo
+  self.GetFeedsRootFolder.RecalculateLocationInfo
+
 
 
 context Group::VerifyFolders
