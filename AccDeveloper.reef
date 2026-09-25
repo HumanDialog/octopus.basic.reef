@@ -1,21 +1,21 @@
 ----------- GroupMember ------------------------------------------------
 
-access role Customer: Customer
+access role Developer: Developer
     acc App = ACC_READ
 
-    acc User = self.AccCustomer
+    acc User = self.AccDeveloper
 
-    acc Group = self.AccCustomer
+    acc Group = self.AccDeveloper
 
-    acc TaskList = self.AccCustomer
+    acc TaskList = self.AccDeveloper
 
-    acc UserTaskList = self.List.AccCustomer
+    acc UserTaskList = self.List.AccDeveloper
 
-    acc Task = self.AccCustomer
+    acc Task = self.AccDeveloper
 
-    acc TaskNote = self.Task.AccCustomer
+    acc TaskNote = self.Task.AccDeveloper
 
-    acc Folder = self.AccCustomer
+    acc Folder = self.AccDeveloper
 
     acc FolderFolder = self.InFolder.acc
 
@@ -23,26 +23,26 @@ access role Customer: Customer
 
     acc FolderTask = self.Folder.acc
 
-    acc Note = self.AccCustomer
+    acc Note = self.AccDeveloper
 
-    acc MessageChannel = self.AccCustomer
+    acc MessageChannel = self.AccDeveloper
 
-    acc Message = self.AccCustomer
+    acc Message = self.AccDeveloper
 
-    acc UploadedFile = self.AccCustomer
+    acc UploadedFile = self.AccDeveloper
 
     acc FolderFile = self.Folder.acc
 
-    acc TaskFile = self.Task.AccCustomer
+    acc TaskFile = self.Task.AccDeveloper
 
-    acc NoteFile = self.Note.AccCustomer
+    acc NoteFile = self.Note.AccDeveloper
 
-    acc NoteNote = self.Note.AccCustomer
+    acc NoteNote = self.Note.AccDeveloper
 
-    acc Project = self.AccCustomer
+    acc Project = self.AccDeveloper
 
 --std
-context User::AccCustomer: integer
+context User::AccDeveloper: integer
 post:
     if self = user then
         result = ACC_READWRITE
@@ -51,23 +51,23 @@ post:
     end if
     end if
 
-context Group::AccCustomer: integer
+context Group::AccDeveloper: integer
 post:
     if group = self then
-        result = ACC_READ
+        result = ACC_READWRITE
     end if
 
-context TaskList::AccCustomer: integer
+context TaskList::AccDeveloper: integer
 post:
     if self.User = user then
         result = ACC_READWRITE
     else if self.Group then
-        result = self.Group.acc
+        result = ACC_READWRITE
     end if
     end if
 
 
-context Task::AccCustomer: integer
+context Task::AccDeveloper: integer
 post:
     ---- Safety
     if self.CreatedBy = user or self.Actor = user or self.TaskList.UserId = user.Id then
@@ -75,8 +75,8 @@ post:
 
     else
 
-    if self.TaskList.GroupId = group.Id then
-        result = ACC_READ
+    if user.IsInGroupId(self.TaskList.GroupId)then
+        result = ACC_READWRITE
 
     else
 
@@ -92,8 +92,8 @@ post:
              result = ACC_READ
          end if
     case ACC_GROUP
-        if self.GroupId = group.Id then
-            result = ACC_READ
+        if user.IsInGroupId(self.GroupId) then
+            result = ACC_READWRITE
         end if
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
@@ -101,16 +101,18 @@ post:
              result = ACC_READ
          end if
     case ACC_PUBLIC
-        result = ACC_READ
+        result = ACC_READWRITE
     end select
 
     end if
     end if
 
+
+
 -- Every object has User and Group
 -- AccCode points checking criteria
 --   but: Owner has superpower access becouse of elements creation
-context Folder::AccCustomer: integer
+context Folder::AccDeveloper: integer
 post:
     if self.Owner = user then
         result = ACC_READWRITE
@@ -126,25 +128,24 @@ post:
     case ACC_USER_SHARED
          shared = self.GetUserSharedFolder
          if  shared.InFolders.exists (element.GroupId = group.Id) then
-             result = ACC_READ
+             result = ACC_READWRITE
          end if
     case ACC_GROUP
-        if self.Group = group then
-            result = ACC_READ
+        if user.IsInGroupId(self.GroupId) then
+            result = ACC_READWRITE
         end if
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder
          if  shared.InFolders.exists (element.GroupId = group.Id) then
-             result = ACC_READ
+             result = ACC_READWRITE
          end if
     case ACC_PUBLIC
-        result = ACC_READ
+        result = ACC_READWRITE
     end select
 
     end if
 
-
-context Note::AccCustomer: integer
+context Note::AccDeveloper: integer
 post:
     if self.CreatedBy = user then
         result = ACC_READWRITE
@@ -160,24 +161,24 @@ post:
     case ACC_USER_SHARED
          shared = self.GetUserSharedFolder(user)
          if shared then
-             result = ACC_READ
+             result = ACC_READWRITE
          end if
     case ACC_GROUP
         if self.GroupId = group.Id then
-            result = ACC_READ
+            result = ACC_READWRITE
         end if
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then
-             result = ACC_READ
+             result = ACC_READWRITE
          end if
     case ACC_PUBLIC
-        result = ACC_READ
+        result = ACC_READWRITE
     end select
 
     end if
 
-context MessageChannel::AccCustomer
+context MessageChannel::AccDeveloper
 post:
     if self.Group = group then
         result = ACC_READ
@@ -186,16 +187,16 @@ post:
     end if
     end if
 
-context Message::AccCustomer
+context Message::AccDeveloper
 post:
     if self.Author = self then
-        result = ACC_READ
+        result = ACC_READWRITE
     else if self.Channel.acc >= ACC_READ then
         result = ACC_READ
     end if
     end if
 
-context UploadedFile::AccCustomer: integer
+context UploadedFile::AccDeveloper: integer
 post:
     if self.CreatedBy = user then
         result = ACC_READ
@@ -228,8 +229,7 @@ post:
 
     end if
 
-
-context Project::AccCustomer: integer
+context Project::AccDeveloper: integer
 post:
     if self.Group = group then
         result = ACC_READ

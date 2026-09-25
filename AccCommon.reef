@@ -446,7 +446,7 @@ post:
     self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
     let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
     let taskListCode: integer = self.TaskList.CalculateAccCode  -- AccCode
-    
+
     let userCode: integer  = ACC_UNKNOWN
     if self.Actor <> null then
         userCode = ACC_USER
@@ -474,7 +474,7 @@ post:
         result = ACC_GROUP
     else if self.User <> null then
         result = ACC_USER
-    else    
+    else
         result = ACC_UNKNOWN
     end if
     end if
@@ -616,6 +616,10 @@ post:
 context User::IsInGroup(g: Group): boolean
 post:
     result = self.Groups.exists(element.GroupId = g.Id)
+
+context User::IsInGroupId(gid: integer): boolean
+post:
+    result = self.Groups.exists(element.GroupId = gid)
 
 
 context Task::InPersonalFolder: boolean
