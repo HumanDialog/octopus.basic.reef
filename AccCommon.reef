@@ -13,9 +13,10 @@ const ACC_READWRITE   = 3
 const ACC_UNKNOWN           =   0000
 const ACC_CALCULATING       =   0001
 
-const ACC_USER_RESTRICTED  =    0800
-const ACC_USER_CONFIDENTIAL =   0900
-const ACC_USER              =   1000
+
+const ACC_USER              =   1000    --user data is visible only for owner, no exceptions
+const ACC_USER_RESTRICTED   =   1100    --user restricted is visible for owner and persons having access to user restricted data
+const ACC_USER_CONFIDENTIAL =   1200    --user restricted is visible for owner and persons having access to user confidential data
 
 const ACC_USER_SHARED       =   2000
 
