@@ -13,15 +13,22 @@ const ACC_READWRITE   = 3
 const ACC_UNKNOWN           =   0000
 const ACC_CALCULATING       =   0001
 
-const ACC_USER              =   1000
+
+const ACC_USER              =   1000    --user data is visible only for owner, no exceptions
+const ACC_USER_RESTRICTED   =   1100    --user restricted is visible for owner and persons having access to user restricted data
+const ACC_USER_CONFIDENTIAL =   1200    --user restricted is visible for owner and persons having access to user confidential data
+
 const ACC_USER_SHARED       =   2000
 
 const ACC_EXT_USER_SHARED   =   2500 --Future: Oznaczanie, że widzi to użytkownik z innej grupy
 
+const ACC_GROUP_RESTRICTED  =   2800
+const ACC_GROUP_CONFIDENTIAL =  2900
 const ACC_GROUP             =   3000
 const ACC_GROUP_SHARED      =   7000
 
 const ACC_PUBLIC            =   9000
+
 
 const CUGA_GROUP_CHECKED    =   1
 const CUGA_USER_CHECKED     =   2
@@ -446,7 +453,7 @@ post:
     self.InFolders.forAll(element.Folder.CalculateAccCodeRec)
     let inFoldersCode: integer = self.InFolders.max(element.Folder.AccCode)
     let taskListCode: integer = self.TaskList.CalculateAccCode  -- AccCode
-    
+
     let userCode: integer  = ACC_UNKNOWN
     if self.Actor <> null then
         userCode = ACC_USER
@@ -474,7 +481,7 @@ post:
         result = ACC_GROUP
     else if self.User <> null then
         result = ACC_USER
-    else    
+    else
         result = ACC_UNKNOWN
     end if
     end if
@@ -616,6 +623,10 @@ post:
 context User::IsInGroup(g: Group): boolean
 post:
     result = self.Groups.exists(element.GroupId = g.Id)
+
+context User::IsInGroupId(gid: integer): boolean
+post:
+    result = self.Groups.exists(element.GroupId = gid)
 
 
 context Task::InPersonalFolder: boolean

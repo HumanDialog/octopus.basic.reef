@@ -1,24 +1,23 @@
------------ GroupMember ------------------------------------------------
+-----------ACC Consultant -------------------------------------------------------------------------------
 
------------- TO JEST SPECJALNA GRUPA DO TESTOWANIA ACC_CODE ------------
------------- NIE PRZYPISYWAĆ DO UŻYTKOWNIKÓW POZA HD DEVELOPERS --------
+---- Consultant is compaany worker, who has access to all group informations including confidential ones
 
-access role Tester: Acc Tester
+access role Consultant: Consultant
     acc App = ACC_READ
 
-    acc User = self.AccTester
+    acc User = self.AccConsultant
 
-    acc Group = self.AccTester
+    acc Group = self.AccConsultant
 
-    acc TaskList = self.AccTester
+    acc TaskList = self.AccConsultant
 
-    acc UserTaskList = self.List.AccTester
+    acc UserTaskList = self.List.AccConsultant
 
-    acc Task = self.AccTester
+    acc Task = self.AccConsultant
 
-    acc TaskNote = self.Task.AccTester
+    acc TaskNote = self.Task.AccConsultant
 
-    acc Folder = self.AccTester
+    acc Folder = self.AccConsultant
 
     acc FolderFolder = self.InFolder.acc
 
@@ -26,108 +25,105 @@ access role Tester: Acc Tester
 
     acc FolderTask = self.Folder.acc
 
-    acc Note = self.AccTester
+    acc Note = self.AccConsultant
 
-    acc MessageChannel = self.AccTester
+    acc MessageChannel = self.AccConsultant
 
-    acc Message = self.AccTester
+    acc Message = self.AccConsultant
 
-    acc UploadedFile = self.AccTester
+    acc UploadedFile = self.AccConsultant
 
     acc FolderFile = self.Folder.acc
 
-    acc TaskFile = self.Task.AccTester
+    acc TaskFile = self.Task.AccConsultant
 
-    acc NoteFile = self.Note.AccTester
+    acc NoteFile = self.Note.AccConsultant
 
-    acc NoteNote = self.Note.AccTester
+    acc NoteNote = self.Note.AccConsultant
 
-    acc Project = self.AccTester
+    acc Project = self.AccConsultant
 
-
-context User::AccTester: integer
+--std
+context User::AccConsultant: integer
 post:
     if self = user then
         result = ACC_READWRITE
     else if self.Groups.exists(element.GroupId = group.Id) then
-        result = ACC_READ
+        result = ACC_READ --ACC_READ_REF, ACC_READ_BASIC
     end if
     end if
 
-context Group::AccTester: integer
+context Group::AccConsultant: integer
 post:
     if group = self then
-        result = ACC_READWRITE
-    else if user.IsInGroup(self) then
-        result = ACC_READWRITE
-    else if self.IsPublic then
         result = ACC_READ
-    else if self.Name = "Guests" then
-        result = ACC_READ
-    end if
-    end if
-    end if
     end if
 
-context TaskList::AccTester: integer
+context TaskList::AccConsultant: integer
 post:
     if self.User = user then
         result = ACC_READWRITE
     else if self.Group then
-        result = self.Group.acc
-    else if self.IsSubscribed then
         result = ACC_READWRITE
     end if
     end if
-    end if
 
 
-context Task::AccTester: integer
+context Task::AccConsultant: integer
 post:
     ---- Safety
-    if self.CreatedBy = user or self.Actor = user or self.TaskList.UserId = user.Id or self.TaskList.GroupId = group.Id then
+    if self.CreatedBy = user or self.Actor = user or self.TaskList.UserId = user.Id then
         result = ACC_READWRITE
-    end if
+
+    else
+
+    if self.TaskList.GroupId = group.Id then
+        result = ACC_READWRITE
+
+    else
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user or self.Actor = user then
             result = ACC_READWRITE
         end if
     case ACC_USER_SHARED
          shared = self.GetUserSharedFolder(user)
          if shared then
-             result = ACC_READWRITE
+             result = ACC_READ
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.GroupId = group.Id then
             result = ACC_READWRITE
         end if
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then
-             result = ACC_READWRITE
+             result = ACC_READ
          end if
     case ACC_PUBLIC
         result = ACC_READWRITE
     end select
 
+    end if
+    end if
 
 
 
 -- Every object has User and Group
 -- AccCode points checking criteria
 --   but: Owner has superpower access becouse of elements creation
-context Folder::AccTester: integer
+context Folder::AccConsultant: integer
 post:
     if self.Owner = user then
         result = ACC_READWRITE
-    end if
+
+    else
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.Owner = user then
             result = ACC_READWRITE
         end if
@@ -136,7 +132,7 @@ post:
          if  shared.InFolders.exists (element.GroupId = group.Id) then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.Group = group then
             result = ACC_READWRITE
         end if
@@ -149,17 +145,18 @@ post:
         result = ACC_READWRITE
     end select
 
+    end if
 
-
-context Note::AccTester: integer
+context Note::AccConsultant: integer
 post:
     if self.CreatedBy = user then
         result = ACC_READWRITE
-    end if
+
+    else
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user then
             result = ACC_READWRITE
         end if
@@ -168,7 +165,7 @@ post:
          if shared then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.GroupId = group.Id then
             result = ACC_READWRITE
         end if
@@ -181,8 +178,9 @@ post:
         result = ACC_READWRITE
     end select
 
+    end if
 
-context MessageChannel::AccTester
+context MessageChannel::AccConsultant
 post:
     if self.Group = group then
         result = ACC_READ
@@ -191,47 +189,50 @@ post:
     end if
     end if
 
-context Message::AccTester
+context Message::AccConsultant
 post:
     if self.Author = self then
-        result = ACC_READ
+        result = ACC_READWRITE
     else if self.Channel.acc >= ACC_READ then
         result = ACC_READ
     end if
     end if
 
-context UploadedFile::AccTester: integer
+context UploadedFile::AccConsultant: integer
 post:
     if self.CreatedBy = user then
-        result = ACC_READWRITE
-    end if
+        result = ACC_READ
+
+    else
 
     let shared: Folder
     select case self.AccCode
-    case ACC_USER
+    case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user then
-            result = ACC_READWRITE
+            result = ACC_READ
         end if
     case ACC_USER_SHARED
          shared = self.GetUserSharedFolder(user)
          if shared then
-             result = ACC_READWRITE
+             result = ACC_READ
          end if
-    case ACC_GROUP
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if self.GroupId = group.Id then
-            result = ACC_READWRITE
+            result = ACC_READ
         end if
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then
-             result = ACC_READWRITE
+             result = ACC_READ
          end if
     case ACC_PUBLIC
-        result = ACC_READWRITE
+        result = ACC_READ
     end select
 
-context Project::AccTester: integer
+    end if
+
+context Project::AccConsultant: integer
 post:
     if self.Group = group then
-        result = ACC_READWRITE
+        result = ACC_READ
     end if
