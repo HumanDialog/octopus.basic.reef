@@ -366,3 +366,11 @@ post:
             result = ACC_READWRITE
     end select
 
+
+context App::GetMemberAccessRole(tenant: string, gr: Group): string
+post:
+    if tenant = "tiloshub" or tenant = "octopus" then
+        result = "TUHCustomer"
+    else
+        result = "GroupMember"
+    end if
