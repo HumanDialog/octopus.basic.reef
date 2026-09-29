@@ -4,12 +4,10 @@ const NK_THREAD            = 1
 const NK_COMMENT           = 2
 
 
-const NS_SCRATCH           = 950
-const NS_DRAFT             = 1000
-const NS_LATEST            = 1500
+const NS_NOTE              = 0
 const NS_CONFIDENTIAL      = 2000
-const NS_REVIEWED          = 3000
-const NS_PUBLIC            = 4000
+const NS_PUBLISHED         = 7000
+const NS_PUBLIC            = 9000
 
 -- [N]ote [R]ole
 const NR_NONE               = 0
@@ -103,11 +101,11 @@ post:
         case NK_THREAD
             result = '/note/' + self.Id
         case NK_COMMENT
-            if self.State = NS_DRAFT then
-                result = '/note/' + self.InNotes.select(element.Status = STATUS_DRAFT).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
-            else
+            --if self.State = NS_DRAFT then
+            --    result = '/note/' + self.InNotes.select(element.Status = STATUS_DRAFT).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
+            --else
                 result = '/note/' + self.InNotes.select(element.IsCanonical).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
-            end if
+            --end if
         case else
             result = '/note/' + self.Id
     end select

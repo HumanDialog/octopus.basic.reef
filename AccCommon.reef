@@ -25,6 +25,8 @@ const ACC_EXT_USER_SHARED   =   2500 --Future: Oznaczanie, że widzi to użytkow
 const ACC_GROUP_RESTRICTED  =   2800
 const ACC_GROUP_CONFIDENTIAL =  2900
 const ACC_GROUP             =   3000
+const ACC_GROUP_PUBLISHED   =   3100
+
 const ACC_GROUP_SHARED      =   7000
 
 const ACC_PUBLIC            =   9000
@@ -132,6 +134,9 @@ post:
     self.SharedFolders.InFolders.removeAll
     self.ArchiveFolder.InFolders.removeAll
     self.TrashFolder.InFolders.removeAll
+    self.PublishedFolder.InFolders.removeAll
+    self.LatestsFolder.InFolders.removeAll
+    self.ConfidentialFolder.InFolders.removeAll
 
 context Group::SetupRootAccCodes
 post:
@@ -142,6 +147,12 @@ post:
     self.ArchiveFolder.Group = self
     self.TrashFolder.AccCode = ACC_GROUP
     self.TrashFolder.Group = self
+    self.PublishedFolder.AccCode = ACC_GROUP_PUBLISHED
+    self.PublishedFolder.Group = self
+    self.LatestsFolder.AccCode = ACC_GROUP_PUBLISHED
+    self.LatestsFolder.Group = self
+    self.ConfidentialFolder.AccCode = ACC_GROUP_CONFIDENTIAL
+    self.ConfidentialFolder.Group = self
     self.AllLists.forAll(element.AccCode = ACC_GROUP)
 
 
@@ -152,6 +163,9 @@ post:
     self.SharedFolders.ResetSubAccCodes
     self.ArchiveFolder.ResetSubAccCodes
     self.TrashFolder.ResetSubAccCodes
+    self.PublishedFolder.ResetSubAccCodes
+    self.LatestsFolder.ResetSubAccCodes
+    self.ConfidentialFolder.ResetSubAccCodes
     self.AllLists.forAll(element.AllTasks.forAll(element.ResetAccCodesRec))
 
 
@@ -174,6 +188,9 @@ post:
     self.SharedFolders.CalculateAccRootCodes
     self.ArchiveFolder.CalculateAccRootCodes
     self.TrashFolder.CalculateAccRootCodes
+    self.PublishedFolder.CalculateAccRootCodes
+    self.LatestsFolder.CalculateAccRootCodes
+    self.ConfidentialFolder.CalculateAccRootCodes
     self.AllLists.forAll(element.AllTasks.forAll(element.CalculateAccCodeRec))
 
 context User::VerifyRootAccStructure
@@ -184,6 +201,11 @@ post:
     self.BasketFolder.AccCode = ACC_USER
     self.ArchiveFolder.AccCode = ACC_USER
     self.TrashFolder.AccCode = ACC_USER
+    self.ConfidentialFolder.AccCode = ACC_USER_CONFIDENTIAL
+    self.NewsFolder.AccCode = ACC_USER
+    self.PublishedFolder.AccCode = ACC_USER
+    self.DraftsFolder.AccCode = ACC_USER
+
 
 context User::SetupRootAccCodes
 post:
@@ -193,6 +215,10 @@ post:
     self.BasketFolder.AccCode = ACC_USER
     self.ArchiveFolder.AccCode = ACC_USER
     self.TrashFolder.AccCode = ACC_USER
+    self.ConfidentialFolder.AccCode = ACC_USER_CONFIDENTIAL
+    self.NewsFolder.AccCode = ACC_USER
+    self.PublishedFolder.AccCode = ACC_USER
+    self.DraftsFolder.AccCode = ACC_USER
     self.AllLists.forAll(element.AccCode = ACC_GROUP)
 
 context User::ResetSubRootAccCodes
@@ -203,6 +229,10 @@ post:
     self.BasketFolder.ResetSubAccCodes
     self.ArchiveFolder.ResetSubAccCodes
     self.TrashFolder.ResetSubAccCodes
+    self.ConfidentialFolder.ResetSubAccCodes
+    self.NewsFolder.ResetSubAccCodes
+    self.PublishedFolder.ResetSubAccCodes
+    self.DraftsFolder.ResetSubAccCodes
     self.AllLists.forAll(element.AllTasks.forAll(element.ResetAccCodesRec))
 
 context User::CalculateAccCodeRec
@@ -213,6 +243,10 @@ post:
     self.BasketFolder.CalculateAccRootCodes
     self.ArchiveFolder.CalculateAccRootCodes
     self.TrashFolder.CalculateAccRootCodes
+    self.ConfidentialFolder.CalculateAccRootCodes
+    self.NewsFolder.CalculateAccRootCodes
+    self.PublishedFolder.CalculateAccRootCodes
+    self.DraftsFolder.CalculateAccRootCodes
     self.AllLists.forAll(element.AllTasks.forAll(element.CalculateAccCodeRec))
 
 
@@ -273,14 +307,20 @@ context Folder::CalculateAccCode: integer
 post:
 
     select case self.Status
-        case FS_USER_ROOT_FOLDER, FS_USER_ROOT_DELETED_FOLDER, FS_USER_ROOT_ARCHIVED_FOLDER, FS_PINNED_ROOT_FOLDER, FS_BASKET_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER
+        case FS_USER_ROOT_FOLDER, FS_USER_ROOT_DELETED_FOLDER, FS_USER_ROOT_ARCHIVED_FOLDER, FS_PINNED_ROOT_FOLDER, FS_BASKET_ROOT_FOLDER, FS_USER_TRASH_ROOT_FOLDER, FS_USER_ARCHIVE_ROOT_FOLDER, FS_USER_NEWS_FOLDER, FS_USER_PUBLISHED_FOLDER, FS_USER_DRAFTS_FOLDER
             result = ACC_USER
+        case FS_USER_ROOT_CONFIDENTIAL_FOLDER
+            result = ACC_USER_CONFIDENTIAL
         case FS_USER_ROOT_SHARED_FOLDER
             result = ACC_USER_SHARED
+        case FS_GROUP_ROOT_CONFIDENTIAL_FOLDER
+            result = ACC_GROUP_CONFIDENTIAL
         case FS_PROJECT_ROOT_FOLDER, FS_PROJECT_TRASH_ROOT_FOLDER, FS_PROJECT_ARCHIVE_ROOT_FOLDER
             result = ACC_GROUP
-        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_DELETED_FOLDER, FS_GROUP_ROOT_ARCHIVED_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER, FS_GROUP_ROOT_FEEDS_FOLDER, FS_GROUP_LATEST_POSTS_FOLDER, FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
+        case FS_GROUP_ROOT_FOLDER, FS_GROUP_ROOT_DELETED_FOLDER, FS_GROUP_ROOT_ARCHIVED_FOLDER, FS_GROUP_TRASH_ROOT_FOLDER, FS_GROUP_ARCHIVE_ROOT_FOLDER
             result = ACC_GROUP
+        case FS_GROUP_ROOT_PUBLISHED_FOLDER, FS_GROUP_LATESTS_FOLDER
+            result = ACC_GROUP_PUBLISHED
         case FS_GROUP_SHARED_FOLDER
             result = ACC_GROUP_SHARED
         case else

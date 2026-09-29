@@ -40,14 +40,24 @@ post:
             result = FS_GROUP_SHARED_FOLDER
         case FIN_GROUP_SUBSHARED
             result = FS_GROUP_SHARED_SUB_FOLDER
+
+        case FIN_GROUP_PUBLISED
+            result = FS_GROUP_PUBLISHED_FOLDER
+        
         case FIN_GROUP
             result = FS_GROUP_FOLDER
 
+        case FIN_GROUP_CONFIDENTIAL
+            result = FS_GROUP_CONFIDENTIAL_FOLDER
+        
         case FIN_USER_SHARED
             result = FS_USER_SHARED_FOLDER
         case FIN_USER_SUBSHARED
             result = FS_USER_SHARED_SUB_FOLDER
 
+        case FIN_USER_CONFIDENTIAL
+            result = FS_USER_CONFIDENTIAL_FOLDER
+       
         case FIN_USER
             result = FS_USER_FOLDER
 
@@ -73,9 +83,9 @@ post:
 
   self.GetTrashFolder.RecalculateLocationInfo
   self.GetArchiveFolder.RecalculateLocationInfo
-  self.GetLatestPostsFolder.RecalculateLocationInfo  
-  self.GetConfidentialPostsFolder.RecalculateLocationInfo
-  self.GetFeedsRootFolder.RecalculateLocationInfo
+  self.GetLatestsFolder.RecalculateLocationInfo  
+  self.GetConfidentialFolder.RecalculateLocationInfo
+  self.GetPublishedFolder.RecalculateLocationInfo
 
 
 
@@ -98,10 +108,15 @@ post:
 
 context User::VerifyFolders
 post:
-  self.GetSharedFolders.RecalculateLocationInfo
-  self.GetPinnedFolders.RecalculateLocationInfo
-  self.GetBasketFolder.RecalculateLocationInfo
-  self.GetTrashFolder.RecalculateLocationInfo
-  self.GetArchiveFolder.RecalculateLocationInfo
-  self.Folders.forAll(f | f.RecalculateLocationInfo)
-  self.MakeFeedsFolders()
+    self.GetSharedFolders.RecalculateLocationInfo
+    self.GetPinnedFolders.RecalculateLocationInfo
+    self.GetBasketFolder.RecalculateLocationInfo
+    self.GetTrashFolder.RecalculateLocationInfo
+    self.GetArchiveFolder.RecalculateLocationInfo
+
+    self.GetConfidentialFolder.RecalculateLocationInfo
+    self.GetNewsFolder.RecalculateLocationInfo
+    self.GetDraftsFolder.RecalculateLocationInfo
+    self.GetPublishedFolder.RecalculateLocationInfo
+
+    self.Folders.forAll(f | f.RecalculateLocationInfo)

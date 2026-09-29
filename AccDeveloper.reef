@@ -91,7 +91,7 @@ post:
          if shared then
              result = ACC_READ
          end if
-    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED, ACC_GROUP_PUBLISHED
         if user.IsInGroupId(self.GroupId) then
             result = ACC_READWRITE
         end if
@@ -130,7 +130,7 @@ post:
          if  shared.InFolders.exists (element.GroupId = group.Id) then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED, ACC_GROUP_PUBLISHED
         if user.IsInGroupId(self.GroupId) then
             result = ACC_READWRITE
         end if
@@ -163,7 +163,7 @@ post:
          if shared then
              result = ACC_READWRITE
          end if
-    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
+    case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED, ACC_GROUP_PUBLISHED
         if user.IsInGroupId(self.GroupId) then
             result = ACC_READWRITE
         end if
@@ -181,9 +181,9 @@ post:
 context MessageChannel::AccDeveloper
 post:
     if self.Group = group then
-        result = ACC_READ
+        result = ACC_READWRITE
     else if self.Users.exists(element.UserId = user.Id) then
-        result = ACC_READ
+        result = ACC_READWRITE
     end if
     end if
 
@@ -192,14 +192,14 @@ post:
     if self.Author = self then
         result = ACC_READWRITE
     else if self.Channel.acc >= ACC_READ then
-        result = ACC_READ
+        result = ACC_READWRITE
     end if
     end if
 
 context UploadedFile::AccDeveloper: integer
 post:
     if self.CreatedBy = user then
-        result = ACC_READ
+        result = ACC_READWRITE
 
     else
 
@@ -207,12 +207,12 @@ post:
     select case self.AccCode
     case ACC_USER
         if self.CreatedBy = user then
-            result = ACC_READ
+            result = ACC_READWRITE
         end if
     case ACC_USER_SHARED
          shared = self.GetUserSharedFolder(user)
          if shared then
-             result = ACC_READ
+             result = ACC_READWRITE
          end if
     case ACC_GROUP, ACC_GROUP_CONFIDENTIAL, ACC_GROUP_RESTRICTED
         if user.IsInGroupId(self.GroupId) then
@@ -221,10 +221,10 @@ post:
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then
-             result = ACC_READ
+             result = ACC_READWRITE
          end if
     case ACC_PUBLIC
-        result = ACC_READ
+        result = ACC_READWRITE
     end select
 
     end if

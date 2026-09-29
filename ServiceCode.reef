@@ -106,6 +106,9 @@ post:
     self.SharedFolders.ResetServiceCode(code, options)
     self.ArchiveFolder.ResetServiceCode(code, options)
     self.TrashFolder.ResetServiceCode(code, options)
+    self.PublishedFolder.ResetServiceCode(code, options)
+    self.LatestsFolder.ResetServiceCode(code, options)
+    self.ConfidentialFolder.ResetServiceCode(code, options)
     self.AllProjects.forAll(element.ResetServiceCode(code, options))
     self.AllLists.forAll(element.AllTasks.forAll(element.ResetServiceCode(code, options)))
 
@@ -118,4 +121,8 @@ post:
     self.BasketFolder.ResetServiceCode(code, options)
     self.ArchiveFolder.ResetServiceCode(code, options)
     self.TrashFolder.ResetServiceCode(code, options)
+    self.DraftsFolder.ResetServiceCode(code, options)
+    self.PublishedFolder.ResetServiceCode(code, options)
+    self.NewsFolder.ResetServiceCode(code, options)
+    self.ConfidentialFolder.ResetServiceCode(code, options)
     self.AllLists.forAll(element.AllTasks.forAll(element.ResetServiceCode(code, options)))

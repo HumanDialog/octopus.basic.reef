@@ -102,6 +102,11 @@ post:
             result = ACC_READ
         end if
 
+    case ACC_GROUP_PUBLISHED
+        if self.GroupId = group.Id then
+            result = ACC_READ
+        end if
+
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then
@@ -146,6 +151,11 @@ post:
             result = ACC_READ
         end if
 
+    case ACC_GROUP_PUBLISHED
+        if self.Group = group then
+            result = ACC_READ
+        end if
+
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder
          if  shared.InFolders.exists (element.GroupId = group.Id) then
@@ -185,6 +195,12 @@ post:
         if self.GroupId = group.Id then
             result = ACC_READ
         end if
+
+    case ACC_GROUP_PUBLISHED
+        if self.GroupId = group.Id then
+            result = ACC_READ
+        end if
+
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then
@@ -217,7 +233,7 @@ post:
 context UploadedFile::AccCustomer: integer
 post:
     if self.CreatedBy = user then
-        result = ACC_READ
+        result = ACC_READWRITE
 
     else
 
@@ -225,7 +241,7 @@ post:
     select case self.AccCode
     case ACC_USER, ACC_USER_CONFIDENTIAL, ACC_USER_RESTRICTED
         if self.CreatedBy = user then
-            result = ACC_READ
+            result = ACC_READWRITE
         end if
     case ACC_USER_SHARED
          shared = self.GetUserSharedFolder(user)
@@ -241,6 +257,12 @@ post:
         if self.GroupId = group.Id then
             result = ACC_READ
         end if
+
+    case ACC_GROUP_PUBLISHED
+        if self.GroupId = group.Id then
+            result = ACC_READ
+        end if
+
     case ACC_GROUP_SHARED
          shared = self.GetGroupSharedFolder(group)
          if shared then

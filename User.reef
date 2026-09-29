@@ -29,9 +29,10 @@ class User
     SubscribedLists[0..n]:  UserTaskList        <backNav: User>
     SubscribedFolders[0..n]:  UserFolder        <backNav: User>
 
-    MyDraftPosts:           Folder
-    MySentPosts:            Folder
-    MyFeed:                 Folder 
+    DraftsFolder:           Folder
+    PublishedFolder:        Folder
+    NewsFolder:             Folder 
+    ConfidentialFolder:     Folder
     
 
     ArchivedLists<0..n>:    TaskList
@@ -236,6 +237,11 @@ post:
 
     self.ArchiveFolder.ValidateSubTreeCanonicalPaths()
     self.TrashFolder.ValidateSubTreeCanonicalPaths()
+    
+    self.DraftsFolder.ValidateSubTreeCanonicalPaths()
+    self.PublishedFolder.ValidateSubTreeCanonicalPaths()
+    self.NewsFolder.ValidateSubTreeCanonicalPaths()
+    self.ConfidentialFolder.ValidateSubTreeCanonicalPaths()
 
     self.MyTasks.forAll(task: Task |
         if not task.InFolders.exists(element.IsCanonical) then

@@ -3,7 +3,7 @@
 -- sys/login?u=admin@example.com;gid=15;role=TUHServiceman
 -- group/MakeFeedsFolders
 -- sys/login?u=emma@example.com;gid=15;role=TUHCustomer
--- group/FeedsRoot/Folders/at/4/Folder/MakeSampleTUHFeed
+-- group/PublishedFolder/Folders/at/4/Folder/MakeSampleTUHFeed
 -- sys/logout?bl
 
 const FEED_MAX_ELEMENTS_NO    = 100
@@ -14,74 +14,73 @@ class UserFolder
 end class
 
 
-constraint Group::FeedsRoot
-    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_FEEDS_FOLDER
+constraint Group::PublishedFolder
+    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_PUBLISHED_FOLDER
 
-constraint Group::LatestPosts
-    element.GroupId = self.Id and element.Status = FS_GROUP_LATEST_POSTS_FOLDER
+constraint Group::LatestsFolder
+    element.GroupId = self.Id and element.Status = FS_GROUP_LATESTS_FOLDER
 
-constraint Group::ConfidentialPosts
-    element.GroupId = self.Id and element.Status = FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
-
-constraint User::MyFeed
-    element.UserId = self.Id and element.Status = FS_USER_MY_FEED_FOLDER
-
-constraint User::MySentPosts
-    element.UserId = self.Id and element.Status = FS_USER_MY_SENT_POSTS_FOLDER
-
-constraint User::MyDraftPosts
-    element.UserId = self.Id and element.Status = FS_USER_MY_DRAFT_POSTS_FOLDER
+constraint Group::ConfidentialFolder
+    element.GroupId = self.Id and element.Status = FS_GROUP_ROOT_CONFIDENTIAL_FOLDER
 
 
-context Group::GetFeedsRootFolder: Folder
+constraint User::ConfidentialFolder
+    element.UserId = self.Id and element.Status = FS_USER_ROOT_CONFIDENTIAL_FOLDER
+
+constraint User::NewsFolder
+    element.UserId = self.Id and element.Status = FS_USER_NEWS_FOLDER
+
+constraint User::PublishedFolder
+    element.UserId = self.Id and element.Status = FS_USER_PUBLISHED_FOLDER
+
+constraint User::DraftsFolder
+    element.UserId = self.Id and element.Status = FS_USER_DRAFTS_FOLDER
+
+
+context Group::GetPublishedFolder: Folder
 post:
-    if self.FeedsRoot.isNull then
-        self.FeedsRoot = self.AllFolders.newElement(e | e.Title = "Feeds" and e.Status = FS_GROUP_ROOT_FEEDS_FOLDER)
+    if self.PublishedFolder.isNull then
+        self.PublishedFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: Publication subjects; es: Temas de las publicaciones; pl: Tematy publikacji" 
+            e.Status = FS_GROUP_ROOT_PUBLISHED_FOLDER
+            e.AccCode = ACC_GROUP_PUBLISHED)
     end if
 
-    result = self.FeedsRoot
+    result = self.PublishedFolder
 
---    result = self.FeedsRoot
---    if result = null then
---        result = self.AllFolders.newElement(element.Title = "Feeds" and element.Summary="Current questions about TILOS, bug reports, and suggestions for new features" and element.Status = FS_GROUP_ROOT_FEEDS_FOLDER)
---        result.AccCode = ACC_GROUP
---        result.Kind = FK_FOLDER
---        result.RecalculateLocationInfo
---    end if
---
 
-context Group::GetLatestPostsFolder: Folder
+context Group::GetLatestsFolder: Folder
 post:
-    if self.LatestPosts.isNull then
-        self.LatestPosts = self.AllFolders.newElement(e | 
-            e.Title = "__; en: Latest posts; es: Últimas entradas; pl: Najnowsze wpisy"
-            e.Status = FS_GROUP_LATEST_POSTS_FOLDER
+    if self.LatestsFolder.isNull then
+        self.LatestsFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: Latest; es: Últimas; pl: Najnowsze"
+            e.Status = FS_GROUP_LATESTS_FOLDER
             e.Kind = FK_FEED
-            e.AccCode = ACC_GROUP)
+            e.AccCode = ACC_GROUP_PUBLISHED)
     end if
 
-    result = self.LatestPosts
+    result = self.LatestsFolder
 
 
-context Group::GetConfidentialPostsFolder: Folder
+context Group::GetConfidentialFolder: Folder
 post:
-    if self.ConfidentialPosts.isNull then
-        self.ConfidentialPosts = self.AllFolders.newElement(e | 
-            e.Title = "__; en: Confidential posts; es: Entradas confidenciales; pl: Wpisy poufne"
-            e.Status = FS_GROUP_CONFIDENTIAL_POSTS_FOLDER
+    if self.ConfidentialFolder.isNull then
+        self.ConfidentialFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: Confidential; es: Confidencial; pl: Poufne"
+            e.Status = FS_GROUP_ROOT_CONFIDENTIAL_FOLDER
             e.Kind = FK_FEED
-            e.AccCode = ACC_GROUP)
+            e.AccCode = ACC_GROUP_CONFIDENTIAL)
     end if
 
-    result = self.ConfidentialPosts
+    result = self.ConfidentialFolder
 
 context Group::MakeFeedsFolders() : string
 post:
 
-    self.GetLatestPostsFolder  
-    self.GetConfidentialPostsFolder
+    self.GetLatestsFolder  
+    self.GetConfidentialFolder
 
-    let feeds: Folder = self.GetFeedsRootFolder
+    let feeds: Folder = self.GetPublishedFolder
     let link: FolderFolder
     
     if feeds.Folders.count = 0 then
@@ -117,19 +116,62 @@ post:
 
 
 
+context User::GetConfidentialFolder: Folder
+post:
+    if self.ConfidentialFolder.isNull then
+        self.ConfidentialFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: My Confidential; es: Mi confidencial; pl: Moje poufne"
+            e.Status = FS_USER_ROOT_CONFIDENTIAL_FOLDER
+            e.Kind = FK_FEED
+            e.AccCode = ACC_USER_CONFIDENTIAL)
+    end if
+
+    result = self.ConfidentialFolder
+
+
+context User::GetNewsFolder: Folder
+post:
+    if self.NewsFolder.isNull then
+        self.NewsFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: News; es: Noticias; pl: Aktualności"
+            e.Status = FS_USER_NEWS_FOLDER
+            e.Kind = FK_FEED
+            e.AccCode = ACC_USER)
+    end if
+
+    result = self.NewsFolder
+
+context User::GetDraftsFolder: Folder
+post:
+    if self.DraftsFolder.isNull then
+        self.DraftsFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: My Drafts; es: Mis borradores; pl: Moje szkice"
+            e.Status = FS_USER_DRAFTS_FOLDER
+            e.Kind = FK_FEED
+            e.AccCode = ACC_USER)
+    end if
+
+    result = self.DraftsFolder
+
+
+context User::GetPublishedFolder: Folder
+post:
+    if self.PublishedFolder.isNull then
+        self.PublishedFolder = self.AllFolders.newElement(e | 
+            e.Title = "__; en: My Publications; es: Mis publicaciones; pl: Moje publikacje"
+            e.Status = FS_USER_PUBLISHED_FOLDER
+            e.Kind = FK_FEED
+            e.AccCode = ACC_USER)
+    end if
+
+    result = self.PublishedFolder
+
 context User::MakeFeedsFolders() : string
 post:
-    if self.MySentPosts = null then
-        self.MySentPosts = self.AllFolders.newElement(element.Title = "__; en: My posts; es: Mis publicaciones; pl: Moje posty" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_SENT_POSTS_FOLDER)
-    end if
-
-    if self.MyDraftPosts = null then
-        self.MyDraftPosts = self.Folders.newElement(element.Title = "__; en: My draft posts; es: Mis borradores de entradas; pl: Moje szkice wpisów" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_DRAFT_POSTS_FOLDER)
-    end if
-
-    if self.MyFeed = null then
-        self.MyFeed = self.Folders.newElement(element.Title = "__; en: News; es: Noticias; pl: Wiadomości" and element.Kind = FK_FEED and element.AccCode = ACC_USER and element.Status = FS_USER_MY_FEED_FOLDER)
-    end if
+    self.GetConfidentialFolder.RecalculateLocationInfo
+    self.GetNewsFolder.RecalculateLocationInfo
+    self.GetDraftsFolder.RecalculateLocationInfo
+    self.GetPublishedFolder.RecalculateLocationInfo
 
     result = "Done"
 
@@ -145,18 +187,14 @@ post:
         n.Summary = summary
         n.Content = content
         n.Kind = NK_THREAD
-        n.State = NS_SCRATCH
+        n.State = NS_NOTE
         n.Group = group) in
 
     result = self.AttachNote(note, 0, NR_SCRATCH)
 
 
 context Note::SaveScratchAsDraft(title: string, summary: string, content: string): string
-pre:
-    self.Kind = NK_THREAD and self.State = NS_SCRATCH
 post:
-    self.State = NS_DRAFT
-    
     if title.NotEmpty then
         self.Title = title
     end if
@@ -178,7 +216,7 @@ post:
         end if
         )
 
-    --self.CreatedBy.MyDraftPosts.AttachNote(self)
+    --self.CreatedBy.DraftsFolder.AttachNote(self)
 
     result = self.href()
 
@@ -188,21 +226,23 @@ post:
 
 
 admin context Note::PublishThreadA : Note
-pre:
-    self.Kind = NK_THREAD and (self.State = NS_DRAFT or self.State = NS_SCRATCH)
 post:
-    self.State = NS_LATEST
+    if self.Kind <> NK_THREAD then
+        self.Kind = NK_THREAD
+    end if
+
+    self.State = NS_PUBLISHED
 
     self.InFolders.select(element.Role = NR_DRAFT).removeAll
     self.InFolders.select(element.Role = NR_SCRATCH).removeAll
-    --self.CreatedBy.MyDraftPosts.select(element.Note = self).removeAll
+    --self.CreatedBy.DraftsFolder.select(element.Note = self).removeAll
     
-    self.CreatedBy.MySentPosts.AttachNote(self)
-    self.CreatedBy.MyFeed.AttachNote(self)
-    self.CreatedBy.MyFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+    self.CreatedBy.PublishedFolder.AttachNote(self)
+    self.CreatedBy.NewsFolder.AttachNote(self)
+    self.CreatedBy.NewsFolder.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
 
     -- needs ACC_READWRITE
-    self.Group.GetLatestPostsFolder.AttachNote(self)
+    self.Group.GetLatestsFolder.AttachNote(self)
     self.Group.InformInterestedUsers(self)
 
     self.UpdateMetaInfo()
@@ -216,20 +256,22 @@ post:
 
 
 admin context Note::SendThreadAsConfidentialA: Note
-pre:
-    self.Kind = NK_THREAD and (self.State = NS_DRAFT or self.State = NS_SCRATCH)
 post:
+    if self.Kind <> NK_THREAD then
+        self.Kind = NK_THREAD
+    end if
+
     self.State = NS_CONFIDENTIAL
     
     self.InFolders.select(element.Role = NR_DRAFT).removeAll
     self.InFolders.select(element.Role = NR_SCRATCH).removeAll
     
-    self.CreatedBy.MySentPosts.AttachNote(self)
-    self.CreatedBy.MyFeed.AttachNote(self)
-    self.CreatedBy.MyFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+    self.CreatedBy.PublishedFolder.AttachNote(self)
+    self.CreatedBy.NewsFolder.AttachNote(self)
+    self.CreatedBy.NewsFolder.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
 
     -- needs ACC_READWRITE
-    self.Group.GetConfidentialPostsFolder.AttachNote(self)
+    self.Group.GetConfidentialFolder.AttachNote(self)
     
     self.UpdateMetaInfo()
 
@@ -245,24 +287,24 @@ post:
 admin context Note::PublishCustomNoteAsThreadA: boolean
 post:
     self.Kind = NK_THREAD
-    self.State = NS_LATEST
+    self.State = NS_PUBLISHED
 
-    user.MySentPosts.AttachNote(self)
-    user.MyFeed.AttachNote(self)
+    user.PublishedFolder.AttachNote(self)
+    user.NewsFolder.AttachNote(self)
     
-    group.GetLatestPostsFolder.AttachNote(self)
+    group.GetLatestsFolder.AttachNote(self)
     self.UpdateMetaInfo()
     result = true
 
 
 context Note::CanMoveToCategory: boolean
 post:
-    result = self.Group.LatestPosts.acc > ACC_READ
+    result = self.Group.LatestsFolder.acc > ACC_READ
 
 context Note::MoveMeToFeed(catLink: FolderFolder): Note
 post:
     let category :Folder = catLink.Folder
-    self.Group.LatestPosts.MoveThreadToFeed(self, category)
+    self.Group.LatestsFolder.MoveThreadToFeed(self, category)
     result = self
 
 
@@ -275,10 +317,6 @@ pre category is not a Feed:
     category.Kind = FK_FEED
 post:
 
-    if thread.State <= NS_LATEST then
-        thread.State = NS_REVIEWED
-    end if
-    
     self.Notes.select(element.Note = thread).removeAll              -- remove from current feed
     let link: FolderNote = category.AttachNote(thread)              -- add to new feed
 
@@ -299,16 +337,39 @@ post:
     let note: Note = self.CreatedNotes.newElement(n | 
             n.Content = content
             n.Kind = NK_COMMENT
-            n.State = NS_DRAFT
+            n.State = NS_NOTE
             n.Group = group) in
 
     -- needs ACC_READWRITE
     thread.Notes.newElement(element.Note = note and element.Status = STATUS_DRAFT)
     
-    --self.MyDraftPosts.AttachNote(note)
-    self.MyFeed.AttachNote(note, 0, NR_DRAFT)
+    --self.DraftsFolder.AttachNote(note)
+    self.NewsFolder.AttachNote(note, 0, NR_DRAFT)
 
     result = note
+
+
+context Note::AddComment(content: string) : Note
+post:
+    result = self.AddCommentA(content)
+
+admin context Note::AddCommentA(content: string) : Note
+post:
+    let comment: Note = user.CreatedNotes.newElement(n | 
+            n.Content = content
+            --n.Title = 'Re: ' + self.Title
+            n.Kind = NK_COMMENT
+            n.State = NS_NOTE
+            n.Group = group) in
+
+    -- needs ACC_READWRITE
+    let order: integer = self.Notes.max(element.Order) + ORDER_STEP
+    self.AttachNote(comment, order, NR_COMMENT)
+
+    comment.UpdateMetaInfo()
+    group.InformInterestedUsers(comment)
+    result = comment
+    
 
 context Note::PublishComment(): boolean 
 post:
@@ -316,19 +377,19 @@ post:
 
 admin context Note::PublishCommentA(): boolean 
 pre:
-    self.Kind = NK_COMMENT and (self.State = NS_DRAFT or self.State = NS_SCRATCH)
+    self.Kind = NK_COMMENT
 post:
     let thread: Note = self.DraftCommentThread
     
-    self.State = NS_REVIEWED
+    self.State = NS_PUBLISHED
 
     self.InFolders.select(element.Role = NR_DRAFT).removeAll
     self.InFolders.select(element.Role = NR_SCRATCH).removeAll
 
-    --self.CreatedBy.MyDraftPosts.Notes.select(element.Note = self).removeAll
-    self.CreatedBy.MySentPosts.AttachNote(self)
-    self.CreatedBy.MyFeed.AttachNote(self)
-    self.CreatedBy.MyFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
+    --self.CreatedBy.DraftsFolder.Notes.select(element.Note = self).removeAll
+    self.CreatedBy.PublishedFolder.AttachNote(self)
+    self.CreatedBy.NewsFolder.AttachNote(self)
+    self.CreatedBy.NewsFolder.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
 
     -- needs ACC_READWRITE
     let order: integer = thread.Notes.max(element.Order) + ORDER_STEP
@@ -344,11 +405,7 @@ post:
 context Note::ThreadFolderInfo: JsonObject
 post:
 
-    if self.State <= NS_DRAFT then
-        result = null
-    else if self.State = NS_CONFIDENTIAL then
-        result = null
-    else
+    if self.AccCode = ACC_GROUP_PUBLISHED then
         let thread: Note
 
         if self.Kind = NK_COMMENT then
@@ -365,8 +422,10 @@ post:
             ref: './Folder/' + folder.Id,
             IsSubscribed: folder.IsSubscribed
         }
+    else
+        result = null
     end if
-    end if
+    
 
 context FolderNote::ThreadFolderInfo: JsonObject
 post:
@@ -413,7 +472,7 @@ post:
 
 context Note::DraftCommentThreadInfo: JsonObject
 post:
-    if self.Kind = NK_COMMENT and self.State = NS_DRAFT then
+    if self.Kind = NK_COMMENT and self.State = NS_NOTE then
         let thread: Note = self.DraftCommentThread
         if thread <> null then
             result = {
@@ -447,11 +506,11 @@ post:
 
     let thread: Note in
     let comment: Note in
-    let latestPosts: Folder = group.GetLatestPostsFolder
+    let latestPosts: Folder = group.GetLatestsFolder
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('Problem z automatycznym przeliczaniem prędkości postępu (Production Rate) przy modyfikacji stref profilu odległości', '',
+    thread = user.NewsFolder.NewScratchPost('Problem z automatycznym przeliczaniem prędkości postępu (Production Rate) przy modyfikacji stref profilu odległości', '',
                     '<p>Cześć wszystkim, pracuję nad harmonogramem modernizacji 45-kilometrowego odcinka linii kolejowej i napotkałem dziwny problem przy dynamicznym przeliczaniu <b>Production Rates</b>.</p>
                     <p>Zdefiniowałem zadanie liniowe <i>"Układanie toru bezstykowego"</i> powiązane z profilem wydajnościowym zależnym od ukształtowania terenu (zmienna kategoria gruntów i strefy łuków). Kiedy modyfikuję granice strefy odległości bezpośrednio w <code>Distance Profile</code> (np. zmiana stacji początkowej z <code>KM 12+400</code> na <code>KM 14+100</code>), TILOS nie odświeża automatycznie kąta nachylenia zadania na wykresie czasowo-przestrzennym.</p>
                     <p>W efekcie zadanie zachowuje stary czas trwania, a profil prędkości rozjeżdża się z geometrią trasy, powodując błędne wyliczenia na stykach sekcji. Dopiero wymuszenie pełnego przeliczenia harmonogramu przez <pre>F9 -> Recalculate Entire Project</pre> przywraca poprawny wektor, ale natychmiast rozbija mi to ręcznie ustawione bufory technologiczne (Distance/Time Buffers) względem robót podtorowych.</p>
@@ -468,7 +527,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('', '',
+    thread = user.NewsFolder.NewScratchPost('', '',
                     '<p>Czy istnieje możliwość zablokowania automatycznego przesuwania zadań typu <b>Clash/Crossing</b> podczas importu aktualizacji postępu z pliku XML?</p>
                     <p>Za każdym razem, gdy wgrywam faktyczne daty podwykonawcy, obiekty punktowe (np. przepusty w kilometrażu <code>KM 23+150</code>) tracą powiązanie z osią odległości i lądują na początku układu współrzędnych.</p>').Note
     
@@ -486,7 +545,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('Pomysł na funkcję: Szacowanie rezerwy czasowej (Total Float) w oparciu o strefy kolizyjne', '',
+    thread = user.NewsFolder.NewScratchPost('Pomysł na funkcję: Szacowanie rezerwy czasowej (Total Float) w oparciu o strefy kolizyjne', '',
                     '<p>Obecny algorytm CPM w TILOS liczy <b>Total Float</b> czysto w domenie czasu, całkowicie ignorując dostępność frontu robót w przestrzeni (Distance Axis).</p>
                     <p>Proponuję wprowadzenie metryki <code>Spatial-Time Float</code>. Jeśli zadanie B idzie za zadaniem A i zachowuje minimalny dystans bezpieczeństwa <code>min_dist = 500m</code>, całkowity zapas powinien uwzględniać nie tylko czas, ale i przestrzeń, w której ekipa może manewrować bez wstrzymywania robót.</p>
                     <p>Taki widok na wykresie Time-Distance byłby zbawieniem przy gęstym upakowaniu robót ziemnych.</p>').Note
@@ -500,7 +559,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('', '',
+    thread = user.NewsFolder.NewScratchPost('', '',
                     '<p>Szybkie pytanie o <b>Earned Value Management (EVM)</b> w widoku Time-Distance:</p>
                     <p>Jak najwygodniej zwizualizować <code>BCWS</code> vs <code>BCWP</code> w podziale na sekcje kilometrażowe, a nie tylko jako krzywe S w osi czasu? Chciałbym nałożyć histogram kosztów bezpośrednio pod profilem wysokościowym trasy.</p>').Note
                     
@@ -521,7 +580,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('Usterka: Błędne obliczanie ścieżki krytycznej przy pętlach technologicznych i nawrotach maszyn', '',
+    thread = user.NewsFolder.NewScratchPost('Usterka: Błędne obliczanie ścieżki krytycznej przy pętlach technologicznych i nawrotach maszyn', '',
                     '<p>Zgłaszam krytyczny problem w module analitycznym harmonogramu, który występuje przy modelowaniu robót z wykorzystaniem maszyn pracujących w pętli lub wykonujących nawroty (np. frezowanie i asfaltowanie wielowarstwowe).</p>
                     <p>Scenariusz testowy wygląda następująco:</p>
                     <p>Zadanie 1: <i>Frezowanie nawierzchni</i> (kierunek: rosnący kilometraż, od <code>KM 0+000</code> do <code>KM 10+000</code>).<br>
@@ -542,7 +601,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('', '',
+    thread = user.NewsFolder.NewScratchPost('', '',
                     '<p>Czy ktoś z Was generował raport <b>Line of Balance (LoB)</b> dla tunelu drążonego TBM przy zmiennych warunkach geologicznych?</p>
                     <p>Szukam sposobu na dynamiczne wyliczanie krzywej postępu drążenia w oparciu o importowane z Excela warstwy stratygraficzne gruntu. Chodzi o to, by zmiana kategorii skały automatycznie wydłużała czas przejścia TBM na danym interwale metrowym.</p>').Note
                     
@@ -555,7 +614,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('', '',
+    thread = user.NewsFolder.NewScratchPost('', '',
                     '<p>Uwaga na eksport danych do formatu <code>.xer</code> (Primavera P6) z projektów zawierających zadania nieliniowe!</p>
                     <p>TILOS przy eksporcie konwertuje zadania typu <b>Hammock</b> na standardowe <i>Task Dependent</i>, co powoduje kompletne rozjechanie się dat zakończenia pakietów robót wykończeniowych w P6. Przed wysłaniem pliku do Zamawiającego zawsze weryfikujcie sumaryczne czasy trwania.</p>').Note
 
@@ -573,7 +632,7 @@ post:
 
     -- =====================================================================================================================
 
-    thread = user.MyFeed.NewScratchPost('', '',
+    thread = user.NewsFolder.NewScratchPost('', '',
                     '<p>Potrzebuję dobrej praktyki dotyczącej zarządzania <b>oknami zamknięć torowych</b> (Track Possession Windows).</p>
                     <p>Jak w TILOS najlepiej zamodelować cykliczne zamknięcia nocne (np. codziennie <code>23:00 - 04:00</code> na odcinku <code>KM 15 - KM 20</code>), aby zadania dzienne automatycznie przerywały pracę i wznawiały ją w kolejnym oknie bez tworzenia 50 pojedynczych pasków zadań?</p>').Note
 
@@ -596,13 +655,13 @@ post:
 context Group::ClearSampleTUHData: string
 post:
     self.Members.forAll(m | 
-        m.User.MyDraftPosts.Notes.removeAll
-        m.User.MySentPosts.Notes.removeAll
-        m.User.MyFeed.Notes.removeAll
+        m.User.DraftsFolder.Notes.removeAll
+        m.User.PublishedFolder.Notes.removeAll
+        m.User.NewsFolder.Notes.removeAll
         
-        m.User.MyDraftPosts.delete
-        m.User.MySentPosts.delete
-        m.User.MyFeed.delete
+        m.User.DraftsFolder.delete
+        m.User.PublishedFolder.delete
+        m.User.NewsFolder.delete
 
         m.User.CreatedNotes.select(element.Kind = NK_THREAD).forAll(element.DeletePermanently())
         m.User.CreatedNotes.select(element.Kind = NK_COMMENT).forAll(element.DeletePermanently())
@@ -615,14 +674,14 @@ post:
 
     self.Members.removeAll
 
-    self.FeedsRoot.Folders.removeAll
-    self.FeedsRoot = null
+    self.PublishedFolder.Folders.removeAll
+    self.PublishedFolder = null
 
-    self.LatestPosts.Notes.removeAll
-    self.LatestPosts = null
+    self.LatestsFolder.Notes.removeAll
+    self.LatestsFolder = null
 
-    self.ConfidentialPosts.Notes.removeAll
-    self.ConfidentialPosts = null
+    self.ConfidentialFolder.Notes.removeAll
+    self.ConfidentialFolder = null
     
 context Group::MakeSampleTUHUsers
 post:
@@ -632,6 +691,9 @@ post:
     u = self.CreateMember("Jack Smith",   "jack@example.com")
         u.MakeFeedsFolders()
     u = self.CreateMember("Olivia Brown", "olivia@example.com")
+        u.MakeFeedsFolders()
+
+    u = self.CreateMember("Tommy Consultant", "consultant@example.com")
         u.MakeFeedsFolders()
 
     u = self.CreateMember("Admin Serviceman", "admin@example.com")
@@ -705,8 +767,6 @@ post:
 
 
 admin context Group::InformInterestedUsersA(note: Note)
-pre:
-    note.State <> NS_DRAFT
 post:
 
     let userFeed: Folder 
@@ -716,7 +776,7 @@ post:
 
         -- notify author of the thread
         if thread.CreatedBy <> note.CreatedBy then
-            userFeed = thread.CreatedBy.MyFeed
+            userFeed = thread.CreatedBy.NewsFolder
             userFeed.AttachNote(note)
             userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
         end if
@@ -724,7 +784,7 @@ post:
         -- notify all commenters 
         thread.Notes.forAll(
             if element.Note.CreatedBy <> note.CreatedBy then
-                userFeed = element.Note.CreatedBy.MyFeed
+                userFeed = element.Note.CreatedBy.NewsFolder
                 if not note.InFolders.exists(element.Folder = userFeed) then
                     userFeed.AttachNote(note)
                     userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
@@ -737,7 +797,7 @@ post:
         
         -- select(element.User <> note.CreatedBy). ?
         categoryFolder.SubscribedBy.forAll(
-            userFeed = element.User.MyFeed
+            userFeed = element.User.NewsFolder
             userFeed.AttachNote(note)
             userFeed.LimitFolderElementsTo(FEED_MAX_ELEMENTS_NO)
         )
@@ -745,3 +805,10 @@ post:
 
 
 
+context App::GetMemberAccessRole(tenant: string, gr: Group): string
+post:
+    if tenant = "tiloshub" then
+        result = "Customer"
+    else
+        result = "GroupMember"
+    end if

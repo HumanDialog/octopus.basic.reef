@@ -31,9 +31,9 @@ class Group
 
     ArchiveFolder:              Folder
     TrashFolder:                Folder
-    FeedsRoot:                  Folder
-    LatestPosts:                Folder
-    ConfidentialPosts:          Folder
+    PublishedFolder:            Folder
+    LatestsFolder:              Folder
+    ConfidentialFolder:         Folder
 	Notes(0..n):                Note            <backNav: Group>
     Tasks(0..n):                Task            <backNav: Group>
 
@@ -404,6 +404,10 @@ post:
     self.SharedFolders.ValidateSubTreeCanonicalPaths()
     self.ArchiveFolder.ValidateSubTreeCanonicalPaths()
     self.TrashFolder.ValidateSubTreeCanonicalPaths()
+    self.PublishedFolder.ValidateSubTreeCanonicalPaths()
+    self.LatestsFolder.ValidateSubTreeCanonicalPaths()
+    self.ConfidentialFolder.ValidateSubTreeCanonicalPaths()
+
 
     self.AllLists.forAll( element.ValidateSubTreeCanonicalPaths())
 

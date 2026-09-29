@@ -280,3 +280,25 @@ post:
   self.Groups.forAll(element.MakeFeedsFolders)
   result = "Done"
   
+
+
+context App::ChangeFeedFoldersTitles: string
+post:
+    result = self.ChangeFeedFoldersTitlesA()
+
+
+admin context App::ChangeFeedFoldersTitlesA: string
+post:
+    self.Users.forAll(
+        element.NewsFolder.Title = "__; en: News; es: Noticias; pl: Aktualności"
+        element.PublishedFolder.Title = "__; en: My Publications; es: Mis publicaciones; pl: Moje publikacje"
+        element.DraftsFolder.Title = "__; en: My Drafts; es: Mis borradores; pl: Moje szkice"
+    )
+
+    self.Groups.forAll(
+        element.ConfidentialFolder.Title = "__; en: Confidential; es: Confidencial; pl: Poufne"
+        element.LatestsFolder.Title = "__; en: Latest; es: Últimas; pl: Najnowsze"
+        element.PublishedFolder.Title = "__; en: Publication subjects; es: Temas de las publicaciones; pl: Tematy publikacji"
+    )
+
+    result = 'Done'
