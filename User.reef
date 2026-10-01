@@ -195,6 +195,23 @@ post:
 
     result = channel
 
+context User::GetNotificationsChannel: MessageChannel
+post:
+    result = self.MessageChannels.select(element.MessageChannel.Status = CS_USER_NOTIFICATIONS_CHANNEL).first.MessageChannel
+    if result = null then
+        let order: integer = self.MessageChannels.max(element.Order)
+        let umc: MessageChannelUser = self.MessageChannels.newElement(element.Order = order + ORDER_STEP)
+        umc.MessageChannel = new MessageChannel
+        umc.MessageChannel.Status = CS_USER_NOTIFICATIONS_CHANNEL
+        umc.MessageChannel.Title = "__; en: Notifications; es: Notificaciones; pl: Powiadomienia"
+        result = umc.MessageChannel
+    end if
+
+
+context User::AddNotification(text: string, attachements: JsonObject): Message
+post:
+    result = self.GetNotificationsChannel.AddSystemMessage(text, attachements)
+
 
 context User::AddWorkingPost(): Note
 post:

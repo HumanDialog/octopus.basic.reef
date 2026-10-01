@@ -101,11 +101,12 @@ post:
         case NK_THREAD
             result = '/note/' + self.Id
         case NK_COMMENT
-            --if self.State = NS_DRAFT then
-            --    result = '/note/' + self.InNotes.select(element.Status = STATUS_DRAFT).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
-            --else
-                result = '/note/' + self.InNotes.select(element.IsCanonical).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
-            --end if
+            result = '/note/' + self.Id
+        --    --if self.State = NS_DRAFT then
+        --    --    result = '/note/' + self.InNotes.select(element.Status = STATUS_DRAFT).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
+        --    --else
+        --        result = '/note/' + self.InNotes.select(element.IsCanonical).first.InNoteId + '?action=showsubnote&arg1=./Note/'  + self.Id
+        --    --end if
         case else
             result = '/note/' + self.Id
     end select
@@ -517,7 +518,8 @@ post:
 
     upFile = user.UploadedFiles.newElement(n |  n.Title = title
                                                 n.MimeType = mimeType
-                                                n.Size = size)
+                                                n.Size = size
+                                                n.Group = group)
 
     fileLink = self.Files.newElement( e |
         e.File = upFile
@@ -552,14 +554,18 @@ context Note::DettachNote(noteLink: NoteNote)
 pre:
     noteLink.InNote.Id = self.Id
 post:
+    let note: Note = noteLink.Note
     noteLink.delete
+    note.RecalculateLocationInfo()
 
 
 context Note::DettachFile(fileLink: NoteFile)
 pre:
     fileLink.Note.Id = self.Id
 post:
+    let f: UploadedFile = fileLink.File
     fileLink.delete
+    f.RecalculateLocationInfo()
 
 context Note::DeletePermanentlyNote(noteLink: NoteNote)
 post:

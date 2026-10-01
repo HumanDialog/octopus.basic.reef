@@ -533,7 +533,8 @@ post:
 
     upFile = user.UploadedFiles.newElement(n |  n.Title = title
                                                 n.MimeType = mimeType
-                                                n.Size = size)
+                                                n.Size = size
+                                                n.Group = group)
 
     if order = 0 then
         order = self.MaxOrder + ORDER_STEP
@@ -560,7 +561,7 @@ pre:
 post:
     let folder: Folder = folderLink.Folder
     folderLink.delete
-    folder.RecalculateStatus
+    folder.RecalculateLocationInfo()
 
 context Folder::DeletePermanentlyFolder(folderLink: FolderFolder)
 post:
@@ -954,7 +955,7 @@ pre:
 post:
     let note: Note = noteLink.Note
     noteLink.delete
-    note.RecalculateAccCode
+    note.RecalculateLocationInfo()
 
 context Folder::DeletePermanentlyNote(noteLink: FolderNote)
 post:
@@ -977,7 +978,9 @@ context Folder::DettachTask(taskLink: FolderTask)
 pre:
     taskLink.Folder.Id = self.Id
 post:
+    let task: Task = taskLink.Task
     taskLink.delete    -- Will the task be automatically deleted if this was the only reference to it?
+    task.RecalculateLocationInfo()
 
 
 context Folder::DeletePermanentlyTask(taskLink: FolderTask)
@@ -1001,7 +1004,9 @@ context Folder::DettachFile(fileLink: FolderFile)
 pre:
     fileLink.Folder.Id = self.Id
 post:
+    let f: UploadedFile = fileLink.File
     fileLink.delete
+    f.RecalculateLocationInfo()
 
 context Folder::DeletePermanentlyFile(fileLink: FolderFile)
 post:

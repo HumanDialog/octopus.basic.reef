@@ -1,4 +1,5 @@
 const CS_GROUP_ROOT_CHANNEL = 1
+const CS_USER_NOTIFICATIONS_CHANNEL = 10
 
 const MCU_SUBSCRIPTION      = 1
 const MCU_DIRECT            = 2
@@ -93,6 +94,12 @@ post:
     result.AttachClipboard(attachements)
     self.InformSubscribers()
 
+admin context MessageChannel::AddSystemMessage(text: string, optional attachements: JsonObject): Message
+post:
+    result = self.Messages.newElement(element.Date.SetUTCDate and element.Text=text)
+    result.AttachClipboard(attachements)
+    self.InformSubscribers()
+
 
 context Message::AttachClipboard(references: JsonObject): Message
 post:
@@ -178,7 +185,7 @@ post:
 
 context MessageChannel::GetTitle: string
 post:
-    if self.Status = CS_GROUP_ROOT_CHANNEL then
+    if self.Status = CS_GROUP_ROOT_CHANNEL or self.Status = CS_USER_NOTIFICATIONS_CHANNEL then
         result = self.Title
     else
         if self.Users.count > 0 then
@@ -220,12 +227,16 @@ post:
 
 context MessageChannelUser::Title: string
 post:
-    self.MessageChannel.Users.select(element.UserId <> self.UserId).forAll(e |
-        if not result.isEmpty then
-            result = result + ", "
-        end if
-        result = result + e.User.Name
-    )
+    if self.MessageChannel.Status = CS_USER_NOTIFICATIONS_CHANNEL then
+        result = self.MessageChannel.Title
+    else
+        self.MessageChannel.Users.select(element.UserId <> self.UserId).forAll(e |
+            if not result.isEmpty then
+                result = result + ", "
+            end if
+            result = result + e.User.Name
+        )
+    end if
 
 context MessageChannelUser::icon: string
 post:

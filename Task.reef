@@ -571,7 +571,8 @@ post:
 
     upFile = user.UploadedFiles.newElement(n |  n.Title = title
                                                 n.MimeType = mimeType
-                                                n.Size = size)
+                                                n.Size = size
+                                                n.Group = group)
     if order = 0 then
         order = self.MaxOrder + ORDER_STEP
     end if
@@ -610,14 +611,18 @@ context Task::DettachNote(noteLink: TaskNote)
 pre:
     noteLink.Task.Id = self.Id
 post:
+    let note: Note = noteLink.Note
     noteLink.delete
+    note.RecalculateLocationInfo()
 
 
 context Task::DettachFile(fileLink: TaskFile)
 pre:
     fileLink.Task.Id = self.Id
 post:
+    let f: UploadedFile = fileLink.File
     fileLink.delete
+    f.RecalculateLocationInfo()
 
 context Task::DeletePermanentlyNote(noteLink: TaskNote)
 post:

@@ -278,6 +278,48 @@ post:
     result = self
 
 
+context Note::WithdrawPublication : Note
+post:
+    result = self.WithdrawPublicationA
+
+
+admin context Note::WithdrawPublicationA : Note
+pre Note is not published:
+    self.AccCode = ACC_GROUP_PUBLISHED
+post:
+    self.State = NS_NOTE
+
+    self.InFolders.select(element.AccCode = ACC_GROUP_PUBLISHED).removeAll
+    self.InFolders.select(element.Status = FS_USER_PUBLISHED_FOLDER).removeAll
+    self.InFolders.select(element.Status = FS_USER_NEWS_FOLDER).removeAll
+    self.RecalculateLocationInfo()
+
+    self.UpdateMetaInfo()
+
+    result = self
+
+
+context Note::WithdrawConfidential : Note
+post:
+    result = self.WithdrawConfidentialA
+
+
+admin context Note::WithdrawConfidentialA : Note
+pre Note is not confidential:
+    self.AccCode = ACC_GROUP_CONFIDENTIAL
+post:
+    self.State = NS_NOTE
+
+    self.InFolders.select(element.AccCode = ACC_GROUP_CONFIDENTIAL).removeAll
+    self.InFolders.select(element.Status = FS_USER_PUBLISHED_FOLDER).removeAll
+    self.InFolders.select(element.Status = FS_USER_NEWS_FOLDER).removeAll
+    self.RecalculateLocationInfo()
+
+    self.UpdateMetaInfo()
+
+    result = self
+
+
 
 context Note::PublishCustomNoteAsThread: boolean
 post:
@@ -327,11 +369,12 @@ post:
     self.Group.InformInterestedUsers(thread)
 
 
-
+-- not used
 context User::NewDraftComment(content: string, thread: Note) : Note
 post:
     result = self.NewDraftCommentA(content, thread)
 
+-- not used
 admin context User::NewDraftCommentA(content: string, thread: Note) : Note
 post:
     let note: Note = self.CreatedNotes.newElement(n | 
@@ -367,14 +410,36 @@ post:
     self.AttachNote(comment, order, NR_COMMENT)
 
     comment.UpdateMetaInfo()
-    group.InformInterestedUsers(comment)
+    --group.InformInterestedUsers(comment)
+
+    self.AddCommmentNotifications(comment)
+
     result = comment
     
+admin context Note::AddCommmentNotifications(comment: Note)
+post:
+    let notificationText: string = comment.CreatedBy.Name + ' commented on your note.'
+    let threadLink: JsonObject = [{
+        id: self.Id,
+        typeName: 'Note'
+    }]
 
+    let originalAuthor: User = self.CreatedBy
+
+    originalAuthor.AddNotification(notificationText, threadLink)
+
+    notificationText = user.Name + " also commented on " + originalAuthor.Name + " note."
+    self.Notes.select(element.Role = NR_COMMENT and element.Note.CreatedBy <> originalAuthor and element.Note.CreatedBy <> user).forAll( nl: NoteNote |
+        nl.Note.CreatedBy.AddNotification(notificationText, threadLink)
+    )
+
+
+-- not used
 context Note::PublishComment(): boolean 
 post:
     result = self.PublishCommentA()
 
+-- not used
 admin context Note::PublishCommentA(): boolean 
 pre:
     self.Kind = NK_COMMENT
@@ -519,11 +584,9 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Znam ten ból. Obejście, które stosujemy: przypisz profil ponownie do zadania przez <code>Properties -> Quantity & Rates</code> zamiast modyfikować sam profil globalny. Wtedy przelicza wektor natychmiast bez ruszania buforów.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Zgłaszałem to do supportu – problem leży w relacjach <i>Start-Start with Distance Lag</i>. Sprawdź, czy w parametrach łańcucha nie masz ujemnego przesunięcia.</p>', 
-                        thread).PublishComment()
+    
+    thread.AddComment('<p>Znam ten ból. Obejście, które stosujemy: przypisz profil ponownie do zadania przez <code>Properties -> Quantity & Rates</code> zamiast modyfikować sam profil globalny. Wtedy przelicza wektor natychmiast bez ruszania buforów.</p>')
+    thread.AddComment('<p>Zgłaszałem to do supportu – problem leży w relacjach <i>Start-Start with Distance Lag</i>. Sprawdź, czy w parametrach łańcucha nie masz ujemnego przesunięcia.</p>')
 
     -- =====================================================================================================================
 
@@ -534,14 +597,9 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Sprawdź mapowanie pól w schemacie XML. Prawdopodobnie atrybut <code>DistanceStation</code> nie jest oznaczony jako klucz unikalny dla zadań punktowych.</p>', 
-                        thread).PublishComment()
-    
-    user.NewDraftComment('<p>Wystarczy zaznaczyć opcję <i>"Lock Spatial Coordinates on Data Date Update"</i> w ustawieniach głównych projektu.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p><b>+1</b>, mieliśmy dokładnie ten sam problem przy regularnej integracji z <i>Primavera P6</i>.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>Sprawdź mapowanie pól w schemacie XML. Prawdopodobnie atrybut <code>DistanceStation</code> nie jest oznaczony jako klucz unikalny dla zadań punktowych.</p>')
+    thread.AddComment('<p>Wystarczy zaznaczyć opcję <i>"Lock Spatial Coordinates on Data Date Update"</i> w ustawieniach głównych projektu.</p>')
+    thread.AddComment('<p><b>+1</b>, mieliśmy dokładnie ten sam problem przy regularnej integracji z <i>Primavera P6</i>.</p>')
 
     -- =====================================================================================================================
 
@@ -553,8 +611,7 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Genialny pomysł! Tradycyjny <b>Critical Path</b> często kłamie na projektach liniowych, bo ścieżka krytyczna przeskakuje po odległościach bez fizycznego sensu.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>Genialny pomysł! Tradycyjny <b>Critical Path</b> często kłamie na projektach liniowych, bo ścieżka krytyczna przeskakuje po odległościach bez fizycznego sensu.</p>')
 
 
     -- =====================================================================================================================
@@ -566,17 +623,10 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Użyj widoku <i>Distance Profile Chart</i> i dodaj warstwę z <b>Resource / Cost Assignment</b> z włączoną agregacją per sektor.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Pamiętaj tylko, żeby w definicji zadań mieć poprawnie przypisane <code>Cost Accounts</code>, inaczej wykres przestrzenny się spłaszczy do zera.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Niestety moduł EVM ma spore ograniczenia przy wskaźnikach <i>CPI/SPI</i> w ujęciu czysto kilometrażowym. My wyciągamy to przez API do <code>PowerBI</code>.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Robiłem tak na kontrakcie autostradowym – da się to ładnie złożyć, wyślę Ci szablon widoku <i>.tpl</i> na priv.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>Użyj widoku <i>Distance Profile Chart</i> i dodaj warstwę z <b>Resource / Cost Assignment</b> z włączoną agregacją per sektor.</p>')
+    thread.AddComment('<p>Pamiętaj tylko, żeby w definicji zadań mieć poprawnie przypisane <code>Cost Accounts</code>, inaczej wykres przestrzenny się spłaszczy do zera.</p>')
+    thread.AddComment('<p>Niestety moduł EVM ma spore ograniczenia przy wskaźnikach <i>CPI/SPI</i> w ujęciu czysto kilometrażowym. My wyciągamy to przez API do <code>PowerBI</code>.</p>')
+    thread.AddComment('<p>Robiłem tak na kontrakcie autostradowym – da się to ładnie złożyć, wyślę Ci szablon widoku <i>.tpl</i> na priv.</p>')
 
     -- =====================================================================================================================
 
@@ -593,11 +643,8 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>To stary mankament relacji przy ujemnym nachyleniu linii. Jedyny stabilny workaround to podział zadania na podsekcje i linkowanie relacjami punktowymi w miejscach planowanych mijanek.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Sprawdź, czy w opcjach kalkulacji CPM nie masz zaznaczonej flagi <code>Continuous Activity Logic</code>. Wyłączenie jej potrafi zlikwidować ten fałszywy <i>Negative Float</i>.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>To stary mankament relacji przy ujemnym nachyleniu linii. Jedyny stabilny workaround to podział zadania na podsekcje i linkowanie relacjami punktowymi w miejscach planowanych mijanek.</p>')
+    thread.AddComment('<p>Sprawdź, czy w opcjach kalkulacji CPM nie masz zaznaczonej flagi <code>Continuous Activity Logic</code>. Wyłączenie jej potrafi zlikwidować ten fałszywy <i>Negative Float</i>.</p>')
 
     -- =====================================================================================================================
 
@@ -608,8 +655,7 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Tak, definiujesz <i>Geological Profile</i> jako podkład pod osią odległości i wiążesz go z matrycą wydajności tarczy TBM przez formułę zmiennej prędkości <code>Rate = BaseRate * GeoFactor</code>.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>Tak, definiujesz <i>Geological Profile</i> jako podkład pod osią odległości i wiążesz go z matrycą wydajności tarczy TBM przez formułę zmiennej prędkości <code>Rate = BaseRate * GeoFactor</code>.</p>')
 
 
     -- =====================================================================================================================
@@ -621,14 +667,9 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Dzięki za ostrzeżenie! Właśnie zastanawiałem się, dlaczego P6 pokazuje mi inne daty na kamieniach milowych niż wykres <b>Time-Location</b>.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Najlepiej przygotować dedykowany szablon eksportu i wykluczyć Hammocki, zastępując je relacjami logicznymi <code>SS / FF</code> z odpowiednim offsetem.</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>P6 po prostu nie radzi sobie z natywną logiką rozciągania zadań TILOS-a bez twardych powiązań sieciowych.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>Dzięki za ostrzeżenie! Właśnie zastanawiałem się, dlaczego P6 pokazuje mi inne daty na kamieniach milowych niż wykres <b>Time-Location</b>.</p>')
+    thread.AddComment('<p>Najlepiej przygotować dedykowany szablon eksportu i wykluczyć Hammocki, zastępując je relacjami logicznymi <code>SS / FF</code> z odpowiednim offsetem.</p>')
+    thread.AddComment('<p>P6 po prostu nie radzi sobie z natywną logiką rozciągania zadań TILOS-a bez twardych powiązań sieciowych.</p>')
 
     -- =====================================================================================================================
 
@@ -639,11 +680,8 @@ post:
     thread.PublishThread()
     latestPosts.MoveThreadToFeed(thread, self)
 
-    user.NewDraftComment('<p>Skonfiguruj niestandardowy <b>Non-working Calendar</b> z przerwami nocnymi i przypisz go tylko do zadań w tej konkretnej strefie odległości (<i>Distance Zone Calendar</i>).</p>', 
-                        thread).PublishComment()
-
-    user.NewDraftComment('<p>Możesz też użyć warstwy <i>Time Distance Grid</i> i zdefiniować zakresy wyłączone z ruchu jako obiekty restrykcyjne typu <code>Constraint Zone</code> - zadanie przetnie strefę bez generowania podzadań.</p>', 
-                        thread).PublishComment()
+    thread.AddComment('<p>Skonfiguruj niestandardowy <b>Non-working Calendar</b> z przerwami nocnymi i przypisz go tylko do zadań w tej konkretnej strefie odległości (<i>Distance Zone Calendar</i>).</p>')
+    thread.AddComment('<p>Możesz też użyć warstwy <i>Time Distance Grid</i> i zdefiniować zakresy wyłączone z ruchu jako obiekty restrykcyjne typu <code>Constraint Zone</code> - zadanie przetnie strefę bez generowania podzadań.</p>')
 
 
     -- =====================================================================================================================
