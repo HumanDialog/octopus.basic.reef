@@ -93,6 +93,10 @@ context Note
 inv:
     self.NotesCount = self.Notes.count
 
+context Note::CommentsCount: integer
+post:
+    result = self.Notes.select(element.Role = NR_COMMENT).count
+
 context Note::href: string
 post:
     select case self.Kind
@@ -827,6 +831,10 @@ post:
 context NoteNote::NotesCount: integer
 post:
     result = self.Note.NotesCount
+
+context NoteNote::CommentsCount: integer
+post:
+    result = self.Note.CommentsCount
 
 
 context NoteNote::IsCanonical: boolean

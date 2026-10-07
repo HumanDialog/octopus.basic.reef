@@ -20,11 +20,11 @@ access role Tester: Acc Tester
 
     acc Folder = self.AccTester
 
-    acc FolderFolder = self.InFolder.acc
+    acc FolderFolder = self.InFolder.Acc
 
-    acc FolderNote = self.Folder.acc
+    acc FolderNote = self.Folder.Acc
 
-    acc FolderTask = self.Folder.acc
+    acc FolderTask = self.Folder.Acc
 
     acc Note = self.AccTester
 
@@ -34,7 +34,7 @@ access role Tester: Acc Tester
 
     acc UploadedFile = self.AccTester
 
-    acc FolderFile = self.Folder.acc
+    acc FolderFile = self.Folder.Acc
 
     acc TaskFile = self.Task.AccTester
 

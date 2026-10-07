@@ -1692,6 +1692,10 @@ context FolderNote::NotesCount: integer
 post:
     result = self.Note.NotesCount
 
+context FolderNote::CommentsCount: integer
+post:
+    result = self.Note.CommentsCount
+
 context FolderNote::IsPinned: boolean
 post:
     result = self.Note.IsPinned

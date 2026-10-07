@@ -18,11 +18,11 @@ access role TUHCustomer: TILOS User
 
     acc Folder = self.AccMember
 
-    acc FolderFolder = self.InFolder.acc
+    acc FolderFolder = self.InFolder.Acc
 
-    acc FolderNote = self.Folder.acc
+    acc FolderNote = self.Folder.Acc
 
-    acc FolderTask = self.Folder.acc
+    acc FolderTask = self.Folder.Acc
 
     acc Note = self.AccMember
 
@@ -32,7 +32,7 @@ access role TUHCustomer: TILOS User
 
     acc UploadedFile = self.AccMember
 
-    acc FolderFile = self.Folder.acc
+    acc FolderFile = self.Folder.Acc
 
     acc TaskFile = self.Task.AccMember
 
@@ -60,11 +60,11 @@ access role TUHServiceman: TILOS Developer
 
     acc Folder = self.AccOwner
 
-    acc FolderFolder = self.InFolder.acc
+    acc FolderFolder = self.InFolder.Acc
 
-    acc FolderNote = self.Folder.acc
+    acc FolderNote = self.Folder.Acc
 
-    acc FolderTask = self.Folder.acc
+    acc FolderTask = self.Folder.Acc
 
     acc Note = self.AccOwner
 
@@ -75,7 +75,7 @@ access role TUHServiceman: TILOS Developer
     acc MessageChannelUser = self.AccOwner
 
     acc UploadedFile = self.AccOwner
-    acc FolderFile = self.Folder.acc
+    acc FolderFile = self.Folder.Acc
     acc TaskFile = self.Task.AccOwner
     acc NoteFile = self.Note.AccOwner
     acc NoteNote = self.Note.AccOwner

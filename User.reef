@@ -102,6 +102,9 @@ post:
     user.VerifyFolders()
     user.ValidateSubTreeCanonicalPaths()
 
+    self.SubscribePublishedFolders()
+    self.FillNewsFolder()
+    
 
 context User::GetBasketFolder: Folder
 post:
@@ -345,3 +348,47 @@ post:
 context User::Refa(note: Note): Note
 post:
     result = note
+
+
+context User::SubscribePublishedFolders
+post:
+    group.GetPublishedFolder().Folders.forAll(self.SubscribeFolder(element.Folder))
+    let latestFolder: Folder = group.GetLatestsFolder()
+    if latestFolder <> null then
+        self.SubscribeFolder(latestFolder)
+    end if
+
+context User::FillNewsFolder
+post:
+    let newsFolder: Folder = self.GetNewsFolder
+
+    let notesNo: integer in
+    let temporaryOrder: integer in
+    self.SubscribedFolders.forAll(uf :UserFolder |
+        notesNo = uf.Folder.Notes.count
+        uf.Folder.Notes.orderedBy("Order").iterate(e; i: integer=0 | 
+            if i >= notesNo - 20 then
+                temporaryOrder = e.Note.ModificationDate.GetUnixTime()
+                newsFolder.AttachNote(e.Note, temporaryOrder, NR_DRAFT)
+            end if
+            i = i + 1
+        )
+    )
+
+    
+    let allNotesNo: integer = newsFolder.Notes.count
+    newsFolder.Notes.orderedBy("Order").iterate(e; i:integer=0 | 
+        if i >= allNotesNo - 20 then
+            e.Role = NR_NONE
+        end if
+        i = i + 1
+    )
+
+    newsFolder.Notes.select(element.Role = NR_DRAFT).removeAll
+
+    let order: integer = MIN_USER_TASK_ORDER in
+    newsFolder.Notes.orderedBy('Order').forAll(element.Order = order and order = order + 1)
+    order = (order - MIN_USER_TASK_ORDER) * ORDER_STEP + 64
+    newsFolder.Notes.orderedBy('Order').revForAll(element.Order = order and order = order - ORDER_STEP)
+
+    

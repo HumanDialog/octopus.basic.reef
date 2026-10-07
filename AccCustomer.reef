@@ -17,11 +17,11 @@ access role Customer: Customer
 
     acc Folder = self.AccCustomer
 
-    acc FolderFolder = self.InFolder.acc
+    acc FolderFolder = self.InFolder.Acc
 
-    acc FolderNote = self.Folder.acc
+    acc FolderNote = self.Folder.Acc
 
-    acc FolderTask = self.Folder.acc
+    acc FolderTask = self.Folder.Acc
 
     acc Note = self.AccCustomer
 
@@ -31,7 +31,7 @@ access role Customer: Customer
 
     acc UploadedFile = self.AccCustomer
 
-    acc FolderFile = self.Folder.acc
+    acc FolderFile = self.Folder.Acc
 
     acc TaskFile = self.Task.AccCustomer
 

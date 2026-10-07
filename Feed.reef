@@ -426,7 +426,9 @@ post:
 
     let originalAuthor: User = self.CreatedBy
 
-    originalAuthor.AddNotification(notificationText, threadLink)
+    if comment.CreatedBy <> originalAuthor then 
+        originalAuthor.AddNotification(notificationText, threadLink)
+    end if
 
     notificationText = user.Name + " also commented on " + originalAuthor.Name + " note."
     self.Notes.select(element.Role = NR_COMMENT and element.Note.CreatedBy <> originalAuthor and element.Note.CreatedBy <> user).forAll( nl: NoteNote |
