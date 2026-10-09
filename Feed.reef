@@ -289,9 +289,9 @@ pre Note is not published:
 post:
     self.State = NS_NOTE
 
-    self.InFolders.select(element.AccCode = ACC_GROUP_PUBLISHED).removeAll
-    self.InFolders.select(element.Status = FS_USER_PUBLISHED_FOLDER).removeAll
-    self.InFolders.select(element.Status = FS_USER_NEWS_FOLDER).removeAll
+    self.InFolders.select(element.Folder.AccCode = ACC_GROUP_PUBLISHED).removeAll
+    self.InFolders.select(element.Folder.Status = FS_USER_PUBLISHED_FOLDER).removeAll
+    self.InFolders.select(element.Folder.Status = FS_USER_NEWS_FOLDER).removeAll
     self.RecalculateLocationInfo()
 
     self.UpdateMetaInfo()
@@ -310,9 +310,9 @@ pre Note is not confidential:
 post:
     self.State = NS_NOTE
 
-    self.InFolders.select(element.AccCode = ACC_GROUP_CONFIDENTIAL).removeAll
-    self.InFolders.select(element.Status = FS_USER_PUBLISHED_FOLDER).removeAll
-    self.InFolders.select(element.Status = FS_USER_NEWS_FOLDER).removeAll
+    self.InFolders.select(element.Folder.AccCode = ACC_GROUP_CONFIDENTIAL).removeAll
+    self.InFolders.select(element.Folder.Status = FS_USER_PUBLISHED_FOLDER).removeAll
+    self.InFolders.select(element.Folder.Status = FS_USER_NEWS_FOLDER).removeAll
     self.RecalculateLocationInfo()
 
     self.UpdateMetaInfo()
